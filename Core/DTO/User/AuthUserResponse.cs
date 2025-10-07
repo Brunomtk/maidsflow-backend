@@ -14,6 +14,11 @@ public class AuthUserResponse
     public int? CompanyId { get; set; }
     public int? ProfessionalId { get; set; }
 
+    public string? Language { get; set; }
+    public string? Theme { get; set; }
+
+    public string? RefreshToken { get; set; }
+
     public DateTime CreatedDate { get; set; }
     public DateTime UpdatedDate { get; set; }
 }

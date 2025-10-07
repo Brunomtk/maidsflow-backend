@@ -11,5 +11,9 @@ namespace Core.DTO.User
         public StatusEnum Status { get; set; } = StatusEnum.Active;
         public int? CompanyId { get; set; }
         public int? ProfessionalId { get; set; }
+        
+        // Preferências opcionais
+        public string? Language { get; set; } // "pt-br" ou "english"
+        public string? Theme { get; set; } // "claro" ou "escuro"
     }
 }

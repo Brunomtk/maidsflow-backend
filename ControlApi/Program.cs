@@ -125,7 +125,8 @@ builder.Services.AddCors(options =>
 
                 if (origin.Equals("http://localhost:3000", StringComparison.OrdinalIgnoreCase)) return true;
                 if (origin.Equals("http://localhost:3001", StringComparison.OrdinalIgnoreCase)) return true;
-                if (origin.Equals("https://maidsflow.vercel.app", StringComparison.OrdinalIgnoreCase)) return true;
+                if (origin.Equals("https://maidsflow.com", StringComparison.OrdinalIgnoreCase)) return true;
+
 
                 try
                 {

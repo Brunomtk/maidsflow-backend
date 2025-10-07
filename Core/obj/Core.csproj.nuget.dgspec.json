@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Core\\Core.csproj": {}
+    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\Noah\\DEV\\maidsflow-backend-adjusted\\maidsflow-backend\\Core\\Core.csproj": {}
   },
   "projects": {
-    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Core\\Core.csproj": {
+    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\Noah\\DEV\\maidsflow-backend-adjusted\\maidsflow-backend\\Core\\Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Core\\Core.csproj",
+        "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\Noah\\DEV\\maidsflow-backend-adjusted\\maidsflow-backend\\Core\\Core.csproj",
         "projectName": "Core",
-        "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Core\\Core.csproj",
+        "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\Noah\\DEV\\maidsflow-backend-adjusted\\maidsflow-backend\\Core\\Core.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Core\\obj\\",
+        "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\Noah\\DEV\\maidsflow-backend-adjusted\\maidsflow-backend\\Core\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

@@ -17,5 +17,16 @@ namespace Core.Models
         public int? CompanyId { get; set; }
 
         public int? ProfessionalId { get; set; }
+        
+        // Preferência de idioma do usuário: "pt-br" ou "english"
+        public string? Language { get; set; }
+        
+        // Preferência de tema do usuário: "claro" ou "escuro"
+        public string? Theme { get; set; }
+        
+        // Refresh token persistido para fluxo de "lembrar de mim"
+        public string? RefreshToken { get; set; }
+        
+        public DateTime? RefreshTokenExpiresAt { get; set; }
     }
 }

@@ -6,6 +6,7 @@ using Infrastructure.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services;
+using System.Linq;
 
 namespace API.Controllers
 {
@@ -31,8 +32,9 @@ namespace API.Controllers
             if (user == null || Encrypt.EncryptPassword(login.Password) != user.Password)
                 return Unauthorized("Invalid credentials");
 
-            var token = await _jwtManager.Authenticate(user);
+            var token = await _jwtManager.Authenticate(user, login.RememberMe);
             if (token == null) return Unauthorized("Token generation failed");
+            await _userService.UpdateRefreshToken(user.Id, token.RefreshToken, login.RememberMe ? DateTime.UtcNow.AddDays(30) : DateTime.UtcNow.AddDays(7));
 
             var response = new AuthUserResponse
             {
@@ -43,6 +45,9 @@ namespace API.Controllers
                 Status = user.Status,
                 Avatar = user.Avatar,
                 Token = token.Token,
+                RefreshToken = token.RefreshToken,
+                Language = user.Language,
+                Theme = user.Theme,
                 CompanyId = user.CompanyId,
                 ProfessionalId = user.ProfessionalId,
                 CreatedDate = user.CreatedDate,
@@ -61,6 +66,8 @@ namespace API.Controllers
                 Name = request.Name,
                 Email = request.Email,
                 Password = request.Password,
+                Language = request.Language,
+                Theme = request.Theme,
                 Role = request.Role,
                 Status = request.Status,
                 CompanyId = request.CompanyId,
@@ -109,7 +116,12 @@ namespace API.Controllers
         public async Task<IActionResult> Update(int userId, [FromBody] CreateUserRequest request)
         {
             var updated = await _userService.UpdateUser(request, userId);
-            return updated ? Ok(true) : BadRequest("Failed to update user");
+            if (updated)
+            {
+                await _userService.UpdateUserPreferences(userId, request.Language, request.Theme);
+                return Ok(true);
+            }
+            return BadRequest("Failed to update user");
         }
 
         [HttpDelete("{userId}")]
@@ -118,5 +130,53 @@ namespace API.Controllers
             var deleted = await _userService.DeleteUser(userId);
             return deleted ? Ok(true) : NotFound("User not found");
         }
+    
+        [AllowAnonymous]
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] TokenJWT body)
+        {
+            if (string.IsNullOrEmpty(body.RefreshToken)) return BadRequest("Missing refresh token");
+            var user = await _userService.GetByRefreshToken(body.RefreshToken);
+            if (user == null) return Unauthorized("Invalid refresh token");
+            if (user.RefreshTokenExpiresAt == null || user.RefreshTokenExpiresAt < DateTime.UtcNow) return Unauthorized("Refresh token expired");
+
+            var token = await _jwtManager.Authenticate(user, true); // keep remember-style lifespan on refresh
+            if (token == null) return Unauthorized("Token generation failed");
+
+            await _userService.UpdateRefreshToken(user.Id, token.RefreshToken, DateTime.UtcNow.AddDays(30));
+
+            var response = new AuthUserResponse
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email,
+                Role = user.Role,
+                Status = user.Status,
+                Avatar = user.Avatar,
+                Token = token.Token,
+                RefreshToken = token.RefreshToken,
+                CompanyId = user.CompanyId,
+                ProfessionalId = user.ProfessionalId,
+                Language = user.Language,
+                Theme = user.Theme,
+                CreatedDate = user.CreatedDate,
+                UpdatedDate = user.UpdatedDate
+            };
+            return Ok(response);
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            // best-effort: clear refresh token of current user if authenticated
+            var userIdClaim = User?.Claims?.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdClaim, out var userId))
+            {
+                await _userService.UpdateRefreshToken(userId, null, null);
+                return Ok(true);
+            }
+            return BadRequest("Unable to resolve current user");
+        }
+    
     }
 }

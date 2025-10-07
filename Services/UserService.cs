@@ -10,6 +10,21 @@ namespace Services
 {
     public class UserService : IUserService
     {
+        public async Task<User?> GetByRefreshToken(string refreshToken)
+        {
+            return await _unitOfWork.Users.GetByRefreshToken(refreshToken);
+        }
+
+        public async Task<bool> UpdateRefreshToken(int userId, string? refreshToken, DateTime? expiresAt)
+        {
+            var user = await _unitOfWork.Users.GetById(userId);
+            if (user == null) return false;
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiresAt = expiresAt;
+            await _unitOfWork.SaveAsync();
+            return true;
+        }
+
         private readonly IUnitOfWork _unitOfWork;
 
         public UserService(IUnitOfWork unitOfWork)
@@ -87,9 +102,20 @@ namespace Services
 
             return result > 0;
         }
-    }
 
-    public interface IUserService
+        public async Task<bool> UpdateUserPreferences(int userId, string? language, string? theme)
+        {
+            var user = await _unitOfWork.Users.GetById(userId);
+            if (user == null) return false;
+            user.Language = language;
+            user.Theme = theme;
+            await _unitOfWork.SaveAsync();
+            return true;
+        }
+    
+}
+
+public interface IUserService
     {
         Task<bool> CreateUser(User user);
         Task<IEnumerable<User>> GetAllUsers();
@@ -98,5 +124,8 @@ namespace Services
         Task<User?> GetUserByEmail(string email);
         Task<bool> UpdateUser(CreateUserRequest userParam, int userId);
         Task<bool> DeleteUser(int userId);
+        Task<bool> UpdateRefreshToken(int userId, string? refreshToken, DateTime? expiresAt);
+        Task<User?> GetByRefreshToken(string refreshToken);
+        Task<bool> UpdateUserPreferences(int userId, string? language, string? theme);
     }
 }

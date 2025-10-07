@@ -36,11 +36,17 @@ namespace Infrastructure.Repositories
                 )
                 .GetPagedAsync(filtersDTO.pageNumber, filtersDTO.pageSize);
         }
-    }
 
-    public interface IUserRepository : IGenericRepository<User>
+    public async Task<User?> GetByRefreshToken(string refreshToken)
+    {
+        return await _dbContext.Set<User>().FirstOrDefaultAsync(x => x.RefreshToken == refreshToken);
+    }
+}
+
+public interface IUserRepository : IGenericRepository<User>
     {
         Task<User?> GetUserByEmail(string email);
         Task<PagedResult<User>> GetAllUsuariosPaged(FiltersDTO filtersDTO);
+        Task<User?> GetByRefreshToken(string refreshToken);
     }
 }
