@@ -112,14 +112,20 @@ builder.Host.UseSerilog((context, loggerConfig) =>
 });
 
 // -----------------------------
-// CORS — origens explícitas
+// CORS — origens explícitas (http e https)
 // -----------------------------
 var allowedOrigins = new[]
 {
+    "http://localhost:3000",
+    "https://localhost:3000",
+
+    "http://maidsflow.com",
     "https://maidsflow.com",
+    "http://www.maidsflow.com",
     "https://www.maidsflow.com",
+
     "http://138.197.119.101",
-    "http://localhost:3000"
+    "https://138.197.119.101"
 };
 
 builder.Services.AddCors(options =>
@@ -130,8 +136,9 @@ builder.Services.AddCors(options =>
             .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod();
-        // Se usar cookies, habilite:
+        // Se precisar enviar cookies/credenciais cross-site, habilite:
         // .AllowCredentials();
+        // e GARANTA que o Nginx não injeta Access-Control-Allow-* (deixe o backend cuidar)
     });
 });
 
@@ -160,12 +167,15 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
     app.UseSwaggerUI();
 }
 
+// Se usa Npgsql em algum ponto legado
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
+// Deve vir BEM no começo do pipeline, antes de redirecionamentos
 app.UseForwardedHeaders();
 
 app.UseRouting();
 
+// CORS precisa vir após Routing e antes de Auth
 app.UseCors("CorsPolicy");
 
 // Em produção/homolog SEM HTTPS direto no Kestrel, deixe desabilitado
@@ -192,4 +202,5 @@ app.UseAuthorization();
 app.MigrateDatabase();
 
 app.MapControllers();
+
 app.Run();
