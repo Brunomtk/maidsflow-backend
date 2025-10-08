@@ -16,7 +16,7 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // -----------------------------
-// DI: Repositórios/Serviços + Db (feito dentro de AddDIServices)
+// DI: Repositórios/Serviços + Db
 // -----------------------------
 builder.Services.AddDIServices(builder.Configuration);
 
@@ -112,17 +112,26 @@ builder.Host.UseSerilog((context, loggerConfig) =>
 });
 
 // -----------------------------
-// CORS — Liberado para QUALQUER origem (sem credenciais)
+// CORS — origens explícitas
 // -----------------------------
+var allowedOrigins = new[]
+{
+    "https://maidsflow.com",
+    "https://www.maidsflow.com",
+    "http://138.197.119.101",
+    "http://localhost:3000"
+};
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("CorsPolicy", policy =>
     {
         policy
-            .AllowAnyOrigin()  // Não use junto com AllowCredentials()
-            .AllowAnyMethod()
-            .AllowAnyHeader();
-        // .WithExposedHeaders("Content-Disposition"); // descomente se precisar expor cabeçalhos
+            .WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+        // Se usar cookies, habilite:
+        // .AllowCredentials();
     });
 });
 
@@ -133,15 +142,11 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
 
-    // Proxy/LB conhecido (IP público do seu Nginx/LB)
-    options.KnownProxies.Add(IPAddress.Parse("209.97.149.15"));
+    // Se o Nginx proxyia local -> Kestrel, use loopback:
+    options.KnownProxies.Add(IPAddress.Parse("127.0.0.1"));
 
-    // Em alguns ambientes o header pode aparecer fora de ordem;
-    // isso evita descartes indevidos.
     options.RequireHeaderSymmetry = false;
-
-    // Se existir mais de um proxy no caminho, ajuste o limite:
-    // options.ForwardLimit = 2;
+    // options.ForwardLimit = 2; // ajuste se houver mais proxies
 });
 
 var app = builder.Build();
@@ -157,13 +162,17 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
-// Deve vir cedo no pipeline, antes de autenticação/autorização
 app.UseForwardedHeaders();
 
-// Aplicar CORS liberado
-app.UseCors("AllowAll");
+app.UseRouting();
 
-app.UseHttpsRedirection();
+app.UseCors("CorsPolicy");
+
+// Em produção/homolog SEM HTTPS direto no Kestrel, deixe desabilitado
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseSerilogRequestLogging(options =>
 {
@@ -180,7 +189,6 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// 🔹 Aplica migrações usando sua extensão (que já resolve o DbContext certo)
 app.MigrateDatabase();
 
 app.MapControllers();
