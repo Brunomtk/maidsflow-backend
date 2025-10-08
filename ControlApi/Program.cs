@@ -112,36 +112,17 @@ builder.Host.UseSerilog((context, loggerConfig) =>
 });
 
 // -----------------------------
-// CORS
+// CORS — Liberado para QUALQUER origem (sem credenciais)
 // -----------------------------
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowSpecificOrigins", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
         policy
-            .SetIsOriginAllowed(origin =>
-            {
-                if (string.IsNullOrWhiteSpace(origin)) return false;
-
-                if (origin.Equals("http://localhost:3000", StringComparison.OrdinalIgnoreCase)) return true;
-                if (origin.Equals("http://localhost:3001", StringComparison.OrdinalIgnoreCase)) return true;
-                if (origin.Equals("https://maidsflow.com", StringComparison.OrdinalIgnoreCase)) return true;
-
-
-                try
-                {
-                    var host = new Uri(origin).Host;
-                    return host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase)
-                           && host.StartsWith("maidsflow", StringComparison.OrdinalIgnoreCase);
-                }
-                catch
-                {
-                    return false;
-                }
-            })
+            .AllowAnyOrigin()  // Não use junto com AllowCredentials()
             .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
+            .AllowAnyHeader();
+        // .WithExposedHeaders("Content-Disposition"); // descomente se precisar expor cabeçalhos
     });
 });
 
@@ -179,7 +160,9 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 // Deve vir cedo no pipeline, antes de autenticação/autorização
 app.UseForwardedHeaders();
 
-app.UseCors("AllowSpecificOrigins");
+// Aplicar CORS liberado
+app.UseCors("AllowAll");
+
 app.UseHttpsRedirection();
 
 app.UseSerilogRequestLogging(options =>
