@@ -30,5 +30,18 @@ namespace Core.DTO.Appointment
 
         public DateTime CreatedDate { get; set; }
         public DateTime UpdatedDate { get; set; }
+
+
+// Recurrence info
+public string? TimeZoneId { get; set; }
+public bool IsRecurring { get; set; }
+public string? RecurrenceRule { get; set; }
+public Guid? SeriesId { get; set; }
+public DateTime? RecurrenceEnd { get; set; }
+public int? OccurrenceCount { get; set; }
+public bool IsException { get; set; }
+public DateTime? OriginalStart { get; set; }
+public DateTime? OriginalEnd { get; set; }
+
     }
 }

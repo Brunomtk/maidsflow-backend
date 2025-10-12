@@ -1,0 +1,1 @@
+namespace Core.Enums{ public enum ChecklistItemStatus{ Conforme=1, NaoConforme=2, Danificado=3 } }

@@ -1,0 +1,1 @@
+namespace Core.Enums{ public enum ClientType{ Normal=1, Airbnb=2 } }

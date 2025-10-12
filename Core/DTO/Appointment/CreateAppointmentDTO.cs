@@ -20,5 +20,15 @@ namespace Core.DTO.Appointment
         public AppointmentType? Type { get; set; }
 
         public string? Notes { get; set; }
+
+
+public string? TimeZoneId { get; set; }        // e.g., "America/Sao_Paulo"
+
+// Recurrence
+public bool IsRecurring { get; set; }
+public string? RecurrenceRule { get; set; } // iCal RRULE
+public DateTime? RecurrenceEnd { get; set; } // local time (UI)
+public int? OccurrenceCount { get; set; }    // COUNT
+
     }
 }

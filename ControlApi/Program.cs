@@ -156,6 +156,12 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     // options.ForwardLimit = 2; // ajuste se houver mais proxies
 });
 
+builder.Services.AddScoped<ICustomerAreaRepository, CustomerAreaRepository>();
+builder.Services.AddScoped<IChecklistRepository, ChecklistRepository>();
+builder.Services.AddScoped<IChecklistItemRepository, ChecklistItemRepository>();
+builder.Services.AddScoped<IChecklistItemPhotoRepository, ChecklistItemPhotoRepository>();
+builder.Services.AddScoped<ICustomerAreaService, CustomerAreaService>();
+builder.Services.AddScoped<IChecklistService, ChecklistService>();
 var app = builder.Build();
 
 // -----------------------------

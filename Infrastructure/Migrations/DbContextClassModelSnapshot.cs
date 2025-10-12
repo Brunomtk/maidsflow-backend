@@ -49,11 +49,35 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime>("End")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsException")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRecurring")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Notes")
                         .HasColumnType("text");
 
+                    b.Property<int?>("OccurrenceCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("OriginalEnd")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("OriginalStart")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int?>("ProfessionalId")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("RecurrenceEnd")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RecurrenceRule")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("SeriesId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("Start")
                         .HasColumnType("timestamp with time zone");
@@ -64,6 +88,9 @@ namespace Infrastructure.Migrations
 
                     b.Property<int?>("TeamId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("TimeZoneId")
+                        .HasColumnType("text");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -213,6 +240,113 @@ namespace Infrastructure.Migrations
                     b.ToTable("CheckRecords", (string)null);
                 });
 
+            modelBuilder.Entity("Core.Models.Checklist", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AppointmentId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ObservacoesGerais")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ProfessionalId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppointmentId");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("ProfessionalId");
+
+                    b.ToTable("Checklists", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Models.ChecklistItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChecklistId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CustomerAreaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Observacoes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChecklistId");
+
+                    b.HasIndex("CustomerAreaId");
+
+                    b.ToTable("ChecklistItems", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Models.ChecklistItemPhoto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChecklistItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Descricao")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChecklistItemId");
+
+                    b.ToTable("ChecklistItemPhotos", (string)null);
+                });
+
             modelBuilder.Entity("Core.Models.Company", b =>
                 {
                     b.Property<int>("Id")
@@ -276,6 +410,10 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ClientType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<int>("CompanyId")
                         .HasColumnType("integer");
 
@@ -333,6 +471,41 @@ namespace Infrastructure.Migrations
                     b.HasIndex("CompanyId");
 
                     b.ToTable("Customers", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Models.CustomerArea", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Active")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId", "Name", "Active")
+                        .IsUnique();
+
+                    b.ToTable("CustomerAreas", (string)null);
                 });
 
             modelBuilder.Entity("Core.Models.GpsTracking", b =>
@@ -1093,6 +1266,61 @@ namespace Infrastructure.Migrations
                     b.Navigation("Team");
                 });
 
+            modelBuilder.Entity("Core.Models.Checklist", b =>
+                {
+                    b.HasOne("Core.Models.Appointment", "Appointment")
+                        .WithMany()
+                        .HasForeignKey("AppointmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Core.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Models.Professional", "Professional")
+                        .WithMany()
+                        .HasForeignKey("ProfessionalId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Appointment");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Professional");
+                });
+
+            modelBuilder.Entity("Core.Models.ChecklistItem", b =>
+                {
+                    b.HasOne("Core.Models.Checklist", "Checklist")
+                        .WithMany("Items")
+                        .HasForeignKey("ChecklistId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Models.CustomerArea", "CustomerArea")
+                        .WithMany()
+                        .HasForeignKey("CustomerAreaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Checklist");
+
+                    b.Navigation("CustomerArea");
+                });
+
+            modelBuilder.Entity("Core.Models.ChecklistItemPhoto", b =>
+                {
+                    b.HasOne("Core.Models.ChecklistItem", "ChecklistItem")
+                        .WithMany("Photos")
+                        .HasForeignKey("ChecklistItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChecklistItem");
+                });
+
             modelBuilder.Entity("Core.Models.Company", b =>
                 {
                     b.HasOne("Core.Models.Plan", "Plan")
@@ -1113,6 +1341,17 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Company");
+                });
+
+            modelBuilder.Entity("Core.Models.CustomerArea", b =>
+                {
+                    b.HasOne("Core.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("Core.Models.GpsTracking", b =>
@@ -1256,6 +1495,16 @@ namespace Infrastructure.Migrations
                         .WithMany("Users")
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Core.Models.Checklist", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("Core.Models.ChecklistItem", b =>
+                {
+                    b.Navigation("Photos");
                 });
 
             modelBuilder.Entity("Core.Models.Company", b =>

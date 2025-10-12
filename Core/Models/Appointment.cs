@@ -30,5 +30,18 @@ namespace Core.Models
         public AppointmentType Type { get; set; }
 
         public string? Notes { get; set; }
+
+
+// Recurrence fields
+public string? TimeZoneId { get; set; } // e.g., "America/Sao_Paulo"
+public bool IsRecurring { get; set; }                 // part of a recurrence?
+public string? RecurrenceRule { get; set; }           // RRULE iCal
+public Guid? SeriesId { get; set; }                   // series identifier
+public DateTime? RecurrenceEnd { get; set; }          // series end (UTC)
+public int? OccurrenceCount { get; set; }             // COUNT
+public bool IsException { get; set; }                 // instance turned into exception?
+public DateTime? OriginalStart { get; set; }          // UTC
+public DateTime? OriginalEnd { get; set; }            // UTC
+
     }
 }

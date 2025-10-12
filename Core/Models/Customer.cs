@@ -6,6 +6,8 @@ namespace Core.Models
 {
     public class Customer : BaseModel
     {
+        public ClientType ClientType { get; set; } = ClientType.Normal;
+
         public string Name { get; set; } = string.Empty;
 
         [EmailAddress]

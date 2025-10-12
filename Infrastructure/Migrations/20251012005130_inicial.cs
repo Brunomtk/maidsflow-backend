@@ -8,7 +8,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class Inicial : Migration
+    public partial class inicial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -274,6 +274,7 @@ namespace Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ClientType = table.Column<string>(type: "text", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Email = table.Column<string>(type: "text", nullable: false),
                     Phone = table.Column<string>(type: "text", nullable: false),
@@ -347,6 +348,10 @@ namespace Infrastructure.Migrations
                     Avatar = table.Column<string>(type: "text", nullable: true),
                     CompanyId = table.Column<int>(type: "integer", nullable: true),
                     ProfessionalId = table.Column<int>(type: "integer", nullable: true),
+                    Language = table.Column<string>(type: "text", nullable: true),
+                    Theme = table.Column<string>(type: "text", nullable: true),
+                    RefreshToken = table.Column<string>(type: "text", nullable: true),
+                    RefreshTokenExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -359,6 +364,29 @@ namespace Infrastructure.Migrations
                         principalTable: "Companies",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CustomerAreas",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CustomerId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
+                    Active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CustomerAreas", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CustomerAreas_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -521,6 +549,15 @@ namespace Infrastructure.Migrations
                     Status = table.Column<string>(type: "text", nullable: false),
                     Type = table.Column<string>(type: "text", nullable: false),
                     Notes = table.Column<string>(type: "text", nullable: true),
+                    TimeZoneId = table.Column<string>(type: "text", nullable: true),
+                    IsRecurring = table.Column<bool>(type: "boolean", nullable: false),
+                    RecurrenceRule = table.Column<string>(type: "text", nullable: true),
+                    SeriesId = table.Column<Guid>(type: "uuid", nullable: true),
+                    RecurrenceEnd = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    OccurrenceCount = table.Column<int>(type: "integer", nullable: true),
+                    IsException = table.Column<bool>(type: "boolean", nullable: false),
+                    OriginalStart = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    OriginalEnd = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
                     UpdatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
                 },
@@ -553,6 +590,96 @@ namespace Infrastructure.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "Checklists",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    AppointmentId = table.Column<int>(type: "integer", nullable: true),
+                    ProfessionalId = table.Column<int>(type: "integer", nullable: true),
+                    CustomerId = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    ObservacoesGerais = table.Column<string>(type: "text", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Checklists", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Checklists_Appointments_AppointmentId",
+                        column: x => x.AppointmentId,
+                        principalTable: "Appointments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_Checklists_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Checklists_Professionals_ProfessionalId",
+                        column: x => x.ProfessionalId,
+                        principalTable: "Professionals",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ChecklistItems",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ChecklistId = table.Column<int>(type: "integer", nullable: false),
+                    CustomerAreaId = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: true),
+                    Observacoes = table.Column<string>(type: "text", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ChecklistItems", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ChecklistItems_Checklists_ChecklistId",
+                        column: x => x.ChecklistId,
+                        principalTable: "Checklists",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ChecklistItems_CustomerAreas_CustomerAreaId",
+                        column: x => x.CustomerAreaId,
+                        principalTable: "CustomerAreas",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ChecklistItemPhotos",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ChecklistItemId = table.Column<int>(type: "integer", nullable: false),
+                    Url = table.Column<string>(type: "text", nullable: false),
+                    Descricao = table.Column<string>(type: "text", nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ChecklistItemPhotos", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ChecklistItemPhotos_ChecklistItems_ChecklistItemId",
+                        column: x => x.ChecklistItemId,
+                        principalTable: "ChecklistItems",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_Appointments_CompanyId",
                 table: "Appointments",
@@ -574,9 +701,45 @@ namespace Infrastructure.Migrations
                 column: "TeamId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ChecklistItemPhotos_ChecklistItemId",
+                table: "ChecklistItemPhotos",
+                column: "ChecklistItemId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ChecklistItems_ChecklistId",
+                table: "ChecklistItems",
+                column: "ChecklistId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ChecklistItems_CustomerAreaId",
+                table: "ChecklistItems",
+                column: "CustomerAreaId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Checklists_AppointmentId",
+                table: "Checklists",
+                column: "AppointmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Checklists_CustomerId",
+                table: "Checklists",
+                column: "CustomerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Checklists_ProfessionalId",
+                table: "Checklists",
+                column: "ProfessionalId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Companies_PlanId",
                 table: "Companies",
                 column: "PlanId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CustomerAreas_CustomerId_Name_Active",
+                table: "CustomerAreas",
+                columns: new[] { "CustomerId", "Name", "Active" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Customers_CompanyId",
@@ -648,10 +811,10 @@ namespace Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Appointments");
+                name: "Cancellations");
 
             migrationBuilder.DropTable(
-                name: "Cancellations");
+                name: "ChecklistItemPhotos");
 
             migrationBuilder.DropTable(
                 name: "CheckRecords");
@@ -678,13 +841,25 @@ namespace Infrastructure.Migrations
                 name: "Reviews");
 
             migrationBuilder.DropTable(
-                name: "Professionals");
+                name: "ChecklistItems");
 
             migrationBuilder.DropTable(
                 name: "InternalFeedbacks");
 
             migrationBuilder.DropTable(
+                name: "Checklists");
+
+            migrationBuilder.DropTable(
+                name: "CustomerAreas");
+
+            migrationBuilder.DropTable(
+                name: "Appointments");
+
+            migrationBuilder.DropTable(
                 name: "Customers");
+
+            migrationBuilder.DropTable(
+                name: "Professionals");
 
             migrationBuilder.DropTable(
                 name: "Teams");

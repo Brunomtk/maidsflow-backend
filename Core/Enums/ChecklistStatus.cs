@@ -1,0 +1,1 @@
+namespace Core.Enums{ public enum ChecklistStatus{ EmAndamento=1, Concluido=2 } }

@@ -1,3 +1,4 @@
+using Core.Enums;
 ﻿using System;
 using System.Linq;
 using System.Threading;
@@ -9,6 +10,14 @@ namespace Infrastructure
 {
     public class DbContextClass : DbContext
     {
+        public DbSet<ChecklistItemPhoto> ChecklistItemPhotos { get; set; } = null!;
+
+        public DbSet<ChecklistItem> ChecklistItems { get; set; } = null!;
+
+        public DbSet<Checklist> Checklists { get; set; } = null!;
+
+        public DbSet<CustomerArea> CustomerAreas { get; set; } = null!;
+
         public DbContextClass(DbContextOptions<DbContextClass> options)
             : base(options)
         {
@@ -36,7 +45,73 @@ namespace Infrastructure
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(modelBuilder);
+            
+            // Checklist module
+            modelBuilder.Entity<Customer>(entity =>
+            {
+                entity.Property(c => c.ClientType).HasConversion<string>();
+            });
+
+            modelBuilder.Entity<CustomerArea>(entity =>
+            {
+                entity.ToTable("CustomerAreas");
+                entity.HasKey(a => a.Id);
+                entity.Property(a => a.Name).IsRequired().HasMaxLength(120);
+                entity.Property(a => a.Active).HasDefaultValue(true);
+                entity.HasOne(a => a.Customer)
+                      .WithMany()
+                      .HasForeignKey(a => a.CustomerId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(a => new { a.CustomerId, a.Name, a.Active }).IsUnique();
+            });
+
+            modelBuilder.Entity<Checklist>(entity =>
+            {
+                entity.ToTable("Checklists");
+                entity.HasKey(c => c.Id);
+                entity.Property(c => c.Status).HasConversion<string>();
+                entity.HasOne(c => c.Customer)
+                      .WithMany()
+                      .HasForeignKey(c => c.CustomerId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            
+                entity.HasOne(c => c.Appointment)
+                      .WithMany()
+                      .HasForeignKey(c => c.AppointmentId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(c => c.Professional)
+                      .WithMany()
+                      .HasForeignKey(c => c.ProfessionalId)
+                      .OnDelete(DeleteBehavior.SetNull);
+        });
+
+            modelBuilder.Entity<ChecklistItem>(entity =>
+            {
+                entity.ToTable("ChecklistItems");
+                entity.HasKey(i => i.Id);
+                entity.Property(i => i.Status).HasConversion<string>().IsRequired(false);
+                entity.HasOne(i => i.Checklist)
+                      .WithMany(c => c.Items)
+                      .HasForeignKey(i => i.ChecklistId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(i => i.CustomerArea)
+                      .WithMany()
+                      .HasForeignKey(i => i.CustomerAreaId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<ChecklistItemPhoto>(entity =>
+            {
+                entity.ToTable("ChecklistItemPhotos");
+                entity.HasKey(p => p.Id);
+                entity.Property(p => p.Url).IsRequired();
+                entity.HasOne(p => p.ChecklistItem)
+                      .WithMany(i => i.Photos)
+                      .HasForeignKey(p => p.ChecklistItemId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+    base.OnModelCreating(modelBuilder);
 
             // Users
             modelBuilder.Entity<User>(entity =>

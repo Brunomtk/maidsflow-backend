@@ -21,6 +21,7 @@ namespace Core.DTO.Customer
         public string? Frequency { get; set; }
         public string? PaymentMethod { get; set; }
 
+        public ClientType? ClientType { get; set; }
         public StatusEnum? Status { get; set; }
     }
 }
