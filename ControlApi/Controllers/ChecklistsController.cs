@@ -10,8 +10,8 @@ namespace ControlApi.Controllers
     [Authorize]
     public class ChecklistsController : ControllerBase
     {
-        private readonly IChecklistService _service;
-        public ChecklistsController(IChecklistService service) => _service = service;
+        private readonly Services.IChecklistService _service;
+        public ChecklistsController(Services.IChecklistService service) => _service = service;
 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateChecklistDTO dto)
@@ -74,7 +74,24 @@ namespace ControlApi.Controllers
             return ok ? Ok() : NotFound();
         }
 
-        [HttpDelete("{id:int}")]
+        
+        [HttpPost("{id:int}/items")]
+        public async Task<IActionResult> AddItem(int id, [FromBody] CreateChecklistItemDTO dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            dto.ChecklistId = id;
+            var newItemId = await _service.AddItemAsync(dto);
+            if (newItemId <= 0) return NotFound();
+            return Ok(new { itemId = newItemId });
+        }
+
+        [HttpPost("{id:int}/ensure-items")]
+        public async Task<IActionResult> EnsureItems(int id)
+        {
+            var created = await _service.EnsureItemsFromAreasAsync(id);
+            return Ok(new { created });
+        }
+[HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
             var ok = await _service.DeleteAsync(id);

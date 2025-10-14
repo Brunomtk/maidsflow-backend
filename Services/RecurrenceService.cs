@@ -18,9 +18,9 @@ namespace Services
 
     public class RecurrenceService : IRecurrenceService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
 
-        public RecurrenceService(IUnitOfWork unitOfWork)
+        public RecurrenceService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }

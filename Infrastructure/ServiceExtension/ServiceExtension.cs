@@ -36,7 +36,7 @@ namespace Infrastructure.ServiceExtension
             
             
 
-            services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<Infrastructure.Repositories.IUnitOfWork, UnitOfWork>();
 
             return services;
         }

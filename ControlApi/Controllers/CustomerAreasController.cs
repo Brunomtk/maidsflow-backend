@@ -10,8 +10,8 @@ namespace ControlApi.Controllers
     [Authorize]
     public class CustomerAreasController : ControllerBase
     {
-        private readonly ICustomerAreaService _service;
-        public CustomerAreasController(ICustomerAreaService service) => _service = service;
+        private readonly Services.ICustomerAreaService _service;
+        public CustomerAreasController(Services.ICustomerAreaService service) => _service = service;
 
         [HttpGet("by-customer/{customerId:int}")]
         public IActionResult GetByCustomer(int customerId, [FromQuery] bool onlyActive = true)

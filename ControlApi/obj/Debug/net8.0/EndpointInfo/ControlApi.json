@@ -941,6 +941,71 @@
         }
       }
     },
+    "/api/Checklists/{id}/items": {
+      "post": {
+        "tags": [
+          "Checklists"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChecklistItemDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChecklistItemDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChecklistItemDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Checklists/{id}/ensure-items": {
+      "post": {
+        "tags": [
+          "Checklists"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/CheckRecord": {
       "get": {
         "tags": [
@@ -4757,6 +4822,28 @@
           "professionalId": {
             "type": "integer",
             "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateChecklistItemDTO": {
+        "required": [
+          "checklistId",
+          "customerAreaId"
+        ],
+        "type": "object",
+        "properties": {
+          "checklistId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "customerAreaId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "observacoes": {
+            "type": "string",
             "nullable": true
           }
         },

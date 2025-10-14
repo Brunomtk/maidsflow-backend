@@ -12,9 +12,9 @@ namespace Services
 {
     public class NotificationService : INotificationService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
 
-        public NotificationService(IUnitOfWork unitOfWork)
+        public NotificationService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }

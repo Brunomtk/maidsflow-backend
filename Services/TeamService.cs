@@ -10,9 +10,9 @@ namespace Services
 {
     public class TeamService : ITeamService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
 
-        public TeamService(IUnitOfWork unitOfWork)
+        public TeamService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }

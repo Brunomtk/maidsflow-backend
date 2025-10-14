@@ -506,6 +506,43 @@
   },
   {
     "ContainingType": "ControlApi.Controllers.ChecklistsController",
+    "Method": "EnsureItems",
+    "RelativePath": "api/Checklists/{id}/ensure-items",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.ChecklistsController",
+    "Method": "AddItem",
+    "RelativePath": "api/Checklists/{id}/items",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "Core.DTO.Checklist.CreateChecklistItemDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.ChecklistsController",
     "Method": "UpdateMeta",
     "RelativePath": "api/Checklists/{id}/meta",
     "HttpMethod": "PUT",

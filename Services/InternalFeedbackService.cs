@@ -20,9 +20,9 @@ namespace Services
 
     public class InternalFeedbackService : IInternalFeedbackService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
 
-        public InternalFeedbackService(IUnitOfWork unitOfWork)
+        public InternalFeedbackService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }

@@ -10,9 +10,9 @@ namespace Services
 {
     public class PaymentService : IPaymentService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
 
-        public PaymentService(IUnitOfWork unitOfWork)
+        public PaymentService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }

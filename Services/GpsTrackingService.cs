@@ -19,9 +19,9 @@ namespace Services
 
     public class GpsTrackingService : IGpsTrackingService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
 
-        public GpsTrackingService(IUnitOfWork unitOfWork)
+        public GpsTrackingService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }

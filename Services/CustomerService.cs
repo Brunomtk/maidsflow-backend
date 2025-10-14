@@ -17,9 +17,9 @@ namespace Services
 
     public class CustomerService : ICustomerService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
 
-        public CustomerService(IUnitOfWork unitOfWork)
+        public CustomerService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }

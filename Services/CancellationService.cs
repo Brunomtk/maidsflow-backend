@@ -12,9 +12,9 @@ namespace Services
     public class CancellationService : ICancellationService
     {
         private readonly ICancellationRepository _repo;
-        private readonly IUnitOfWork _uow;
+        private readonly Infrastructure.Repositories.IUnitOfWork _uow;
 
-        public CancellationService(ICancellationRepository repo, IUnitOfWork uow)
+        public CancellationService(ICancellationRepository repo, Infrastructure.Repositories.IUnitOfWork uow)
         {
             _repo = repo;
             _uow = uow;

@@ -8,9 +8,9 @@ namespace Services
 {
     public class LeaderService : ILeaderService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
 
-        public LeaderService(IUnitOfWork unitOfWork)
+        public LeaderService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }

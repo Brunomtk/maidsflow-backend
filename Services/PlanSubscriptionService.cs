@@ -6,9 +6,9 @@ namespace Services
 {
     public class PlanSubscriptionService : IPlanSubscriptionService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
 
-        public PlanSubscriptionService(IUnitOfWork unitOfWork)
+        public PlanSubscriptionService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }

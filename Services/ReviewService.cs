@@ -19,9 +19,9 @@ namespace Services
 
     public class ReviewService : IReviewService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
 
-        public ReviewService(IUnitOfWork unitOfWork)
+        public ReviewService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }

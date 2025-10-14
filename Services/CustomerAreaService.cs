@@ -16,8 +16,8 @@ namespace Services
 
     public class CustomerAreaService : ICustomerAreaService
     {
-        private readonly IUnitOfWork _uow;
-        public CustomerAreaService(IUnitOfWork uow) => _uow = uow;
+        private readonly Infrastructure.Repositories.IUnitOfWork _uow;
+        public CustomerAreaService(Infrastructure.Repositories.IUnitOfWork uow) => _uow = uow;
 
         public async Task<CustomerArea?> CreateAsync(CreateCustomerAreaDTO dto)
         {

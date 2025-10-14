@@ -23,9 +23,9 @@ namespace Services
 
     public class CheckRecordService : ICheckRecordService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
 
-        public CheckRecordService(IUnitOfWork unitOfWork)
+        public CheckRecordService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }

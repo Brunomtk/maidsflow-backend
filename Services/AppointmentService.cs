@@ -8,9 +8,9 @@ namespace Services
 {
     public class AppointmentService : IAppointmentService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
 
-        public AppointmentService(IUnitOfWork unitOfWork)
+        public AppointmentService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }

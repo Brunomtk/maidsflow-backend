@@ -10,9 +10,9 @@ namespace Services
 {
     public class CompanyService : ICompanyService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
 
-        public CompanyService(IUnitOfWork unitOfWork)
+        public CompanyService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }

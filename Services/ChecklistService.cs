@@ -16,6 +16,8 @@ namespace Services
         Task<Infrastructure.ServiceExtension.PagedResult<Checklist>> GetPagedAsync(ChecklistFiltersDTO filters);
         Task<bool> UpdateItemAsync(UpdateChecklistItemDTO dto);
         Task<bool> AddPhotosAsync(AddChecklistItemPhotosDTO dto);
+        Task<int> AddItemAsync(CreateChecklistItemDTO dto);
+        Task<int> EnsureItemsFromAreasAsync(int checklistId);
         Task<bool> RemovePhotoAsync(int photoId);
         Task<bool> ConcludeAsync(int checklistId);
         Task<bool> UpdateMetaAsync(UpdateChecklistMetaDTO dto);
@@ -24,8 +26,8 @@ namespace Services
 
     public class ChecklistService : IChecklistService
     {
-        private readonly IUnitOfWork _uow;
-        public ChecklistService(IUnitOfWork uow) => _uow = uow;
+        private readonly Infrastructure.Repositories.IUnitOfWork _uow;
+        public ChecklistService(Infrastructure.Repositories.IUnitOfWork uow) => _uow = uow;
 
         public async Task<Checklist?> CreateAsync(CreateChecklistDTO dto)
         {
@@ -102,6 +104,57 @@ namespace Services
 
             _uow.Checklists.Update(ck);
             return await _uow.SaveAsync() > 0;
+        }
+
+        
+        public async Task<int> AddItemAsync(CreateChecklistItemDTO dto)
+        {
+            var ck = await _uow.Checklists.GetByIdWithItemsAsync(dto.ChecklistId);
+            if (ck == null) return 0;
+
+            var area = await _uow.CustomerAreas.GetByIdAsync(dto.CustomerAreaId);
+            if (area == null || !area.Active || area.CustomerId != ck.CustomerId) return 0;
+
+            // evita duplicar por área
+            var existing = ck.Items.FirstOrDefault(i => i.CustomerAreaId == area.Id);
+            if (existing != null) return existing.Id;
+
+            var item = new ChecklistItem
+            {
+                ChecklistId = ck.Id,
+                CustomerAreaId = area.Id,
+                Observacoes = dto.Observacoes
+            };
+
+            await _uow.ChecklistItems.Add(item);
+            await _uow.SaveAsync();
+            return item.Id;
+        }
+
+        public async Task<int> EnsureItemsFromAreasAsync(int checklistId)
+        {
+            var ck = await _uow.Checklists.GetByIdWithItemsAsync(checklistId);
+            if (ck == null) return 0;
+
+            var existingAreaIds = ck.Items.Select(i => i.CustomerAreaId).ToHashSet();
+            var areas = await _uow.CustomerAreas.QueryByCustomer(ck.CustomerId, onlyActive: true).ToListAsync();
+
+            int created = 0;
+            foreach (var area in areas)
+            {
+                if (!existingAreaIds.Contains(area.Id))
+                {
+                    await _uow.ChecklistItems.Add(new ChecklistItem
+                    {
+                        ChecklistId = ck.Id,
+                        CustomerAreaId = area.Id
+                    });
+                    created++;
+                }
+            }
+
+            if (created > 0) await _uow.SaveAsync();
+            return created;
         }
 
         public async Task<bool> DeleteAsync(int checklistId)

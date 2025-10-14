@@ -13,9 +13,9 @@ namespace Services
 {
     public class ProfessionalService : IProfessionalService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
 
-        public ProfessionalService(IUnitOfWork unitOfWork)
+        public ProfessionalService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }
