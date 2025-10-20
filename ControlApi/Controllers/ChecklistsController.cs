@@ -1,6 +1,11 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Core.DTO.Checklist;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Infrastructure;
 using Services;
 
 namespace ControlApi.Controllers
@@ -10,8 +15,14 @@ namespace ControlApi.Controllers
     [Authorize]
     public class ChecklistsController : ControllerBase
     {
-        private readonly Services.IChecklistService _service;
-        public ChecklistsController(Services.IChecklistService service) => _service = service;
+        private readonly IChecklistService _service;
+        private readonly DbContextClass _db;
+
+        public ChecklistsController(IChecklistService service, DbContextClass db)
+        {
+            _service = service;
+            _db = db;
+        }
 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateChecklistDTO dto)
@@ -31,19 +42,32 @@ namespace ControlApi.Controllers
         [HttpGet]
         public async Task<IActionResult> GetPaged([FromQuery] ChecklistFiltersDTO filters)
         {
-            var page = await _service.GetPagedAsync(filters);
-            return Ok(page);
+            var paged = await _service.GetPagedAsync(filters);
+            return Ok(paged);
         }
 
-        [HttpPut("items")]
-        public async Task<IActionResult> UpdateItem([FromBody] UpdateChecklistItemDTO dto)
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete(int id)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-            var ok = await _service.UpdateItemAsync(dto);
+            var ok = await _service.DeleteAsync(id);
             return ok ? Ok() : NotFound();
         }
 
-        [HttpPost("items/photos")]
+        [HttpPut("items")]
+public async Task<IActionResult> UpdateItems([FromBody] List<UpdateChecklistItemDTO> dtos)
+{
+    if (!ModelState.IsValid) return BadRequest(ModelState);
+    if (dtos == null || dtos.Count == 0) return BadRequest("Lista vazia.");
+
+    var updated = 0;
+    foreach (var dto in dtos)
+    {
+        var ok = await _service.UpdateItemAsync(dto);
+        if (ok) updated++;
+    }
+    return updated > 0 ? Ok(new { updated }) : NotFound();
+}
+[HttpPost("items/photos")]
         public async Task<IActionResult> AddPhotos([FromBody] AddChecklistItemPhotosDTO dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -66,15 +90,14 @@ namespace ControlApi.Controllers
         }
 
         [HttpPut("{id:int}/meta")]
-        public async Task<IActionResult> UpdateMeta(int id, [FromBody] Core.DTO.Checklist.UpdateChecklistMetaDTO dto)
+        public async Task<IActionResult> UpdateMeta(int id, [FromBody] UpdateChecklistMetaDTO dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            if (dto.ChecklistId == 0) dto.ChecklistId = id;
+            dto.ChecklistId = id;
             var ok = await _service.UpdateMetaAsync(dto);
             return ok ? Ok() : NotFound();
         }
 
-        
         [HttpPost("{id:int}/items")]
         public async Task<IActionResult> AddItem(int id, [FromBody] CreateChecklistItemDTO dto)
         {
@@ -91,11 +114,69 @@ namespace ControlApi.Controllers
             var created = await _service.EnsureItemsFromAreasAsync(id);
             return Ok(new { created });
         }
-[HttpDelete("{id:int}")]
-        public async Task<IActionResult> Delete(int id)
+
+        // ===== Details endpoint (Areas + Items + Observações + Fotos) =====
+        [HttpGet("{id:int}/details")]
+        public async Task<IActionResult> GetDetails(int id)
         {
-            var ok = await _service.DeleteAsync(id);
-            return ok ? Ok() : NotFound();
+            var ck = await _db.Checklists
+                .Include(c => c.Customer)
+                .Include(c => c.Appointment)
+                .Include(c => c.Items).ThenInclude(i => i.Photos)
+                .Include(c => c.Items).ThenInclude(i => i.CustomerArea)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (ck == null) return NotFound();
+
+            var dto = new ChecklistDetailsDTO
+            {
+                Id = ck.Id,
+                Status = ck.Status,
+                ObservacoesGerais = ck.ObservacoesGerais,
+                CreatedDate = ck.CreatedDate,
+                Customer = new CustomerSummaryDTO
+                {
+                    Id = ck.CustomerId,
+                    Name = ck.Customer?.Name ?? string.Empty
+                },
+                Appointment = ck.AppointmentId.HasValue && ck.Appointment != null
+                    ? new AppointmentSummaryDTO
+                    {
+                        Id = ck.Appointment.Id,
+                        Title = ck.Appointment.Title,
+                        Start = ck.Appointment.Start,
+                        End = ck.Appointment.End
+                    }
+                    : null
+            };
+
+            dto.Items = ck.Items.Select(i => new ChecklistDetailsItemDTO
+            {
+                Id = i.Id,
+                CustomerAreaId = i.CustomerAreaId,
+                CustomerAreaName = i.CustomerArea?.Name ?? string.Empty,
+                Status = i.Status,
+                Observacoes = i.Observacoes,
+                Photos = i.Photos.Select(p => new ChecklistDetailsPhotoDTO
+                {
+                    Id = p.Id,
+                    Url = p.Url,
+                    Descricao = p.Descricao
+                }).ToList()
+            }).ToList();
+
+            dto.Areas = dto.Items
+                .GroupBy(i => new { i.CustomerAreaId, i.CustomerAreaName })
+                .Select(g => new ChecklistDetailsAreaDTO
+                {
+                    Id = g.Key.CustomerAreaId,
+                    Name = g.Key.CustomerAreaName,
+                    Items = g.ToList()
+                })
+                .OrderBy(a => a.Name)
+                .ToList();
+
+            return Ok(dto);
         }
     }
 }

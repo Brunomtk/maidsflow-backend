@@ -10,6 +10,7 @@
         "dependencies": {
           "BouncyCastle": "1.8.9",
           "ClosedXML": "0.102.2",
+          "Core": "1.0.0",
           "CsvHelper": "32.0.3",
           "DtronixPdf": "1.1.3",
           "ImageSharpCommunity.Formats.Pdf": "0.2.0",
