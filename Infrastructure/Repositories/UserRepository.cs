@@ -31,8 +31,9 @@ namespace Infrastructure.Repositories
             return await _dbContext.Set<User>()
                 .AsNoTracking()
                 .Where(x =>
-                    string.IsNullOrEmpty(filtersDTO.Name) ||
-                    EF.Functions.Like(x.Name.ToLower(), $"%{filtersDTO.Name.ToLower()}%")
+                    (string.IsNullOrEmpty(filtersDTO.Name) || EF.Functions.Like(x.Name.ToLower(), $"%{filtersDTO.Name.ToLower()}%"))
+                    && (!filtersDTO.CompanyId.HasValue || x.CompanyId == filtersDTO.CompanyId)
+                    && (!filtersDTO.ProfessionalId.HasValue || x.ProfessionalId == filtersDTO.ProfessionalId)
                 )
                 .GetPagedAsync(filtersDTO.pageNumber, filtersDTO.pageSize);
         }

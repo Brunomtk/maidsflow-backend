@@ -28,6 +28,7 @@ namespace Infrastructure.Repositories
             IQueryable<Checklist> q = _dbContext.Checklists.AsNoTracking();
 
             if (filters.CustomerId.HasValue) q = q.Where(c => c.CustomerId == filters.CustomerId.Value);
+            if (filters.CompanyId.HasValue) q = q.Where(c => c.CompanyId == filters.CompanyId.Value);
             if (filters.Status.HasValue) q = q.Where(c => c.Status.ToString() == filters.Status.Value.ToString());
             if (filters.AppointmentId.HasValue) q = q.Where(c => c.AppointmentId == filters.AppointmentId.Value);
             if (filters.ProfessionalId.HasValue) q = q.Where(c => c.ProfessionalId == filters.ProfessionalId.Value);

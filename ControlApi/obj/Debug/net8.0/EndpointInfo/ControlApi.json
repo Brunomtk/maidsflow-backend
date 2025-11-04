@@ -685,6 +685,14 @@
             }
           },
           {
+            "name": "CompanyId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
             "name": "From",
             "in": "query",
             "schema": {
@@ -3083,6 +3091,22 @@
             }
           },
           {
+            "name": "CompanyId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "ProfessionalId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
             "name": "pageNumber",
             "in": "query",
             "schema": {
@@ -4371,6 +4395,22 @@
             }
           },
           {
+            "name": "CompanyId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "ProfessionalId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
             "name": "pageNumber",
             "in": "query",
             "schema": {
@@ -4834,11 +4874,16 @@
       },
       "CreateChecklistDTO": {
         "required": [
+          "companyId",
           "customerId"
         ],
         "type": "object",
         "properties": {
           "customerId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "companyId": {
             "type": "integer",
             "format": "int32"
           },

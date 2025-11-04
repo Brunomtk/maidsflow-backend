@@ -1,10 +1,7 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6\\maidsflow-backend\\ControlApi\\",
+  "WorkspaceRootPath": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\\maidsflow-backend\\ControlApi\\",
   "Documents": [
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6\\maidsflow-backend\\Infrastructure\\Migrations\\20251020190632_Inicio.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-recorrencia-ajustada-v6-ajustada-v5\\maidsflow-backend\\Infrastructure\\Migrations\\20251014130724_Inicial.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -12,7 +9,7 @@
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-recorrencia-ajustada-v6-ajustada-v5\\maidsflow-backend\\Infrastructure\\Migrations\\20251014130337_checklist.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{71A6AF3F-6B94-48DA-AAED-D1A5D36C8E02}|ControlApi.csproj|c:\\users\\bruno\\onedrive\\\u00E1rea de trabalho\\projetos b7\\maidsflow\\dev\\maidsflow-backend-checklist-fix-v6\\maidsflow-backend\\controlapi\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{71A6AF3F-6B94-48DA-AAED-D1A5D36C8E02}|ControlApi.csproj|c:\\users\\bruno\\onedrive\\\u00E1rea de trabalho\\projetos b7\\maidsflow\\dev\\maidsflow-backend-checklist-fix-v6_with_companyid_fix3_users_filter (1)\\maidsflow-backend\\controlapi\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{71A6AF3F-6B94-48DA-AAED-D1A5D36C8E02}|ControlApi.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
@@ -22,7 +19,7 @@
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Infrastructure\\Migrations\\20250906232006_Clientsajuste.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{71A6AF3F-6B94-48DA-AAED-D1A5D36C8E02}|ControlApi.csproj|c:\\users\\bruno\\onedrive\\\u00E1rea de trabalho\\projetos b7\\maidsflow\\dev\\maidsflow-backend-checklist-fix-v6\\maidsflow-backend\\controlapi\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "AbsoluteMoniker": "D:0:0:{71A6AF3F-6B94-48DA-AAED-D1A5D36C8E02}|ControlApi.csproj|c:\\users\\bruno\\onedrive\\\u00E1rea de trabalho\\projetos b7\\maidsflow\\dev\\maidsflow-backend-checklist-fix-v6_with_companyid_fix3_users_filter (1)\\maidsflow-backend\\controlapi\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
       "RelativeMoniker": "D:0:0:{71A6AF3F-6B94-48DA-AAED-D1A5D36C8E02}|ControlApi.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
@@ -59,11 +56,11 @@
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\Api\\Infrastructure\\Migrations\\20250810122611_teste.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{71A6AF3F-6B94-48DA-AAED-D1A5D36C8E02}|ControlApi.csproj|c:\\users\\bruno\\onedrive\\\u00E1rea de trabalho\\projetos b7\\maidsflow\\dev\\maidsflow-backend-checklist-fix-v6\\maidsflow-backend\\controlapi\\controllers\\reviewscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{71A6AF3F-6B94-48DA-AAED-D1A5D36C8E02}|ControlApi.csproj|c:\\users\\bruno\\onedrive\\\u00E1rea de trabalho\\projetos b7\\maidsflow\\dev\\maidsflow-backend-checklist-fix-v6_with_companyid_fix3_users_filter (1)\\maidsflow-backend\\controlapi\\controllers\\reviewscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{71A6AF3F-6B94-48DA-AAED-D1A5D36C8E02}|ControlApi.csproj|solutionrelative:controllers\\reviewscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{71A6AF3F-6B94-48DA-AAED-D1A5D36C8E02}|ControlApi.csproj|c:\\users\\bruno\\onedrive\\\u00E1rea de trabalho\\projetos b7\\maidsflow\\dev\\maidsflow-backend-checklist-fix-v6\\maidsflow-backend\\controlapi\\controllers\\notificationscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{71A6AF3F-6B94-48DA-AAED-D1A5D36C8E02}|ControlApi.csproj|c:\\users\\bruno\\onedrive\\\u00E1rea de trabalho\\projetos b7\\maidsflow\\dev\\maidsflow-backend-checklist-fix-v6_with_companyid_fix3_users_filter (1)\\maidsflow-backend\\controlapi\\controllers\\notificationscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{71A6AF3F-6B94-48DA-AAED-D1A5D36C8E02}|ControlApi.csproj|solutionrelative:controllers\\notificationscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
@@ -118,19 +115,6 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "20251020190632_Inicio.cs",
-              "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6\\maidsflow-backend\\Infrastructure\\Migrations\\20251020190632_Inicio.cs",
-              "RelativeDocumentMoniker": "..\\Infrastructure\\Migrations\\20251020190632_Inicio.cs",
-              "ToolTip": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6\\maidsflow-backend\\Infrastructure\\Migrations\\20251020190632_Inicio.cs",
-              "RelativeToolTip": "..\\Infrastructure\\Migrations\\20251020190632_Inicio.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-20T19:06:32.196Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
               "Title": "20251014130724_Inicial.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-recorrencia-ajustada-v6-ajustada-v5\\maidsflow-backend\\Infrastructure\\Migrations\\20251014130724_Inicial.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\maidsflow-backend-recorrencia-ajustada-v6-ajustada-v5\\maidsflow-backend\\Infrastructure\\Migrations\\20251014130724_Inicial.cs",
@@ -141,7 +125,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 1,
               "Title": "20251014130337_checklist.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-recorrencia-ajustada-v6-ajustada-v5\\maidsflow-backend\\Infrastructure\\Migrations\\20251014130337_checklist.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\maidsflow-backend-recorrencia-ajustada-v6-ajustada-v5\\maidsflow-backend\\Infrastructure\\Migrations\\20251014130337_checklist.cs",
@@ -152,7 +136,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 32,
+              "DocumentIndex": 31,
               "Title": "20251007202041_lembredemim.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\DEV\\maidsflow-backend-adjusted\\maidsflow-backend\\Infrastructure\\Migrations\\20251007202041_lembredemim.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\DEV\\maidsflow-backend-adjusted\\maidsflow-backend\\Infrastructure\\Migrations\\20251007202041_lembredemim.cs",
@@ -163,7 +147,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 6,
               "Title": "20250906233225_Cliets.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Infrastructure\\Migrations\\20250906233225_Cliets.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Infrastructure\\Migrations\\20250906233225_Cliets.cs",
@@ -175,7 +159,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 8,
               "Title": "20250906232333_Clients ajuste.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Infrastructure\\Migrations\\20250906232333_Clients ajuste.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Infrastructure\\Migrations\\20250906232333_Clients ajuste.cs",
@@ -187,7 +171,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 9,
               "Title": "20250906232110_clients ajuste.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Infrastructure\\Migrations\\20250906232110_clients ajuste.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Infrastructure\\Migrations\\20250906232110_clients ajuste.cs",
@@ -199,7 +183,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 4,
               "Title": "20250906232006_Clientsajuste.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Infrastructure\\Migrations\\20250906232006_Clientsajuste.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Infrastructure\\Migrations\\20250906232006_Clientsajuste.cs",
@@ -210,7 +194,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 11,
               "Title": "20250810173531_Material.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\noahapi\\Api\\Infrastructure\\Migrations\\20250810173531_Material.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\noahapi\\Api\\Infrastructure\\Migrations\\20250810173531_Material.cs",
@@ -222,11 +206,11 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 2,
               "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6\\maidsflow-backend\\ControlApi\\Program.cs",
+              "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\\maidsflow-backend\\ControlApi\\Program.cs",
               "RelativeDocumentMoniker": "Program.cs",
-              "ToolTip": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6\\maidsflow-backend\\ControlApi\\Program.cs",
+              "ToolTip": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\\maidsflow-backend\\ControlApi\\Program.cs",
               "RelativeToolTip": "Program.cs",
               "ViewState": "AgIAALcAAAAAAAAAAAAwwM4AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
@@ -234,7 +218,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 3,
               "Title": "20250906234320_Inicial.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Infrastructure\\Migrations\\20250906234320_Inicial.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Infrastructure\\Migrations\\20250906234320_Inicial.cs",
@@ -245,11 +229,11 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 5,
               "Title": "appsettings.json",
-              "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6\\maidsflow-backend\\ControlApi\\appsettings.json",
+              "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\\maidsflow-backend\\ControlApi\\appsettings.json",
               "RelativeDocumentMoniker": "appsettings.json",
-              "ToolTip": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6\\maidsflow-backend\\ControlApi\\appsettings.json",
+              "ToolTip": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\\maidsflow-backend\\ControlApi\\appsettings.json",
               "RelativeToolTip": "appsettings.json",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABsAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
@@ -257,7 +241,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 7,
               "Title": "20250906232500_inicial.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Infrastructure\\Migrations\\20250906232500_inicial.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\maidsflow-back-no-document-clean3-20250901022424\\maidsflow-back\\Infrastructure\\Migrations\\20250906232500_inicial.cs",
@@ -269,7 +253,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 12,
               "Title": "20250810173316_removeinternalreport.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\noahapi\\Api\\Infrastructure\\Migrations\\20250810173316_removeinternalreport.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\noahapi\\Api\\Infrastructure\\Migrations\\20250810173316_removeinternalreport.cs",
@@ -281,7 +265,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 29,
+              "DocumentIndex": 28,
               "Title": "DbContextClass.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\noahapi\\Api\\Infrastructure\\DbContextClass.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\noahapi\\Api\\Infrastructure\\DbContextClass.cs",
@@ -293,7 +277,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 30,
+              "DocumentIndex": 29,
               "Title": "ServiceExtension.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\noahapi\\Api\\Infrastructure\\ServiceExtension\\ServiceExtension.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\noahapi\\Api\\Infrastructure\\ServiceExtension\\ServiceExtension.cs",
@@ -305,7 +289,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 31,
+              "DocumentIndex": 30,
               "Title": "UnitOfWork.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\noahapi\\Api\\Infrastructure\\Repositories\\UnitOfWork.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\noahapi\\Api\\Infrastructure\\Repositories\\UnitOfWork.cs",
@@ -317,7 +301,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 13,
               "Title": "20250810153754_inicial.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\Api\\Infrastructure\\Migrations\\20250810153754_inicial.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\Api\\Infrastructure\\Migrations\\20250810153754_inicial.cs",
@@ -328,7 +312,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 10,
               "Title": "20250810173910_Materialremove.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\noahapi\\Api\\Infrastructure\\Migrations\\20250810173910_Materialremove.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\noahapi\\Api\\Infrastructure\\Migrations\\20250810173910_Materialremove.cs",
@@ -340,7 +324,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 14,
               "Title": "20250810123152_Inicial.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\Api\\Infrastructure\\Migrations\\20250810123152_Inicial.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\Api\\Infrastructure\\Migrations\\20250810123152_Inicial.cs",
@@ -352,7 +336,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 15,
               "Title": "20250810123014_teste.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\Api\\Infrastructure\\Migrations\\20250810123014_teste.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\Api\\Infrastructure\\Migrations\\20250810123014_teste.cs",
@@ -364,7 +348,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 17,
+              "DocumentIndex": 16,
               "Title": "20250810122611_teste.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\Api\\Infrastructure\\Migrations\\20250810122611_teste.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\Api\\Infrastructure\\Migrations\\20250810122611_teste.cs",
@@ -376,11 +360,11 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 18,
+              "DocumentIndex": 17,
               "Title": "ReviewsController.cs",
-              "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6\\maidsflow-backend\\ControlApi\\Controllers\\ReviewsController.cs",
+              "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\\maidsflow-backend\\ControlApi\\Controllers\\ReviewsController.cs",
               "RelativeDocumentMoniker": "Controllers\\ReviewsController.cs",
-              "ToolTip": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6\\maidsflow-backend\\ControlApi\\Controllers\\ReviewsController.cs",
+              "ToolTip": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\\maidsflow-backend\\ControlApi\\Controllers\\ReviewsController.cs",
               "RelativeToolTip": "Controllers\\ReviewsController.cs",
               "ViewState": "AgIAAEUAAAAAAAAAAAA2wFoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
@@ -388,7 +372,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 20,
+              "DocumentIndex": 19,
               "Title": "CreateReviewDTO.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\Api\\Core\\DTO\\Review\\CreateReviewDTO.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\Api\\Core\\DTO\\Review\\CreateReviewDTO.cs",
@@ -400,7 +384,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 21,
+              "DocumentIndex": 20,
               "Title": "ReviewService.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\Api\\Services\\ReviewService.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\Api\\Services\\ReviewService.cs",
@@ -412,7 +396,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 22,
+              "DocumentIndex": 21,
               "Title": "ReviewRepository.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\Api\\Infrastructure\\Repositories\\ReviewRepository.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\Api\\Infrastructure\\Repositories\\ReviewRepository.cs",
@@ -424,7 +408,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 23,
+              "DocumentIndex": 22,
               "Title": "ReviewFiltersDTO.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\Api\\Core\\DTO\\Review\\ReviewFiltersDTO.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\Api\\Core\\DTO\\Review\\ReviewFiltersDTO.cs",
@@ -436,11 +420,11 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 19,
+              "DocumentIndex": 18,
               "Title": "NotificationsController.cs",
-              "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6\\maidsflow-backend\\ControlApi\\Controllers\\NotificationsController.cs",
+              "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\\maidsflow-backend\\ControlApi\\Controllers\\NotificationsController.cs",
               "RelativeDocumentMoniker": "Controllers\\NotificationsController.cs",
-              "ToolTip": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6\\maidsflow-backend\\ControlApi\\Controllers\\NotificationsController.cs",
+              "ToolTip": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\\maidsflow-backend\\ControlApi\\Controllers\\NotificationsController.cs",
               "RelativeToolTip": "Controllers\\NotificationsController.cs",
               "ViewState": "AgIAAEAAAAAAAAAAAAAYwFoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
@@ -448,7 +432,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 24,
+              "DocumentIndex": 23,
               "Title": "NotificationService.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\Api\\Services\\NotificationService.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\Api\\Services\\NotificationService.cs",
@@ -460,7 +444,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 25,
+              "DocumentIndex": 24,
               "Title": "PaymentService.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\Api\\Services\\PaymentService.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\Api\\Services\\PaymentService.cs",
@@ -472,7 +456,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 26,
+              "DocumentIndex": 25,
               "Title": "NotificationRepository.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\Api\\Infrastructure\\Repositories\\NotificationRepository.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\Api\\Infrastructure\\Repositories\\NotificationRepository.cs",
@@ -484,7 +468,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 27,
+              "DocumentIndex": 26,
               "Title": "NotificationFiltersDto.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\Api\\Core\\DTO\\Notifications\\NotificationFiltersDto.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\Api\\Core\\DTO\\Notifications\\NotificationFiltersDto.cs",
@@ -496,7 +480,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 28,
+              "DocumentIndex": 27,
               "Title": "MaterialService.cs",
               "DocumentMoniker": "C:\\Users\\bruno\\OneDrive\\\u00C1rea de Trabalho\\Projetos B7\\Noah\\noahapi\\noahapi\\Api\\Services\\MaterialService.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Noah\\noahapi\\noahapi\\Api\\Services\\MaterialService.cs",

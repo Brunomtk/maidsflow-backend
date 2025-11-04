@@ -34,6 +34,7 @@ namespace Services
             var ck = new Checklist
             {
                 CustomerId = dto.CustomerId,
+                CompanyId = dto.CompanyId,
                 ObservacoesGerais = dto.ObservacoesGerais,
                 AppointmentId = dto.AppointmentId,
                 ProfessionalId = dto.ProfessionalId,

@@ -131,6 +131,7 @@ public async Task<IActionResult> UpdateItems([FromBody] List<UpdateChecklistItem
             var dto = new ChecklistDetailsDTO
             {
                 Id = ck.Id,
+                CompanyId = ck.CompanyId,
                 Status = ck.Status,
                 ObservacoesGerais = ck.ObservacoesGerais,
                 CreatedDate = ck.CreatedDate,

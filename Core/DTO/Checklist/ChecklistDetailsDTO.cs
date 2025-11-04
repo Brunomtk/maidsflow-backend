@@ -7,6 +7,7 @@ namespace Core.DTO.Checklist
     public class ChecklistDetailsDTO
     {
         public int Id { get; set; }
+        public int CompanyId { get; set; }
         public ChecklistStatus Status { get; set; }
         public string? ObservacoesGerais { get; set; }
         public DateTime CreatedDate { get; set; }
@@ -19,6 +20,7 @@ namespace Core.DTO.Checklist
     public class ChecklistDetailsItemDTO
     {
         public int Id { get; set; }
+        public int CompanyId { get; set; }
         public int CustomerAreaId { get; set; }
         public string CustomerAreaName { get; set; } = string.Empty;
         public ChecklistItemStatus? Status { get; set; }
@@ -29,6 +31,7 @@ namespace Core.DTO.Checklist
     public class ChecklistDetailsPhotoDTO
     {
         public int Id { get; set; }
+        public int CompanyId { get; set; }
         public string Url { get; set; } = string.Empty;
         public string? Descricao { get; set; }
     }
@@ -36,6 +39,7 @@ namespace Core.DTO.Checklist
     public class ChecklistDetailsAreaDTO
     {
         public int Id { get; set; }
+        public int CompanyId { get; set; }
         public string Name { get; set; } = string.Empty;
         public List<ChecklistDetailsItemDTO> Items { get; set; } = new();
     }
@@ -43,12 +47,14 @@ namespace Core.DTO.Checklist
     public class CustomerSummaryDTO
     {
         public int Id { get; set; }
+        public int CompanyId { get; set; }
         public string Name { get; set; } = string.Empty;
     }
 
     public class AppointmentSummaryDTO
     {
         public int Id { get; set; }
+        public int CompanyId { get; set; }
         public string Title { get; set; } = string.Empty;
         public DateTime Start { get; set; }
         public DateTime End { get; set; }
