@@ -30,10 +30,26 @@ namespace Infrastructure.Authenticate
                 new Claim(ClaimTypes.Role, user.Role)
             };
 
-            var tokenDescriptor = new SecurityTokenDescriptor
+            // Compute token expiration: prefer Jwt:AccessTokenDays, fallback to Jwt:AccessTokenMinutes, else 60 minutes
+var accessDaysOpt = _configuration.GetValue<int?>("Jwt:AccessTokenDays");
+var accessMinutesOpt = _configuration.GetValue<int?>("Jwt:AccessTokenMinutes");
+DateTime expires;
+if (accessDaysOpt.HasValue && accessDaysOpt.Value > 0)
+{
+    expires = DateTime.UtcNow.AddDays(accessDaysOpt.Value);
+}
+else if (accessMinutesOpt.HasValue && accessMinutesOpt.Value > 0)
+{
+    expires = DateTime.UtcNow.AddMinutes(accessMinutesOpt.Value);
+}
+else
+{
+    expires = DateTime.UtcNow.AddMinutes(60);
+}
+var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddDays(1),
+                Expires = expires,
                 Issuer = _configuration["Jwt:Issuer"],      
                 Audience = _configuration["Jwt:Audience"],   
                 SigningCredentials = new SigningCredentials(
@@ -71,7 +87,7 @@ public async Task<TokenJWT?> Authenticate(User user, bool rememberMe)
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddMinutes(accessMinutes),
+            Expires = expires,
             Issuer = issuer,
             Audience = audience,
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(tokenKey), SecurityAlgorithms.HmacSha256Signature)

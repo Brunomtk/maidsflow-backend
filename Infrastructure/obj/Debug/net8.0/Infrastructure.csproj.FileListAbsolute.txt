@@ -67,20 +67,20 @@ C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-ba
 C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-recorrencia-ajustada-v6-ajustada-v5\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.pdb
 C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-recorrencia-ajustada-v6-ajustada-v5\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.genruntimeconfig.cache
 C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-recorrencia-ajustada-v6-ajustada-v5\maidsflow-backend\Infrastructure\obj\Debug\net8.0\ref\Infrastructure.dll
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\maidsflow-backend\Infrastructure\bin\Debug\net8.0\Infrastructure.deps.json
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\maidsflow-backend\Infrastructure\bin\Debug\net8.0\Infrastructure.runtimeconfig.json
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\maidsflow-backend\Infrastructure\bin\Debug\net8.0\Infrastructure.dll
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\maidsflow-backend\Infrastructure\bin\Debug\net8.0\Infrastructure.pdb
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\maidsflow-backend\Infrastructure\bin\Debug\net8.0\Core.dll
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\maidsflow-backend\Infrastructure\bin\Debug\net8.0\Core.pdb
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.csproj.AssemblyReference.cache
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.AssemblyInfoInputs.cache
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.AssemblyInfo.cs
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.csproj.CoreCompileInputs.cache
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastr.15EFFBFE.Up2Date
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.dll
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\maidsflow-backend\Infrastructure\obj\Debug\net8.0\refint\Infrastructure.dll
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.pdb
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.genruntimeconfig.cache
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-CHECKLIST-FIX-v6_with_CompanyId_FIX3_users_filter (1)\maidsflow-backend\Infrastructure\obj\Debug\net8.0\ref\Infrastructure.dll
+C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-30d\maidsflow-backend\Infrastructure\bin\Debug\net8.0\Infrastructure.deps.json
+C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-30d\maidsflow-backend\Infrastructure\bin\Debug\net8.0\Infrastructure.runtimeconfig.json
+C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-30d\maidsflow-backend\Infrastructure\bin\Debug\net8.0\Infrastructure.dll
+C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-30d\maidsflow-backend\Infrastructure\bin\Debug\net8.0\Infrastructure.pdb
+C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-30d\maidsflow-backend\Infrastructure\bin\Debug\net8.0\Core.dll
+C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-30d\maidsflow-backend\Infrastructure\bin\Debug\net8.0\Core.pdb
+C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-30d\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.csproj.AssemblyReference.cache
+C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-30d\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-30d\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.AssemblyInfoInputs.cache
+C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-30d\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.AssemblyInfo.cs
+C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-30d\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-30d\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastr.15EFFBFE.Up2Date
+C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-30d\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.dll
+C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-30d\maidsflow-backend\Infrastructure\obj\Debug\net8.0\refint\Infrastructure.dll
+C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-30d\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.pdb
+C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-30d\maidsflow-backend\Infrastructure\obj\Debug\net8.0\Infrastructure.genruntimeconfig.cache
+C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend-30d\maidsflow-backend\Infrastructure\obj\Debug\net8.0\ref\Infrastructure.dll

@@ -34,7 +34,7 @@ namespace API.Controllers
 
             var token = await _jwtManager.Authenticate(user, login.RememberMe);
             if (token == null) return Unauthorized("Token generation failed");
-            await _userService.UpdateRefreshToken(user.Id, token.RefreshToken, login.RememberMe ? DateTime.UtcNow.AddDays(30) : DateTime.UtcNow.AddDays(7));
+            await _userService.UpdateRefreshToken(user.Id, token.RefreshToken, login.RememberMe ? DateTime.UtcNow.AddDays(_configuration.GetValue<int?>("Jwt:RememberMeRefreshDays") ?? 30) : DateTime.UtcNow.AddDays(_configuration.GetValue<int?>("Jwt:RefreshTokenDays") ?? 30));
 
             var response = new AuthUserResponse
             {
@@ -143,7 +143,7 @@ namespace API.Controllers
             var token = await _jwtManager.Authenticate(user, true); // keep remember-style lifespan on refresh
             if (token == null) return Unauthorized("Token generation failed");
 
-            await _userService.UpdateRefreshToken(user.Id, token.RefreshToken, DateTime.UtcNow.AddDays(30));
+            await _userService.UpdateRefreshToken(user.Id, token.RefreshToken, DateTime.UtcNow.AddDays(_configuration.GetValue<int?>("Jwt:RememberMeRefreshDays") ?? 30));
 
             var response = new AuthUserResponse
             {

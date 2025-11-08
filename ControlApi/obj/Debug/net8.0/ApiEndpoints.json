@@ -419,11 +419,6 @@
         "IsRequired": false
       },
       {
-        "Name": "CompanyId",
-        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
-        "IsRequired": false
-      },
-      {
         "Name": "From",
         "Type": "System.Nullable\u00601[[System.DateTime, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
         "IsRequired": false
@@ -511,22 +506,6 @@
   },
   {
     "ContainingType": "ControlApi.Controllers.ChecklistsController",
-    "Method": "GetDetails",
-    "RelativePath": "api/Checklists/{id}/details",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "id",
-        "Type": "System.Int32",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "ControlApi.Controllers.ChecklistsController",
     "Method": "EnsureItems",
     "RelativePath": "api/Checklists/{id}/ensure-items",
     "HttpMethod": "POST",
@@ -585,15 +564,15 @@
   },
   {
     "ContainingType": "ControlApi.Controllers.ChecklistsController",
-    "Method": "UpdateItems",
+    "Method": "UpdateItem",
     "RelativePath": "api/Checklists/items",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "dtos",
-        "Type": "System.Collections.Generic.List\u00601[[Core.DTO.Checklist.UpdateChecklistItemDTO, Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "Name": "dto",
+        "Type": "Core.DTO.Checklist.UpdateChecklistItemDTO",
         "IsRequired": true
       }
     ],
@@ -1976,16 +1955,6 @@
         "IsRequired": false
       },
       {
-        "Name": "CompanyId",
-        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
-        "IsRequired": false
-      },
-      {
-        "Name": "ProfessionalId",
-        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
-        "IsRequired": false
-      },
-      {
         "Name": "pageNumber",
         "Type": "System.Int32",
         "IsRequired": false
@@ -2727,16 +2696,6 @@
       {
         "Name": "Name",
         "Type": "System.String",
-        "IsRequired": false
-      },
-      {
-        "Name": "CompanyId",
-        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
-        "IsRequired": false
-      },
-      {
-        "Name": "ProfessionalId",
-        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
         "IsRequired": false
       },
       {
