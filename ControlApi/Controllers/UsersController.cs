@@ -1,3 +1,4 @@
+using System;
 ﻿using Core.DTO;
 using Core.DTO.User;
 using Core.Models;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services;
 using System.Linq;
+using Microsoft.Extensions.Configuration;
 
 namespace API.Controllers
 {
@@ -17,9 +19,11 @@ namespace API.Controllers
     {
         private readonly IJWTManager _jwtManager;
         private readonly IUserService _userService;
+        private readonly IConfiguration _configuration;
 
-        public UsersController(IJWTManager jwtManager, IUserService userService)
+        public UsersController(IJWTManager jwtManager, IUserService userService, IConfiguration configuration)
         {
+            _configuration = configuration;
             _jwtManager = jwtManager;
             _userService = userService;
         }
@@ -34,7 +38,16 @@ namespace API.Controllers
 
             var token = await _jwtManager.Authenticate(user, login.RememberMe);
             if (token == null) return Unauthorized("Token generation failed");
-            await _userService.UpdateRefreshToken(user.Id, token.RefreshToken, login.RememberMe ? DateTime.UtcNow.AddDays(_configuration.GetValue<int?>("Jwt:RememberMeRefreshDays") ?? 30) : DateTime.UtcNow.AddDays(_configuration.GetValue<int?>("Jwt:RefreshTokenDays") ?? 30));
+            if (login.RememberMe)
+            {
+                var refreshDays = _configuration.GetValue<int?>("Jwt:RememberMeRefreshDays") ?? 30;
+                await _userService.UpdateRefreshToken(user.Id, token.RefreshToken, DateTime.UtcNow.AddDays(refreshDays));
+            }
+            else
+            {
+                // login sem "lembrar de mim": não persiste refresh token
+                await _userService.UpdateRefreshToken(user.Id, null, null);
+            }
 
             var response = new AuthUserResponse
             {

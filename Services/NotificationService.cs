@@ -45,6 +45,8 @@ namespace Services
                     RecipientId = 0,
                     RecipientRole = roleEnum,
                     CompanyId = companyId,
+                    UserId = dto.UserId,
+                    ProfessionalId = dto.ProfessionalId,
                     Status = defaultStatus,
                     SentAt = DateTime.UtcNow
                 };
@@ -64,6 +66,8 @@ namespace Services
                         RecipientId = rid,
                         RecipientRole = roleEnum,
                         CompanyId = companyId,
+                        UserId = dto.UserId,
+                        ProfessionalId = dto.ProfessionalId,
                         Status = defaultStatus,
                         SentAt = DateTime.UtcNow
                     };

@@ -18,6 +18,10 @@ namespace Core.Models
         // Optional: if sent on behalf of a company
         public int? CompanyId { get; set; }
 
+        // Optional: to relate to a specific User & Professional
+        public int? UserId { get; set; }
+        public int? ProfessionalId { get; set; }
+
         public NotificationStatus Status { get; set; }
 
         public DateTime SentAt { get; set; }

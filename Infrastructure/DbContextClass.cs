@@ -84,6 +84,11 @@ namespace Infrastructure
                       .WithMany()
                       .HasForeignKey(c => c.ProfessionalId)
                       .OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(c => c.Company)
+                      .WithMany()
+                      .HasForeignKey(c => c.CompanyId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
         });
 
             modelBuilder.Entity<ChecklistItem>(entity =>

@@ -95,7 +95,12 @@ namespace Services
             user.Status = userParam.Status;
             user.CompanyId = userParam.CompanyId;
             user.ProfessionalId = userParam.ProfessionalId;
-            user.Password = Encrypt.EncryptPassword(userParam.Password);
+
+            // Atualiza a senha apenas se foi informada
+            if (!string.IsNullOrWhiteSpace(userParam.Password))
+            {
+                user.Password = Encrypt.EncryptPassword(userParam.Password);
+            }
 
             _unitOfWork.Users.Update(user);
             var result = _unitOfWork.Save();

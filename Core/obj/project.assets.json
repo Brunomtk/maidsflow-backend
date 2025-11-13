@@ -9224,11 +9224,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-30d_timezone_fix_v2\\maidsflow-backend\\Core\\Core.csproj",
+      "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_fix_raw_fixed_v7\\Core\\Core.csproj",
       "projectName": "Core",
-      "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-30d_timezone_fix_v2\\maidsflow-backend\\Core\\Core.csproj",
+      "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_fix_raw_fixed_v7\\Core\\Core.csproj",
       "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend-30d_timezone_fix_v2\\maidsflow-backend\\Core\\obj\\",
+      "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_fix_raw_fixed_v7\\Core\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

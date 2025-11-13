@@ -6,7 +6,7 @@ namespace Core.DTO.User
     {
         public required string Name { get; set; }
         public required string Email { get; set; }
-        public required string Password { get; set; }
+        public string? Password { get; set; }
         public required string Role { get; set; } // "admin", "company", "professional"
         public StatusEnum Status { get; set; } = StatusEnum.Active;
         public int? CompanyId { get; set; }

@@ -31,6 +31,16 @@ namespace Core.DTO.Notifications
         public bool IsBroadcast { get; set; }
 
         /// <summary>
+        /// Opcional: relacionar com um usuário específico (criador ou alvo lógico).
+        /// </summary>
+        public int? UserId { get; set; }
+
+        /// <summary>
+        /// Opcional: relacionar com um profissional específico.
+        /// </summary>
+        public int? ProfessionalId { get; set; }
+
+        /// <summary>
         /// Opcional: quando enviado em nome de uma empresa.
         /// </summary>
         public int? CompanyId { get; set; }
