@@ -5212,7 +5212,7 @@
             "type": "string",
             "nullable": true
           },
-          "recipientIds": {
+          "userIds": {
             "type": "array",
             "items": {
               "type": "integer",

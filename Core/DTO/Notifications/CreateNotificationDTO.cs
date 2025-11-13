@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace Core.DTO.Notifications
 {
@@ -16,17 +16,19 @@ namespace Core.DTO.Notifications
         public string Type { get; set; } = null!;
 
         /// <summary>
-        /// Papel do destinatário: "admin", "company" ou "professional".
+        /// Papel do destinatário: "Admin", "Company", "Professional", "Customer", etc.
         /// </summary>
         public string RecipientRole { get; set; } = null!;
 
         /// <summary>
-        /// Lista de IDs de usuários que devem receber (quando não for broadcast).
+        /// IDs dos usuários que deverão receber a notificação
+        /// (normalmente os IDs dos profissionais quando RecipientRole = "Professional").
+        /// Ignorado quando IsBroadcast = true.
         /// </summary>
-        public List<int>? RecipientIds { get; set; }
+        public List<int>? UserIds { get; set; }
 
         /// <summary>
-        /// Se verdadeiro, irá enviar para todos do papel indicado (broadcast).
+        /// Quando verdadeiro, envia para todos do papel indicado (RecipientRole), ignorando UserIds.
         /// </summary>
         public bool IsBroadcast { get; set; }
 

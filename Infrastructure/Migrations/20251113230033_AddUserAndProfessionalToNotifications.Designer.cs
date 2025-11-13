@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DbContextClass))]
-    [Migration("20251113211918_AddUserAndProfessionalToNotifications")]
+    [Migration("20251113230033_AddUserAndProfessionalToNotifications")]
     partial class AddUserAndProfessionalToNotifications
     {
         /// <inheritdoc />

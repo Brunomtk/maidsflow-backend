@@ -55,15 +55,15 @@ namespace Services
             }
             else
             {
-                var recipientIds = dto.RecipientIds ?? new List<int>();
-                foreach (var rid in recipientIds)
+                var userIds = dto.UserIds ?? new List<int>();
+                foreach (var uid in userIds)
                 {
                     var n = new Notification
                     {
                         Title = dto.Title,
                         Message = dto.Message,
                         Type = typeEnum,
-                        RecipientId = rid,
+                        RecipientId = uid,
                         RecipientRole = roleEnum,
                         CompanyId = companyId,
                         UserId = dto.UserId,

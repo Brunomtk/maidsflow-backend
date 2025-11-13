@@ -18,8 +18,10 @@ namespace Core.Models
         // Optional: if sent on behalf of a company
         public int? CompanyId { get; set; }
 
-        // Optional: to relate to a specific User & Professional
+        // Optional: relates to a specific user (creator / logical owner)
         public int? UserId { get; set; }
+
+        // Optional: relates to a specific professional
         public int? ProfessionalId { get; set; }
 
         public NotificationStatus Status { get; set; }

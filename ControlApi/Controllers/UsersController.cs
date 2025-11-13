@@ -23,9 +23,9 @@ namespace API.Controllers
 
         public UsersController(IJWTManager jwtManager, IUserService userService, IConfiguration configuration)
         {
-            _configuration = configuration;
             _jwtManager = jwtManager;
             _userService = userService;
+            _configuration = configuration;
         }
 
         [AllowAnonymous]
@@ -38,16 +38,7 @@ namespace API.Controllers
 
             var token = await _jwtManager.Authenticate(user, login.RememberMe);
             if (token == null) return Unauthorized("Token generation failed");
-            if (login.RememberMe)
-            {
-                var refreshDays = _configuration.GetValue<int?>("Jwt:RememberMeRefreshDays") ?? 30;
-                await _userService.UpdateRefreshToken(user.Id, token.RefreshToken, DateTime.UtcNow.AddDays(refreshDays));
-            }
-            else
-            {
-                // login sem "lembrar de mim": não persiste refresh token
-                await _userService.UpdateRefreshToken(user.Id, null, null);
-            }
+            await _userService.UpdateRefreshToken(user.Id, token.RefreshToken, DateTime.UtcNow.AddDays(_configuration.GetValue<int?>("Jwt:RememberMeRefreshDays") ?? 30));
 
             var response = new AuthUserResponse
             {
