@@ -251,9 +251,6 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("AppointmentId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("CompanyId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -276,8 +273,6 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AppointmentId");
-
-                    b.HasIndex("CompanyId");
 
                     b.HasIndex("CustomerId");
 
@@ -726,9 +721,6 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int?>("ProfessionalId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime?>("ReadAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -758,9 +750,6 @@ namespace Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
-
-                    b.Property<int?>("UserId")
-                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -1284,12 +1273,6 @@ namespace Infrastructure.Migrations
                         .HasForeignKey("AppointmentId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("Core.Models.Company", "Company")
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Core.Models.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
@@ -1302,8 +1285,6 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Appointment");
-
-                    b.Navigation("Company");
 
                     b.Navigation("Customer");
 
