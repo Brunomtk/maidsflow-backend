@@ -29,21 +29,43 @@ namespace Services
         private readonly Infrastructure.Repositories.IUnitOfWork _uow;
         public ChecklistService(Infrastructure.Repositories.IUnitOfWork uow) => _uow = uow;
 
+        
         public async Task<Checklist?> CreateAsync(CreateChecklistDTO dto)
         {
+            // Validar e ajustar FKs opcionais para evitar erro de restrição no banco
+            int? appointmentId = null;
+            if (dto.AppointmentId.HasValue)
+            {
+                // Usa o repositório genérico de Appointment; se não existir, ignora (fica null)
+                var appointment = await _uow.Appointments.GetById(dto.AppointmentId.Value);
+                if (appointment != null)
+                    appointmentId = dto.AppointmentId.Value;
+            }
+
+            int? professionalId = null;
+            if (dto.ProfessionalId.HasValue)
+            {
+                // Usa o repositório de Professional; se não existir, ignora (fica null)
+                var professional = await _uow.Professionals.GetByIdAsync(dto.ProfessionalId.Value);
+                if (professional != null)
+                    professionalId = dto.ProfessionalId.Value;
+            }
+
             var ck = new Checklist
             {
                 CustomerId = dto.CustomerId,
                 CompanyId = dto.CompanyId,
                 ObservacoesGerais = dto.ObservacoesGerais,
-                AppointmentId = dto.AppointmentId,
-                ProfessionalId = dto.ProfessionalId,
+                AppointmentId = appointmentId,
+                ProfessionalId = professionalId,
                 Status = ChecklistStatus.EmAndamento
             };
+
             await _uow.Checklists.Add(ck);
             var saved = await _uow.SaveAsync() > 0;
             return saved ? ck : null;
         }
+
 
         public Task<Checklist?> GetByIdAsync(int id) => _uow.Checklists.GetByIdWithItemsAsync(id);
 
