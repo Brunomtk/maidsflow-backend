@@ -52,27 +52,16 @@ namespace Services
 
         public async Task<bool> Create(CreateAppointmentDTO dto)
         {
-            // Define o timezone: usa o enviado no DTO ou um padrão da aplicação
-            var timeZoneId = string.IsNullOrWhiteSpace(dto.TimeZoneId)
-                ? "America/Sao_Paulo"
-                : dto.TimeZoneId;
-
-            var timeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-
-            // A UI manda a data/hora como horário local. Garantimos que o Kind seja Unspecified
-            var startLocal = DateTime.SpecifyKind(dto.Start, DateTimeKind.Unspecified);
-            var endLocal = DateTime.SpecifyKind(dto.End, DateTimeKind.Unspecified);
-
-            // Converte de horário local para UTC para salvar em coluna timestamptz
-            var startUtc = TimeZoneInfo.ConvertTimeToUtc(startLocal, timeZone);
-            var endUtc = TimeZoneInfo.ConvertTimeToUtc(endLocal, timeZone);
+            // Nesta versão, NÃO fazemos conversão de fuso horário.
+            // O horário enviado no DTO (start/end) é salvo exatamente como veio,
+            // para que o banco sempre reflita o horário local informado pelo usuário.
 
             var appointment = new Appointment
             {
                 Title = dto.Title,
                 Address = dto.Address,
-                Start = startUtc,
-                End = endUtc,
+                Start = dto.Start,
+                End = dto.End,
                 Notes = dto.Notes,
                 Status = dto.Status ?? AppointmentStatus.Scheduled,
                 Type = dto.Type ?? AppointmentType.Regular,
@@ -80,7 +69,8 @@ namespace Services
                 CustomerId = dto.CustomerId,
                 TeamId = dto.TeamId,
                 ProfessionalId = dto.ProfessionalId,
-                TimeZoneId = timeZoneId,
+                // TimeZoneId vira apenas informação complementar, não afeta o horário salvo.
+                TimeZoneId = dto.TimeZoneId,
                 IsRecurring = dto.IsRecurring,
                 RecurrenceRule = dto.RecurrenceRule,
                 RecurrenceEnd = dto.RecurrenceEnd,
@@ -96,28 +86,20 @@ namespace Services
             var appointment = await _unitOfWork.Appointments.GetById(id);
             if (appointment == null) return false;
 
-            // Descobre o timezone a usar: DTO > existente > padrão
-            var timeZoneId = !string.IsNullOrWhiteSpace(dto.TimeZoneId)
-                ? dto.TimeZoneId
-                : !string.IsNullOrWhiteSpace(appointment.TimeZoneId)
-                    ? appointment.TimeZoneId
-                    : "America/Sao_Paulo";
-
-            var timeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-
+            // Atualiza campos básicos
             appointment.Title = dto.Title ?? appointment.Title;
             appointment.Address = dto.Address ?? appointment.Address;
 
+            // Aqui também NÃO fazemos conversão de fuso horário.
+            // Se vier start/end no DTO, salvamos exatamente o que veio.
             if (dto.Start.HasValue)
             {
-                var startLocal = DateTime.SpecifyKind(dto.Start.Value, DateTimeKind.Unspecified);
-                appointment.Start = TimeZoneInfo.ConvertTimeToUtc(startLocal, timeZone);
+                appointment.Start = dto.Start.Value;
             }
 
             if (dto.End.HasValue)
             {
-                var endLocal = DateTime.SpecifyKind(dto.End.Value, DateTimeKind.Unspecified);
-                appointment.End = TimeZoneInfo.ConvertTimeToUtc(endLocal, timeZone);
+                appointment.End = dto.End.Value;
             }
 
             appointment.Notes = dto.Notes ?? appointment.Notes;
@@ -129,7 +111,9 @@ namespace Services
             appointment.ProfessionalId = dto.ProfessionalId ?? appointment.ProfessionalId;
 
             // Atualiza campos de recorrência/timezone se vierem
-            appointment.TimeZoneId = timeZoneId;
+            if (!string.IsNullOrWhiteSpace(dto.TimeZoneId))
+                appointment.TimeZoneId = dto.TimeZoneId;
+
             if (dto.IsRecurring.HasValue) appointment.IsRecurring = dto.IsRecurring.Value;
             if (dto.RecurrenceRule != null) appointment.RecurrenceRule = dto.RecurrenceRule;
             if (dto.RecurrenceEnd.HasValue) appointment.RecurrenceEnd = dto.RecurrenceEnd;

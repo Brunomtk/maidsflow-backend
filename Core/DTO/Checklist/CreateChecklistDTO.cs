@@ -9,6 +9,7 @@ namespace Core.DTO.Checklist
 
         [Required]
         public int CompanyId { get; set; }
+
         public string? ObservacoesGerais { get; set; }
 
         // Metadados opcionais

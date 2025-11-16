@@ -16,20 +16,19 @@ namespace Core.DTO.Notifications
         public string Type { get; set; } = null!;
 
         /// <summary>
-        /// Papel de destino: por exemplo "Admin", "Professional", "Client".
+        /// Papel do destinatário: "Admin", "Company", "Professional" ou "Customer".
         /// </summary>
         public string RecipientRole { get; set; } = null!;
 
         /// <summary>
-        /// IDs de usuários que irão receber a notificação.
-        /// Se IsBroadcast = true, esta lista pode ser ignorada.
-        /// </summary>
-        public List<int>? UserIds { get; set; }
-
-        /// <summary>
-        /// Se true, notificação é enviada para todos do papel RecipientRole.
+        /// Se verdadeiro, envia como broadcast para todos do papel informado.
         /// </summary>
         public bool IsBroadcast { get; set; }
+
+        /// <summary>
+        /// Lista de IDs de usuário para envio direto (quando não for broadcast).
+        /// </summary>
+        public List<int>? UserIds { get; set; }
 
         /// <summary>
         /// Opcional: ID do usuário relacionado (quem criou ou dono lógico).
