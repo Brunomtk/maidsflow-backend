@@ -130,8 +130,22 @@ namespace ControlApi.Controllers
         // ===== CRUD BÁSICO =====
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] FiltersDTO filters)
+        public async Task<IActionResult> GetAll(
+            [FromQuery] string? name,
+            [FromQuery] int? companyId,
+            [FromQuery] int? professionalId,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
+            var filters = new FiltersDTO
+            {
+                Name = name,
+                CompanyId = companyId,
+                ProfessionalId = professionalId,
+                pageNumber = pageNumber,
+                pageSize = pageSize
+            };
+
             var result = await _userService.GetAllUsuariosPaged(filters);
             return Ok(result);
         }

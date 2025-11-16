@@ -4304,14 +4304,14 @@
         ],
         "parameters": [
           {
-            "name": "Name",
+            "name": "name",
             "in": "query",
             "schema": {
               "type": "string"
             }
           },
           {
-            "name": "CompanyId",
+            "name": "companyId",
             "in": "query",
             "schema": {
               "type": "integer",
@@ -4319,7 +4319,7 @@
             }
           },
           {
-            "name": "ProfessionalId",
+            "name": "professionalId",
             "in": "query",
             "schema": {
               "type": "integer",
@@ -4331,7 +4331,8 @@
             "in": "query",
             "schema": {
               "type": "integer",
-              "format": "int32"
+              "format": "int32",
+              "default": 1
             }
           },
           {
@@ -4339,7 +4340,8 @@
             "in": "query",
             "schema": {
               "type": "integer",
-              "format": "int32"
+              "format": "int32",
+              "default": 10
             }
           }
         ],
