@@ -8711,11 +8711,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_maidsflow_backend_users_permissions_gps_teamid_v11\\Infrastructure\\Infrastructure.csproj",
+      "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Infrastructure\\Infrastructure.csproj",
       "projectName": "Infrastructure",
-      "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_maidsflow_backend_users_permissions_gps_teamid_v11\\Infrastructure\\Infrastructure.csproj",
+      "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Infrastructure\\Infrastructure.csproj",
       "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_maidsflow_backend_users_permissions_gps_teamid_v11\\Infrastructure\\obj\\",
+      "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Infrastructure\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -8736,8 +8736,8 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_maidsflow_backend_users_permissions_gps_teamid_v11\\Core\\Core.csproj": {
-              "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_maidsflow_backend_users_permissions_gps_teamid_v11\\Core\\Core.csproj"
+            "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Core\\Core.csproj": {
+              "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Core\\Core.csproj"
             }
           }
         }

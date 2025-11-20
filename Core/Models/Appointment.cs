@@ -52,14 +52,7 @@ namespace Core.Models
                 }
                 catch
                 {
-                    // Fallback: caso no futuro tenha ficado salvo como "1,2,3"
-                    return ProfessionalIdsData
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(s => int.TryParse(s, out var v) ? v : (int?)null)
-                        .Where(v => v.HasValue)
-                        .Select(v => v!.Value)
-                        .Distinct()
-                        .ToList();
+                    return new List<int>();
                 }
             }
             set

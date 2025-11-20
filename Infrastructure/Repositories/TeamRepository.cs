@@ -2,6 +2,7 @@ using Core.DTO.Teams;
 using Core.Enums;
 using Core.Models;
 using Infrastructure.ServiceExtension;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
@@ -69,10 +70,6 @@ namespace Infrastructure.Repositories
                 query = query.Where(t => t.CompanyId == filters.CompanyId.Value);
             }
 
-            if (filters.LeaderId.HasValue)
-            {
-                query = query.Where(t => t.LeaderId == filters.LeaderId.Value);
-            }
 
             if (!string.IsNullOrWhiteSpace(filters.Status) && !string.Equals(filters.Status, "all", StringComparison.OrdinalIgnoreCase))
             {
@@ -93,16 +90,29 @@ namespace Infrastructure.Repositories
         }
 
         /// <summary>
-        /// Busca única com Members (para o GET /api/Team/{id}).
+        /// Busca Ãºnica com Members (para o GET /api/Team/{id}).
         /// </summary>
         public async Task<Team?> GetByIdWithMembersAsync(int id)
         {
             return await _dbContext.Teams
+                .AsNoTracking()
                 .Include(t => t.Members)
                     .ThenInclude(m => m.Professional)
                 .Include(t => t.Members)
                     .ThenInclude(m => m.User)
                 .FirstOrDefaultAsync(t => t.Id == id);
+        }
+
+        /// <summary>
+        /// Retorna explicitamente os membros de uma equipe pelo TeamId.
+        /// Usado como fallback quando, por algum motivo, a navegação não carrega os Members.
+        /// </summary>
+        public Task<List<TeamMember>> GetMembersByTeamIdAsync(int teamId)
+        {
+            return _dbContext.TeamMembers
+                .AsNoTracking()
+                .Where(m => m.TeamId == teamId)
+                .ToListAsync();
         }
     }
 
@@ -111,5 +121,6 @@ namespace Infrastructure.Repositories
         Task<PagedResult<Team>> GetPagedTeams(int page, int pageSize, string status = "all", string? search = null);
         Task<PagedResult<Team>> GetPagedTeamsFilteredAsync(TeamFiltersDTO filters);
         Task<Team?> GetByIdWithMembersAsync(int id);
+        Task<List<TeamMember>> GetMembersByTeamIdAsync(int teamId);
     }
 }

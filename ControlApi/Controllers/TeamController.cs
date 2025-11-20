@@ -1,5 +1,6 @@
 using Core.DTO.Teams;
 using Core.Models;
+using Core.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services;
@@ -74,7 +75,7 @@ namespace ControlApi.Controllers
                 Region = dto.Region ?? string.Empty,
                 Description = dto.Description ?? string.Empty,
                 CompanyId = dto.CompanyId,
-                LeaderId = dto.LeaderId
+                Status = (StatusEnum)dto.Status
             };
 
             if (dto.Members != null)
@@ -92,7 +93,10 @@ namespace ControlApi.Controllers
             }
 
             var created = await _teamService.CreateAsync(team);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+
+            // Recarrega a equipe com Members a partir do banco
+            var reloaded = await _teamService.GetByIdAsync(created.Id);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, reloaded ?? created);
         }
 
         /// <summary>
@@ -119,7 +123,7 @@ namespace ControlApi.Controllers
             team.Region = dto.Region;
             team.Description = dto.Description;
             team.CompanyId = dto.CompanyId;
-            team.LeaderId = dto.LeaderId;
+            team.Status = (StatusEnum)dto.Status;
 
             // Atualiza membros
             team.Members.Clear();

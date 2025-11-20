@@ -1,5 +1,6 @@
 using Core.DTO.Teams;
 using Core.Models;
+using Core.Enums;
 using Infrastructure.Repositories;
 using Infrastructure.ServiceExtension;
 using System.Threading.Tasks;
@@ -25,9 +26,30 @@ namespace Services
             return _unitOfWork.Teams.GetPagedTeamsFilteredAsync(filters);
         }
 
-        public Task<Team?> GetByIdAsync(int id)
+        public async Task<Team?> GetByIdAsync(int id)
         {
-            return _unitOfWork.Teams.GetByIdWithMembersAsync(id);
+            // Busca com Include(Members)
+            var team = await _unitOfWork.Teams.GetByIdWithMembersAsync(id);
+            if (team == null)
+                return null;
+
+            // Fallback de segurança:
+            // Se por qualquer motivo a navegação não tiver carregado Members,
+            // carrega manualmente da tabela TeamMembers.
+            if (team.Members == null || team.Members.Count == 0)
+            {
+                var repo = _unitOfWork.Teams;
+                if (repo is ITeamRepository teamRepo)
+                {
+                    var members = await teamRepo.GetMembersByTeamIdAsync(id);
+                    foreach (var m in members)
+                    {
+                        team.Members.Add(m);
+                    }
+                }
+            }
+
+            return team;
         }
 
         public async Task<Team> CreateAsync(Team team)
@@ -38,7 +60,7 @@ namespace Services
         }
 
         /// <summary>
-        /// Atualiza uma equipe existente usando a entidade Team já montada.
+        /// Atualiza uma equipe existente usando a entidade Team jÃ¡ montada.
         /// </summary>
         public async Task<Team?> UpdateAsync(int id, Team updatedTeam)
         {
@@ -51,7 +73,7 @@ namespace Services
             team.Region = updatedTeam.Region;
             team.Description = updatedTeam.Description;
             team.CompanyId = updatedTeam.CompanyId;
-            team.LeaderId = updatedTeam.LeaderId;
+            team.Status = updatedTeam.Status;
 
             // Recria os members se vierem preenchidos
             if (updatedTeam.Members != null)
@@ -74,7 +96,9 @@ namespace Services
             _unitOfWork.Teams.Update(team);
             await _unitOfWork.SaveAsync();
 
-            return team;
+            // Recarrega a equipe com Members
+            var reloaded = await _unitOfWork.Teams.GetByIdWithMembersAsync(id);
+            return reloaded ?? team;
         }
 
         public async Task<bool> DeleteAsync(int id)

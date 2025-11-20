@@ -10,10 +10,14 @@ namespace Core.DTO.Teams
     public class UpdateTeamDTO
     {
         public string Name { get; set; } = string.Empty;
-        public int LeaderId { get; set; }
         public string Region { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public int CompanyId { get; set; }
+
+        /// <summary>
+        /// Status da equipe (1 = Ativo, 2 = Inativo).
+        /// </summary>
+        public int Status { get; set; } = 1;
 
         public List<TeamMemberDTO>? Members { get; set; }
     }
