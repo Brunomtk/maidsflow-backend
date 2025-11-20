@@ -10,6 +10,7 @@ using Serilog;
 using Serilog.Events;
 using Serilog.Exceptions;
 using Services;
+using System.Text.Json.Serialization;
 using System.Net;
 using System.Text;
 
@@ -74,7 +75,11 @@ namespace ControlApi
             // Controllers / JSON
             // -----------------------------
             builder.Services.AddControllers()
-                .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNameCaseInsensitive = true);
+                .AddJsonOptions(o =>
+                {
+                    o.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+                    o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+                });
             
             // -----------------------------
             // Swagger (com JWT)

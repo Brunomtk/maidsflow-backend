@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Core.DTO.Teams
 {
     public class CreateTeamDTO
@@ -7,7 +9,12 @@ namespace Core.DTO.Teams
         public string? Region { get; set; }
         public string? Description { get; set; }
         public int CompanyId { get; set; }
+
+        /// <summary>
+        /// Optional list of members for this team.
+        /// Each member links a professional (and optionally a user) to the team,
+        /// with a description and a leader flag.
+        /// </summary>
+        public List<TeamMemberDTO>? Members { get; set; }
     }
-
-
 }

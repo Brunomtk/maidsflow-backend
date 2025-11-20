@@ -56,6 +56,7 @@ namespace ControlApi.Controllers
                 Email = dto.Email,
                 Phone = dto.Phone,
                 Address = dto.Address,
+                ZipCode = dto.ZipCode,
                 City = dto.City,
                 State = dto.State,
                 Observations = dto.Observations,
@@ -86,6 +87,7 @@ namespace ControlApi.Controllers
             existing.Email = dto.Email ?? existing.Email;
             existing.Phone = dto.Phone ?? existing.Phone;
             existing.Address = dto.Address ?? existing.Address;
+            existing.ZipCode = dto.ZipCode ?? existing.ZipCode;
             existing.City = dto.City ?? existing.City;
             existing.State = dto.State ?? existing.State;
             existing.Observations = dto.Observations ?? existing.Observations;

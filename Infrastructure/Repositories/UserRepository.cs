@@ -19,6 +19,7 @@ namespace Infrastructure.Repositories
         public async Task<User?> GetUserByEmail(string email)
         {
             return await _dbContext.Set<User>()
+                .Include(u => u.Permissions)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower());
         }
@@ -29,6 +30,7 @@ namespace Infrastructure.Repositories
         public async Task<PagedResult<User>> GetAllUsuariosPaged(FiltersDTO filtersDTO)
         {
             return await _dbContext.Set<User>()
+                .Include(u => u.Permissions)
                 .AsNoTracking()
                 .Where(x =>
                     (string.IsNullOrEmpty(filtersDTO.Name) || EF.Functions.Like(x.Name.ToLower(), $"%{filtersDTO.Name.ToLower()}%"))
@@ -38,9 +40,20 @@ namespace Infrastructure.Repositories
                 .GetPagedAsync(filtersDTO.pageNumber, filtersDTO.pageSize);
         }
 
+
+
+        public async Task<User?> GetByIdWithPermissions(int id)
+        {
+            return await _dbContext.Set<User>()
+                .Include(u => u.Permissions)
+                .FirstOrDefaultAsync(u => u.Id == id);
+        }
+
     public async Task<User?> GetByRefreshToken(string refreshToken)
     {
-        return await _dbContext.Set<User>().FirstOrDefaultAsync(x => x.RefreshToken == refreshToken);
+        return await _dbContext.Set<User>()
+            .Include(u => u.Permissions)
+            .FirstOrDefaultAsync(x => x.RefreshToken == refreshToken);
     }
 }
 
@@ -49,5 +62,6 @@ public interface IUserRepository : IGenericRepository<User>
         Task<User?> GetUserByEmail(string email);
         Task<PagedResult<User>> GetAllUsuariosPaged(FiltersDTO filtersDTO);
         Task<User?> GetByRefreshToken(string refreshToken);
+        Task<User?> GetByIdWithPermissions(int id);
     }
 }

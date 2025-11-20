@@ -2,9 +2,25 @@ namespace Core.DTO.Teams
 {
     public class TeamMemberDTO
     {
-        public string Id { get; set; } = string.Empty;
-        public string FullName { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string Role { get; set; } = string.Empty;
+        /// <summary>
+        /// Professional ID linked to this team.
+        /// </summary>
+        public int ProfessionalId { get; set; }
+
+        /// <summary>
+        /// Optional user ID linked to this team member (application user).
+        /// </summary>
+        public int? UserId { get; set; }
+
+
+        /// <summary>
+        /// Optional description for this professional inside the team (role, notes, etc.).
+        /// </summary>
+        public string? Description { get; set; }
+
+        /// <summary>
+        /// Indicates if this member is the leader of the team. Only one leader is allowed per team.
+        /// </summary>
+        public bool IsLeader { get; set; }
     }
 }

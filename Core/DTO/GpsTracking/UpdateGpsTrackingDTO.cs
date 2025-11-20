@@ -1,4 +1,4 @@
-﻿// Core/DTO/GpsTracking/UpdateGpsTrackingDTO.cs
+// Core/DTO/GpsTracking/UpdateGpsTrackingDTO.cs
 using System;
 using Core.Enums.GpsTracking;
 
@@ -12,6 +12,8 @@ namespace Core.DTO.GpsTracking
         public int? CompanyId { get; set; }
         public string? CompanyName { get; set; }
 
+        public int? TeamId { get; set; }
+
         public string? Vehicle { get; set; }
 
         public double? Latitude { get; set; }
@@ -20,7 +22,7 @@ namespace Core.DTO.GpsTracking
         public int? Accuracy { get; set; }
 
         public double? Speed { get; set; }
-        public GpsTrackingStatus? Status { get; set; }  
+        public GpsTrackingStatus? Status { get; set; }
 
         public int? Battery { get; set; }
         public string? Notes { get; set; }

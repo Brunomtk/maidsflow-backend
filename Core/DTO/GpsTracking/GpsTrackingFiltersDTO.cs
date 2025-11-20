@@ -11,6 +11,7 @@ namespace Core.DTO.GpsTracking
 
         public int? CompanyId { get; set; }
         public int? ProfessionalId { get; set; }
+        public int? TeamId { get; set; }
         public string? SearchQuery { get; set; }
 
         public DateTime? DateFrom { get; set; }

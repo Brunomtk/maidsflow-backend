@@ -1,65 +1,87 @@
-﻿using Core.DTO.Teams;
-using Core.Enums;
+using Core.DTO.Teams;
 using Core.Models;
 using Infrastructure.Repositories;
 using Infrastructure.ServiceExtension;
-using System;
 using System.Threading.Tasks;
 
 namespace Services
 {
     public class TeamService : ITeamService
     {
-        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public TeamService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
+        public TeamService(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<PagedResult<Team>> GetPagedTeams(int page, int pageSize, string status = "all", string? search = null)
+        public Task<PagedResult<Team>> GetPagedTeams(int page, int pageSize, string status = "all", string? search = null)
         {
-            return await _unitOfWork.Teams.GetPagedTeams(page, pageSize, status, search);
+            return _unitOfWork.Teams.GetPagedTeams(page, pageSize, status, search);
         }
 
-        public async Task<PagedResult<Team>> GetPagedTeams(TeamFiltersDTO filters)
+        public Task<PagedResult<Team>> GetPagedTeams(TeamFiltersDTO filters)
         {
-            return await _unitOfWork.Teams.GetPagedTeamsFilteredAsync(filters);
+            return _unitOfWork.Teams.GetPagedTeamsFilteredAsync(filters);
         }
 
-        public async Task<Team?> GetByIdAsync(int id)
+        public Task<Team?> GetByIdAsync(int id)
         {
-            return await _unitOfWork.Teams.GetById(id);
+            return _unitOfWork.Teams.GetByIdWithMembersAsync(id);
         }
 
         public async Task<Team> CreateAsync(Team team)
         {
-            await _unitOfWork.Teams.Add(team);
+            _unitOfWork.Teams.Add(team);
             await _unitOfWork.SaveAsync();
             return team;
         }
 
-        public async Task<Team?> UpdateAsync(int id, Team teamData)
+        /// <summary>
+        /// Atualiza uma equipe existente usando a entidade Team já montada.
+        /// </summary>
+        public async Task<Team?> UpdateAsync(int id, Team updatedTeam)
         {
-            var team = await _unitOfWork.Teams.GetById(id);
-            if (team == null) return null;
+            var team = await _unitOfWork.Teams.GetByIdWithMembersAsync(id);
+            if (team == null)
+                return null;
 
-            team.Name = teamData.Name;
-            team.Description = teamData.Description;
-            team.LeaderId = teamData.LeaderId;
-            team.Status = teamData.Status;
-            team.Region = teamData.Region;
-            team.UpdatedDate = DateTime.UtcNow;
+            // Campos principais
+            team.Name = updatedTeam.Name;
+            team.Region = updatedTeam.Region;
+            team.Description = updatedTeam.Description;
+            team.CompanyId = updatedTeam.CompanyId;
+            team.LeaderId = updatedTeam.LeaderId;
+
+            // Recria os members se vierem preenchidos
+            if (updatedTeam.Members != null)
+            {
+                team.Members.Clear();
+
+                foreach (var member in updatedTeam.Members)
+                {
+                    team.Members.Add(new TeamMember
+                    {
+                        TeamId = team.Id,
+                        ProfessionalId = member.ProfessionalId,
+                        UserId = member.UserId,
+                        Description = member.Description,
+                        IsLeader = member.IsLeader
+                    });
+                }
+            }
 
             _unitOfWork.Teams.Update(team);
             await _unitOfWork.SaveAsync();
+
             return team;
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
             var team = await _unitOfWork.Teams.GetById(id);
-            if (team == null) return false;
+            if (team == null)
+                return false;
 
             _unitOfWork.Teams.Delete(team);
             await _unitOfWork.SaveAsync();
@@ -73,7 +95,7 @@ namespace Services
         Task<PagedResult<Team>> GetPagedTeams(TeamFiltersDTO filters);
         Task<Team?> GetByIdAsync(int id);
         Task<Team> CreateAsync(Team team);
-        Task<Team?> UpdateAsync(int id, Team teamData);
+        Task<Team?> UpdateAsync(int id, Team updatedTeam);
         Task<bool> DeleteAsync(int id);
     }
 }

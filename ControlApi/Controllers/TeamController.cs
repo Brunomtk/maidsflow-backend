@@ -1,10 +1,9 @@
-﻿using Core.DTO.Teams;
-using Core.Enums;
+using Core.DTO.Teams;
 using Core.Models;
-using Infrastructure.ServiceExtension;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services;
+using System.Linq;
 
 namespace ControlApi.Controllers
 {
@@ -21,10 +20,10 @@ namespace ControlApi.Controllers
         }
 
         /// <summary>
-        /// Returns paged teams with optional status and name search.
+        /// Lista paginada simples de equipes.
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetPaged(
+        public async Task<IActionResult> Get(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
             [FromQuery] string status = "all",
@@ -35,17 +34,17 @@ namespace ControlApi.Controllers
         }
 
         /// <summary>
-        /// Returns paged teams with filters: companyId, leaderId, status, search.
+        /// Lista paginada usando TeamFiltersDTO.
         /// </summary>
         [HttpGet("paged")]
-        public async Task<IActionResult> GetPagedFiltered([FromQuery] TeamFiltersDTO filters)
+        public async Task<IActionResult> GetPaged([FromQuery] TeamFiltersDTO filters)
         {
             var result = await _teamService.GetPagedTeams(filters);
             return Ok(result);
         }
 
         /// <summary>
-        /// Returns a team by ID.
+        /// Detalhe de uma equipe (já com Members).
         /// </summary>
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
@@ -56,40 +55,95 @@ namespace ControlApi.Controllers
         }
 
         /// <summary>
-        /// Creates a new team.
+        /// Cria uma nova equipe.
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateTeamDTO dto)
         {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            if (dto.Members != null && dto.Members.Count(m => m.IsLeader) > 1)
+            {
+                ModelState.AddModelError("Members", "Somente um membro pode ser líder da equipe.");
+                return BadRequest(ModelState);
+            }
+
             var team = new Team
             {
                 Name = dto.Name,
-                LeaderId = dto.LeaderId,
-                Region = dto.Region,
-                Description = dto.Description,
+                Region = dto.Region ?? string.Empty,
+                Description = dto.Description ?? string.Empty,
                 CompanyId = dto.CompanyId,
-                Status = StatusEnum.Active,
-                Rating = 0,
-                CompletedServices = 0,
+                LeaderId = dto.LeaderId
             };
+
+            if (dto.Members != null)
+            {
+                foreach (var memberDto in dto.Members)
+                {
+                    team.Members.Add(new TeamMember
+                    {
+                        ProfessionalId = memberDto.ProfessionalId,
+                        UserId = memberDto.UserId,
+                        Description = memberDto.Description,
+                        IsLeader = memberDto.IsLeader
+                    });
+                }
+            }
 
             var created = await _teamService.CreateAsync(team);
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
         /// <summary>
-        /// Updates an existing team.
+        /// Atualiza uma equipe existente.
+        /// Payload igual ao create, só que UpdateTeamDTO.
         /// </summary>
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] Team updatedTeam)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateTeamDTO dto)
         {
-            var result = await _teamService.UpdateAsync(id, updatedTeam);
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            if (dto.Members != null && dto.Members.Count(m => m.IsLeader) > 1)
+            {
+                ModelState.AddModelError("Members", "Somente um membro pode ser líder da equipe.");
+                return BadRequest(ModelState);
+            }
+
+            // Carrega a equipe existente
+            var team = await _teamService.GetByIdAsync(id);
+            if (team == null) return NotFound();
+
+            // Atualiza campos principais
+            team.Name = dto.Name;
+            team.Region = dto.Region;
+            team.Description = dto.Description;
+            team.CompanyId = dto.CompanyId;
+            team.LeaderId = dto.LeaderId;
+
+            // Atualiza membros
+            team.Members.Clear();
+            if (dto.Members != null)
+            {
+                foreach (var memberDto in dto.Members)
+                {
+                    team.Members.Add(new TeamMember
+                    {
+                        ProfessionalId = memberDto.ProfessionalId,
+                        UserId = memberDto.UserId,
+                        Description = memberDto.Description,
+                        IsLeader = memberDto.IsLeader
+                    });
+                }
+            }
+
+            var result = await _teamService.UpdateAsync(id, team);
             if (result == null) return NotFound();
             return Ok(result);
         }
 
         /// <summary>
-        /// Deletes a team by ID.
+        /// Remove uma equipe.
         /// </summary>
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)

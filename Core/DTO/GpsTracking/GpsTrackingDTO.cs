@@ -1,4 +1,4 @@
-﻿// Core/DTO/GpsTracking/GpsTrackingDTO.cs
+// Core/DTO/GpsTracking/GpsTrackingDTO.cs
 using System;
 using Core.Enums.GpsTracking;
 
@@ -13,6 +13,8 @@ namespace Core.DTO.GpsTracking
 
         public int CompanyId { get; set; }
         public string? CompanyName { get; set; }
+
+        public int? TeamId { get; set; }
 
         public string Vehicle { get; set; } = string.Empty;
 

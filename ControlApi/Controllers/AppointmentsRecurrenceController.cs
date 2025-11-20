@@ -28,17 +28,50 @@ namespace ControlApi.Controllers
         public async Task<IActionResult> Create([FromBody] CreateAppointmentDTO dto)
         {
             var tz = ResolveTimeZone(dto.TimeZoneId);
-            var startUtc = ToUtc(dto.Start, tz);
-            var endUtc   = ToUtc(dto.End, tz);
 
+            // Work only with local times (no UTC conversion)
+            var startLocal = dto.Start;
+            var endLocal   = dto.End;
+
+            // Lista de profissionais (para suportar múltiplos profissionais no mesmo compromisso)
+            var professionalIds = (dto.ProfessionalIds != null && dto.ProfessionalIds.Any())
+                ? dto.ProfessionalIds.Distinct().ToList()
+                : new List<int>();
+
+            // Single (non-recurring) appointment
             if (!dto.IsRecurring)
             {
-                var appt = MapAppointment(dto, startUtc, endUtc, tz, false, null);
-                await _db.Set<Appointment>().AddAsync(appt);
-                await _db.SaveChangesAsync();
-                return Ok(appt);
+                // Se vier lista de profissionais, criamos um Appointment por profissional.
+                if (professionalIds.Count > 0)
+                {
+                    var nonRecurringAppointments = new List<Appointment>();
+
+                    foreach (var professionalId in professionalIds)
+                    {
+                        var appt = MapAppointment(dto, startLocal, endLocal, tz, false, null, professionalId);
+                        await _db.Set<Appointment>().AddAsync(appt);
+                        nonRecurringAppointments.Add(appt);
+                    }
+
+                    await _db.SaveChangesAsync();
+
+                    var firstNonRecurring = nonRecurringAppointments
+                        .OrderBy(a => a.Start)
+                        .FirstOrDefault();
+
+                    return Ok(firstNonRecurring ?? nonRecurringAppointments.FirstOrDefault());
+                }
+                else
+                {
+                    // Comportamento antigo: sem lista => usa ProfessionalId único (ou null)
+                    var appt = MapAppointment(dto, startLocal, endLocal, tz, false, null, null);
+                    await _db.Set<Appointment>().AddAsync(appt);
+                    await _db.SaveChangesAsync();
+                    return Ok(appt);
+                }
             }
 
+            // Recurring appointment
             if (string.IsNullOrWhiteSpace(dto.RecurrenceRule))
                 return BadRequest("RecurrenceRule is required when IsRecurring=true.");
 
@@ -52,16 +85,47 @@ namespace ControlApi.Controllers
                 return BadRequest("RecurrenceEnd must be >= Start.");
 
             var seriesId = Guid.NewGuid();
-            var occurrencesUtc = ExpandOccurrences(dto.RecurrenceRule!, dto.Start, dto.End, dto.RecurrenceEnd, dto.OccurrenceCount, tz);
+            var occurrences = ExpandOccurrences(
+                dto.RecurrenceRule!,
+                startLocal,
+                endLocal,
+                dto.RecurrenceEnd,
+                dto.OccurrenceCount,
+                tz
+            );
 
-            // Prevent duplicates within the series (SeriesId, Start)
             var toCreate = new List<Appointment>();
-            foreach (var (sUtc, eUtc) in occurrencesUtc)
+
+            foreach (var (start, end) in occurrences)
             {
-                bool exists = await _db.Set<Appointment>()
-                    .AnyAsync(a => a.SeriesId == seriesId && a.Start == sUtc);
-                if (!exists)
-                    toCreate.Add(MapAppointment(dto, sUtc, eUtc, tz, true, seriesId));
+                if (professionalIds.Count > 0)
+                {
+                    foreach (var professionalId in professionalIds)
+                    {
+                        bool exists = await _db.Set<Appointment>()
+                            .AnyAsync(a =>
+                                a.SeriesId == seriesId &&
+                                a.Start == start &&
+                                a.ProfessionalId == professionalId);
+
+                        if (!exists)
+                        {
+                            var appt = MapAppointment(dto, start, end, tz, true, seriesId, professionalId);
+                            toCreate.Add(appt);
+                        }
+                    }
+                }
+                else
+                {
+                    bool exists = await _db.Set<Appointment>()
+                        .AnyAsync(a => a.SeriesId == seriesId && a.Start == start);
+
+                    if (!exists)
+                    {
+                        var appt = MapAppointment(dto, start, end, tz, true, seriesId, null);
+                        toCreate.Add(appt);
+                    }
+                }
             }
 
             await _db.Set<Appointment>().AddRangeAsync(toCreate);
@@ -70,6 +134,7 @@ namespace ControlApi.Controllers
             var first = toCreate.OrderBy(a => a.Start).FirstOrDefault();
             return Ok(first ?? toCreate.FirstOrDefault());
         }
+
 
         // UPDATE with scope
         [HttpPut("{id:int}")]
@@ -154,33 +219,34 @@ namespace ControlApi.Controllers
             => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), tz);
 
         private Appointment MapAppointment(
-            CreateAppointmentDTO dto, DateTime startUtc, DateTime endUtc, TimeZoneInfo tz, bool isRecurring, Guid? seriesId)
+            CreateAppointmentDTO dto, DateTime start, DateTime end, TimeZoneInfo tz, bool isRecurring, Guid? seriesId, int? professionalId = null)
         {
             return new Appointment
             {
                 Title = dto.Title,
                 Address = dto.Address,
                 Notes = dto.Notes,
-                Start = startUtc,
-                End = endUtc,
+                Start = start,
+                End = end,
                 TimeZoneId = tz.Id,
                 CompanyId = dto.CompanyId,
                 CustomerId = dto.CustomerId,
                 TeamId = dto.TeamId,
-                ProfessionalId = dto.ProfessionalId,
+                ProfessionalId = professionalId ?? dto.ProfessionalId,
                 Status = dto.Status ?? Core.Enums.Appointment.AppointmentStatus.Scheduled,
                 Type   = dto.Type   ?? Core.Enums.Appointment.AppointmentType.Regular,
                 IsRecurring = isRecurring,
                 RecurrenceRule = dto.RecurrenceRule,
                 SeriesId = seriesId,
-                RecurrenceEnd = dto.RecurrenceEnd.HasValue ? ToUtc(dto.RecurrenceEnd.Value, tz) : null,
+                RecurrenceEnd = dto.RecurrenceEnd,
                 OccurrenceCount = dto.OccurrenceCount,
                 IsException = false
             };
         }
 
+
         // Simple RRULE expansion supporting DAILY and WEEKLY with INTERVAL, BYDAY, COUNT, UNTIL
-        private List<(DateTime startUtc, DateTime endUtc)> ExpandOccurrences(
+        private List<(DateTime start, DateTime end)> ExpandOccurrences(
             string rrule, DateTime startLocal, DateTime endLocal, DateTime? endLocalSeries, int? count, TimeZoneInfo tz)
         {
             var rule = ParseRRule(rrule);
@@ -197,9 +263,9 @@ namespace ControlApi.Controllers
                 DateTime limit = endLocalSeries ?? startLocal.AddYears(2);
                 while (cursor <= limit && (count == null || occurrences < count.Value))
                 {
-                    var sUtc = ToUtc(cursor, tz);
-                    var eUtc = ToUtc(cursor + duration, tz);
-                    list.Add((sUtc, eUtc));
+                    var start = cursor;
+                    var end = cursor + duration;
+                    list.Add((start, end));
                     occurrences += 1;
                     cursor = cursor.AddDays(interval);
                 }
@@ -216,36 +282,44 @@ namespace ControlApi.Controllers
                 {
                     foreach (var d in days)
                     {
+                        // Next occurrence for this BYDAY in the current week
                         DateTime dayDate = NextOnOrAfter(weekStart, d);
                         if (dayDate < startLocal.Date) continue;
                         if (dayDate > limit) break;
-                        var startCandidate = dayDate.Date.AddHours(startLocal.Hour).AddMinutes(startLocal.Minute).AddSeconds(startLocal.Second);
-                        var sUtc = ToUtc(startCandidate, tz);
-                        var eUtc = ToUtc(startCandidate + duration, tz);
-                        if (startCandidate >= startLocal && (count == null || occurrences < count.Value))
-                        {
-                            list.Add((sUtc, eUtc));
-                            occurrences += 1;
-                            if (count != null && occurrences >= count.Value) break;
-                        }
+
+                        var startCandidate = dayDate.Date
+                            .AddHours(startLocal.Hour)
+                            .AddMinutes(startLocal.Minute)
+                            .AddSeconds(startLocal.Second);
+
+                        if (startCandidate < startLocal) continue;
+                        if (endLocalSeries.HasValue && startCandidate > endLocalSeries.Value) continue;
+                        if (count != null && occurrences >= count.Value) break;
+
+                        var start = startCandidate;
+                        var end = startCandidate + duration;
+                        list.Add((start, end));
+                        occurrences++;
                     }
+
                     weekStart = weekStart.AddDays(7 * interval);
                 }
             }
             else
             {
                 // Fallback: single occurrence
-                list.Add((ToUtc(startLocal, tz), ToUtc(endLocal, tz)));
+                list.Add((startLocal, endLocal));
             }
 
-            // UNTIL cap
+            // UNTIL cap (local)
             if (endLocalSeries.HasValue)
             {
-                list = list.Where(o => FromUtc(o.Item1, tz) <= endLocalSeries.Value).ToList();
+                list = list.Where(o => o.Item1 <= endLocalSeries.Value).ToList();
             }
 
             return list;
         }
+
 
         private static string DayToByDay(DayOfWeek dow)
         {
@@ -322,10 +396,11 @@ namespace ControlApi.Controllers
             if (dto.TimeZoneId != null) current.TimeZoneId = tz.Id;
             if (dto.Start.HasValue && dto.End.HasValue)
             {
-                current.Start = ToUtc(dto.Start.Value, tz);
-                current.End   = ToUtc(dto.End.Value, tz);
+                current.Start = dto.Start.Value;
+                current.End   = dto.End.Value;
             }
         }
+
 
         private async Task UpdateThisAndFollowingAsync(Appointment anchor, UpdateAppointmentDTO dto, TimeZoneInfo tz)
         {
@@ -343,25 +418,25 @@ namespace ControlApi.Controllers
 
             _db.Set<Appointment>().RemoveRange(following);
 
-            var baseStartLocal = dto.Start ?? FromUtc(anchor.Start, tz);
-            var baseEndLocal   = dto.End   ?? FromUtc(anchor.End, tz);
+            var baseStartLocal = dto.Start ?? anchor.Start;
+            var baseEndLocal   = dto.End   ?? anchor.End;
             var rrule = dto.RecurrenceRule ?? anchor.RecurrenceRule ?? "FREQ=DAILY;INTERVAL=1";
-            var untilLocal = dto.RecurrenceEnd ?? (anchor.RecurrenceEnd.HasValue ? FromUtc(anchor.RecurrenceEnd.Value, tz) : (DateTime?)null);
+            var untilLocal = dto.RecurrenceEnd ?? anchor.RecurrenceEnd;
             var count = dto.OccurrenceCount ?? anchor.OccurrenceCount;
 
             var newSeriesId = Guid.NewGuid();
             var occurrences = ExpandOccurrences(rrule, baseStartLocal, baseEndLocal, untilLocal, count, tz);
             var toCreate = new List<Appointment>();
-            foreach (var (sUtc, eUtc) in occurrences)
+            foreach (var (start, end) in occurrences)
             {
-                if (sUtc < anchor.Start) continue;
+                if (start < anchor.Start) continue;
                 toCreate.Add(new Appointment
                 {
                     Title = dto.Title ?? anchor.Title,
                     Address = dto.Address ?? anchor.Address,
                     Notes = dto.Notes ?? anchor.Notes,
-                    Start = sUtc,
-                    End = eUtc,
+                    Start = start,
+                    End = end,
                     TimeZoneId = tz.Id,
                     CompanyId = anchor.CompanyId,
                     CustomerId = anchor.CustomerId,
@@ -372,7 +447,7 @@ namespace ControlApi.Controllers
                     IsRecurring = true,
                     RecurrenceRule = rrule,
                     SeriesId = newSeriesId,
-                    RecurrenceEnd = untilLocal.HasValue ? ToUtc(untilLocal.Value, tz) : anchor.RecurrenceEnd,
+                    RecurrenceEnd = untilLocal ?? anchor.RecurrenceEnd,
                     OccurrenceCount = count,
                     IsException = false
                 });
@@ -380,6 +455,7 @@ namespace ControlApi.Controllers
 
             await _db.Set<Appointment>().AddRangeAsync(toCreate);
         }
+
 
         private async Task UpdateAllAsync(Appointment anchor, UpdateAppointmentDTO dto, TimeZoneInfo tz)
         {
@@ -399,14 +475,15 @@ namespace ControlApi.Controllers
                 if (dto.TimeZoneId != null) a.TimeZoneId = tz.Id;
                 if (dto.Start.HasValue && dto.End.HasValue)
                 {
-                    a.Start = ToUtc(dto.Start.Value, tz);
-                    a.End   = ToUtc(dto.End.Value, tz);
+                    a.Start = dto.Start.Value;
+                    a.End   = dto.End.Value;
                 }
                 if (dto.IsRecurring.HasValue) a.IsRecurring = dto.IsRecurring.Value;
                 if (dto.RecurrenceRule != null) a.RecurrenceRule = dto.RecurrenceRule;
-                if (dto.RecurrenceEnd.HasValue) a.RecurrenceEnd = ToUtc(dto.RecurrenceEnd.Value, tz);
+                if (dto.RecurrenceEnd.HasValue) a.RecurrenceEnd = dto.RecurrenceEnd.Value;
                 if (dto.OccurrenceCount.HasValue) a.OccurrenceCount = dto.OccurrenceCount.Value;
             }
         }
+
     }
 }

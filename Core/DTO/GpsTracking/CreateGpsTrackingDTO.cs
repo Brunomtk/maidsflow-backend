@@ -1,4 +1,5 @@
-﻿using System;
+// Core/DTO/GpsTracking/CreateGpsTrackingDTO.cs
+using System;
 using Core.Enums.GpsTracking;
 
 namespace Core.DTO.GpsTracking
@@ -11,19 +12,21 @@ namespace Core.DTO.GpsTracking
         public int CompanyId { get; set; }
         public string? CompanyName { get; set; }
 
+        public int? TeamId { get; set; }
+
         public string Vehicle { get; set; } = string.Empty;
 
-        public double Latitude { get; set; }
-        public double Longitude { get; set; }
-        public string Address { get; set; } = string.Empty;
-        public int Accuracy { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+        public string? Address { get; set; }
+        public int? Accuracy { get; set; }
 
-        public double Speed { get; set; }
-        public GpsTrackingStatus Status { get; set; } = GpsTrackingStatus.Active;
+        public double? Speed { get; set; }
+        public GpsTrackingStatus? Status { get; set; }
 
-        public int Battery { get; set; }
+        public int? Battery { get; set; }
         public string? Notes { get; set; }
 
-        public DateTime Timestamp { get; set; }
+        public DateTime? Timestamp { get; set; }
     }
 }

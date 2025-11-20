@@ -12,6 +12,8 @@ namespace Core.Models
         public int CompanyId { get; set; }
         public string? CompanyName { get; set; }
 
+        public int? TeamId { get; set; }
+
         public string Vehicle { get; set; } = string.Empty;
 
         // Location holds latitude, longitude, address and accuracy

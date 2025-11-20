@@ -5,6 +5,7 @@ using Infrastructure.ServiceExtension;
 using Core.DTO.User;
 using Core.DTO;
 using Core.Models; // ✅ IMPORTANTE para PagedResult<User>
+using System.Linq;
 
 namespace Services
 {
@@ -66,10 +67,12 @@ namespace Services
 
         public async Task<User?> GetUserById(int userId)
         {
-            var user = await _unitOfWork.Users.GetById(userId);
+            // Carrega o usuário já com as permissões incluídas
+            var user = await _unitOfWork.Users.GetByIdWithPermissions(userId);
             if (user != null)
             {
-                user.Password = string.Empty; // ocultar hash de senha
+                // Nunca retornar o hash da senha
+                user.Password = string.Empty;
                 return user;
             }
 
@@ -84,18 +87,48 @@ namespace Services
             return user;
         }
 
-        public async Task<bool> UpdateUser(CreateUserRequest userParam, int userId)
+        public async Task<bool> UpdateUser(UpdateUserRequest userParam, int userId)
         {
-            var user = await _unitOfWork.Users.GetById(userId);
+            // Carrega usuário com permissões incluídas
+            var user = await _unitOfWork.Users.GetByIdWithPermissions(userId);
             if (user == null) return false;
 
-            user.Name = userParam.Name;
-            user.Email = userParam.Email;
-            user.Role = userParam.Role;
-            user.Status = userParam.Status;
-            user.CompanyId = userParam.CompanyId;
-            user.ProfessionalId = userParam.ProfessionalId;
-            user.Password = Encrypt.EncryptPassword(userParam.Password);
+            if (userParam.Name != null)
+                user.Name = userParam.Name;
+
+            if (userParam.Email != null)
+                user.Email = userParam.Email;
+
+            if (userParam.Role != null)
+                user.Role = userParam.Role;
+
+            if (userParam.Status.HasValue)
+                user.Status = userParam.Status.Value;
+
+            if (userParam.CompanyId.HasValue)
+                user.CompanyId = userParam.CompanyId;
+
+            if (userParam.ProfessionalId.HasValue)
+                user.ProfessionalId = userParam.ProfessionalId;
+
+            if (!string.IsNullOrEmpty(userParam.Password))
+                user.Password = Encrypt.EncryptPassword(userParam.Password);
+
+            // Se a lista de permissões vier preenchida, substitui as permissões atuais
+            if (userParam.Permissions != null)
+            {
+                user.Permissions.Clear();
+
+                foreach (var perm in userParam.Permissions)
+                {
+                    user.Permissions.Add(new UserPermission
+                    {
+                        UserId = user.Id,
+                        Code = perm.Code,
+                        Description = perm.Description
+                    });
+                }
+            }
 
             _unitOfWork.Users.Update(user);
             var result = _unitOfWork.Save();
@@ -107,22 +140,28 @@ namespace Services
         {
             var user = await _unitOfWork.Users.GetById(userId);
             if (user == null) return false;
-            user.Language = language;
-            user.Theme = theme;
-            await _unitOfWork.SaveAsync();
-            return true;
-        }
-    
-}
 
-public interface IUserService
+            if (!string.IsNullOrWhiteSpace(language))
+                user.Language = language;
+
+            if (!string.IsNullOrWhiteSpace(theme))
+                user.Theme = theme;
+
+            _unitOfWork.Users.Update(user);
+            var result = _unitOfWork.Save();
+
+            return result > 0;
+        }
+    }
+
+    public interface IUserService
     {
         Task<bool> CreateUser(User user);
         Task<IEnumerable<User>> GetAllUsers();
         Task<PagedResult<User>> GetAllUsuariosPaged(FiltersDTO filtersDTO);
         Task<User?> GetUserById(int userId);
         Task<User?> GetUserByEmail(string email);
-        Task<bool> UpdateUser(CreateUserRequest userParam, int userId);
+        Task<bool> UpdateUser(UpdateUserRequest userParam, int userId);
         Task<bool> DeleteUser(int userId);
         Task<bool> UpdateRefreshToken(int userId, string? refreshToken, DateTime? expiresAt);
         Task<User?> GetByRefreshToken(string refreshToken);

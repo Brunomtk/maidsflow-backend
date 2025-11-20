@@ -1,5 +1,10 @@
-﻿using Core.Enums.Appointment;
+using Core.Enums.Appointment;
 using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Core.Models
 {
@@ -22,8 +27,55 @@ namespace Core.Models
         public int? TeamId { get; set; }
         public Team? Team { get; set; }
 
+        // Profissional "principal" (usado para views simples e filtros)
         public int? ProfessionalId { get; set; }
         public Professional? Professional { get; set; }
+
+        // Lista de profissionais associada ao agendamento (quando criado com ProfessionalIds)
+        // Armazenamos como JSON no banco em ProfessionalIdsData, e expomos como array no JSON da API.
+        [JsonIgnore]
+        public string? ProfessionalIdsData { get; set; }
+
+        [NotMapped]
+        [JsonPropertyName("professionalIds")]
+        public List<int> ProfessionalIds
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(ProfessionalIdsData))
+                    return new List<int>();
+
+                try
+                {
+                    var list = JsonSerializer.Deserialize<List<int>>(ProfessionalIdsData);
+                    return list?.Distinct().ToList() ?? new List<int>();
+                }
+                catch
+                {
+                    // Fallback: caso no futuro tenha ficado salvo como "1,2,3"
+                    return ProfessionalIdsData
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => int.TryParse(s, out var v) ? v : (int?)null)
+                        .Where(v => v.HasValue)
+                        .Select(v => v!.Value)
+                        .Distinct()
+                        .ToList();
+                }
+            }
+            set
+            {
+                if (value == null || !value.Any())
+                {
+                    ProfessionalIdsData = null;
+                }
+                else
+                {
+                    ProfessionalIdsData = JsonSerializer.Serialize(
+                        value.Distinct().ToList()
+                    );
+                }
+            }
+        }
 
         // Status e tipo
         public AppointmentStatus Status { get; set; }
@@ -31,17 +83,15 @@ namespace Core.Models
 
         public string? Notes { get; set; }
 
-
-// Recurrence fields
-public string? TimeZoneId { get; set; } // e.g., "America/Sao_Paulo"
-public bool IsRecurring { get; set; }                 // part of a recurrence?
-public string? RecurrenceRule { get; set; }           // RRULE iCal
-public Guid? SeriesId { get; set; }                   // series identifier
-public DateTime? RecurrenceEnd { get; set; }          // series end (UTC)
-public int? OccurrenceCount { get; set; }             // COUNT
-public bool IsException { get; set; }                 // instance turned into exception?
-public DateTime? OriginalStart { get; set; }          // UTC
-public DateTime? OriginalEnd { get; set; }            // UTC
-
+        // Recurrence fields
+        public string? TimeZoneId { get; set; } // e.g., "America/Sao_Paulo"
+        public bool IsRecurring { get; set; }                 // part of a recurrence?
+        public string? RecurrenceRule { get; set; }           // RRULE iCal
+        public Guid? SeriesId { get; set; }                   // series identifier
+        public DateTime? RecurrenceEnd { get; set; }          // series end (UTC)
+        public int? OccurrenceCount { get; set; }             // COUNT
+        public bool IsException { get; set; }                 // instance turned into exception?
+        public DateTime? OriginalStart { get; set; }          // UTC
+        public DateTime? OriginalEnd { get; set; }            // UTC
     }
 }

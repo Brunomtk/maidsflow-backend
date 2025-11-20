@@ -1,5 +1,4 @@
-﻿using Core.DTO.GpsTracking;
-using Core.Enums;
+using Core.DTO.GpsTracking;
 using Core.Models;
 using Infrastructure.ServiceExtension;
 using Microsoft.EntityFrameworkCore;
@@ -19,17 +18,20 @@ namespace Infrastructure.Repositories
         private readonly DbContextClass _context;
 
         public GpsTrackingRepository(DbContextClass context) : base(context)
-            => _context = context;
+        {
+            _context = context;
+        }
 
         public async Task<GpsTracking?> GetByIdAsync(int id)
         {
             return await _context.GpsTrackings
+                .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == id);
         }
 
         public async Task<PagedResult<GpsTracking>> GetPagedAsync(GpsTrackingFiltersDTO filters)
         {
-            var q = _context.GpsTrackings.AsQueryable();
+            var q = _context.GpsTrackings.AsNoTracking().AsQueryable();
 
             if (filters.Status.HasValue)
                 q = q.Where(x => x.Status == filters.Status.Value);
@@ -40,11 +42,15 @@ namespace Infrastructure.Repositories
             if (filters.ProfessionalId.HasValue)
                 q = q.Where(x => x.ProfessionalId == filters.ProfessionalId.Value);
 
+            if (filters.TeamId.HasValue)
+                q = q.Where(x => x.TeamId == filters.TeamId.Value);
+
             if (!string.IsNullOrWhiteSpace(filters.SearchQuery))
             {
                 var txt = filters.SearchQuery.ToLower();
                 q = q.Where(x =>
                     (!string.IsNullOrEmpty(x.ProfessionalName) && x.ProfessionalName.ToLower().Contains(txt))
+                    || (!string.IsNullOrEmpty(x.CompanyName) && x.CompanyName.ToLower().Contains(txt))
                     || (!string.IsNullOrEmpty(x.Vehicle) && x.Vehicle.ToLower().Contains(txt))
                     || (!string.IsNullOrEmpty(x.Location.Address) && x.Location.Address.ToLower().Contains(txt)));
             }

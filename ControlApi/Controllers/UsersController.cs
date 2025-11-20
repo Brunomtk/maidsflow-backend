@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Core.DTO;
 using Core.DTO.User;
@@ -56,7 +58,7 @@ namespace ControlApi.Controllers
                 DateTime.UtcNow.AddDays(days)
             );
 
-            var response = new AuthUserResponse
+                        var response = new AuthUserResponse
             {
                 Id = user.Id,
                 Name = user.Name,
@@ -71,7 +73,10 @@ namespace ControlApi.Controllers
                 Language = user.Language,
                 Theme = user.Theme,
                 CreatedDate = user.CreatedDate,
-                UpdatedDate = user.UpdatedDate
+                UpdatedDate = user.UpdatedDate,
+                Permissions = user.Permissions != null
+                    ? user.Permissions.Select(p => p.Code.ToString()).ToList()
+                    : new List<string>()
             };
 
             return Ok(response);
@@ -106,7 +111,7 @@ namespace ControlApi.Controllers
                 DateTime.UtcNow.AddDays(days)
             );
 
-            var response = new AuthUserResponse
+                        var response = new AuthUserResponse
             {
                 Id = user.Id,
                 Name = user.Name,
@@ -121,7 +126,10 @@ namespace ControlApi.Controllers
                 Language = user.Language,
                 Theme = user.Theme,
                 CreatedDate = user.CreatedDate,
-                UpdatedDate = user.UpdatedDate
+                UpdatedDate = user.UpdatedDate,
+                Permissions = user.Permissions != null
+                    ? user.Permissions.Select(p => p.Code.ToString()).ToList()
+                    : new List<string>()
             };
 
             return Ok(response);
@@ -181,6 +189,18 @@ namespace ControlApi.Controllers
                 UpdatedDate = DateTime.UtcNow
             };
 
+            // Mapeia permissões (opcionais) vindas da request
+            if (request.Permissions != null && request.Permissions.Any())
+            {
+                user.Permissions = request.Permissions
+                    .Select(p => new UserPermission
+                    {
+                        Code = p.Code,
+                        Description = p.Description
+                    })
+                    .ToList();
+            }
+
             var created = await _userService.CreateUser(user);
             if (!created)
                 return BadRequest("Could not create user");
@@ -189,7 +209,7 @@ namespace ControlApi.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> Update(int id, [FromBody] CreateUserRequest request)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateUserRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);

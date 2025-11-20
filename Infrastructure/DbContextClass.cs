@@ -24,11 +24,13 @@ namespace Infrastructure
         }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<UserPermission> UserPermissions { get; set; }
         public DbSet<Company> Companies { get; set; }
         public DbSet<Plan> Plans { get; set; }
         public DbSet<PlanSubscription> PlanSubscriptions { get; set; }
         public DbSet<Professional> Professionals { get; set; }
         public DbSet<Team> Teams { get; set; }
+        public DbSet<TeamMember> TeamMembers { get; set; }
         public DbSet<Leader> Leaders { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<Customer> Customers { get; set; }
@@ -202,6 +204,38 @@ namespace Infrastructure
                       .OnDelete(DeleteBehavior.SetNull);
             });
 
+            // Team members
+            modelBuilder.Entity<TeamMember>(entity =>
+            {
+                entity.ToTable("TeamMembers");
+                entity.HasKey(m => m.Id);
+
+                entity.Property(m => m.Description)
+                      .HasMaxLength(250);
+
+                entity.Property(m => m.CreatedDate)
+                      .HasDefaultValueSql("now()");
+                entity.Property(m => m.UpdatedDate)
+                      .HasDefaultValueSql("now()");
+
+                entity.HasOne(m => m.Team)
+                      .WithMany(t => t.Members)
+                      .HasForeignKey(m => m.TeamId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+
+                entity.HasOne(m => m.Professional)
+                      .WithMany()
+                      .HasForeignKey(m => m.ProfessionalId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(m => m.User)
+                      .WithMany()
+                      .HasForeignKey(m => m.UserId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
+            });
+
             // Leaders
             modelBuilder.Entity<Leader>(entity =>
             {
@@ -231,6 +265,7 @@ namespace Infrastructure
                 entity.Property(a => a.Status).HasConversion<string>().IsRequired();
                 entity.Property(a => a.Type).HasConversion<string>().IsRequired();
                 entity.Property(a => a.Notes);
+                entity.Property(a => a.ProfessionalIdsData);
                 entity.Property(a => a.CreatedDate).HasDefaultValueSql("now()");
                 entity.Property(a => a.UpdatedDate).HasDefaultValueSql("now()");
                 entity.HasOne(a => a.Company)
@@ -251,6 +286,29 @@ namespace Infrastructure
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
+                        // User permissions
+            modelBuilder.Entity<UserPermission>(entity =>
+            {
+                entity.ToTable("UserPermissions");
+                entity.HasKey(p => p.Id);
+                entity.Property(p => p.Code)
+                      .HasConversion<string>()
+                      .IsRequired();
+                entity.Property(p => p.Description)
+                      .HasMaxLength(200);
+
+                entity.Property(p => p.CreatedDate)
+                      .HasDefaultValueSql("now()");
+                entity.Property(p => p.UpdatedDate)
+                      .HasDefaultValueSql("now()");
+
+                entity.HasOne(p => p.User)
+                      .WithMany(u => u.Permissions)
+                      .HasForeignKey(p => p.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+
             // Customers
             modelBuilder.Entity<Customer>(entity =>
             {
@@ -258,9 +316,10 @@ namespace Infrastructure
                 entity.HasKey(c => c.Id);
                 entity.Property(c => c.Name).IsRequired();
                 
-                entity.Property(c => c.Email);
+                entity.Property(c => c.Email).IsRequired(false);
                 entity.Property(c => c.Phone);
-                entity.Property(c => c.Address);
+                entity.Property(c => c.Address).IsRequired();
+                entity.Property(c => c.ZipCode);
                 entity.Property(c => c.City);
                 entity.Property(c => c.State);
                 entity.Property(c => c.Observations);

@@ -1,4 +1,5 @@
-﻿using Core.Enums;
+﻿using System.Collections.Generic;
+using Core.Enums;
 
 namespace Core.Models
 {
@@ -17,6 +18,10 @@ namespace Core.Models
         public int? CompanyId { get; set; }
 
         public int? ProfessionalId { get; set; }
+        
+        // Explicit permissions granted to this user
+        public ICollection<UserPermission> Permissions { get; set; } = new List<UserPermission>();
+        
         
         // Preferência de idioma do usuário: "pt-br" ou "english"
         public string? Language { get; set; }

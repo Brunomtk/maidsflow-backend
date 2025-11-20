@@ -14,8 +14,13 @@ namespace Core.DTO.Customer
         [EmailAddress]
         public string? Email { get; set; }
 
+        [Phone]
         public string? Phone { get; set; }
-        public string? Address { get; set; }
+
+        [Required]
+        public string Address { get; set; } = string.Empty;
+
+        public string? ZipCode { get; set; }
         public string? City { get; set; }
         public string? State { get; set; }
         public string? Observations { get; set; }
@@ -31,9 +36,7 @@ namespace Core.DTO.Customer
         [Required]
         public int CompanyId { get; set; }
 
-        [Required]
-        public ClientType ClientType { get; set; }
-
+        public ClientType? ClientType { get; set; }
         public StatusEnum? Status { get; set; }
     }
 }

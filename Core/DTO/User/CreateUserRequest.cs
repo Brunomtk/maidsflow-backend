@@ -1,4 +1,5 @@
 ﻿using Core.Enums;
+using System.Collections.Generic;
 
 namespace Core.DTO.User
 {
@@ -15,5 +16,10 @@ namespace Core.DTO.User
         // Preferências opcionais
         public string? Language { get; set; } // "pt-br" ou "english"
         public string? Theme { get; set; } // "claro" ou "escuro"
+
+        /// <summary>
+        /// Optional list of permissions to assign to this user.
+        /// </summary>
+        public List<UserPermissionRequest>? Permissions { get; set; }
     }
 }

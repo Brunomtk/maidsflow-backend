@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 ﻿using Core.Enums;
 
 public class AuthUserResponse
@@ -21,4 +22,6 @@ public class AuthUserResponse
 
     public DateTime CreatedDate { get; set; }
     public DateTime UpdatedDate { get; set; }
+
+    public List<string> Permissions { get; set; } = new();
 }

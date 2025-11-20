@@ -1,8 +1,9 @@
-﻿using Core.DTO.Teams;
+using Core.DTO.Teams;
 using Core.Enums;
 using Core.Models;
 using Infrastructure.ServiceExtension;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -17,66 +18,91 @@ namespace Infrastructure.Repositories
             _dbContext = context;
         }
 
-        public async Task<PagedResult<Team>> GetPagedTeams(int page, int pageSize, string status = "all", string? search = null)
+        /// <summary>
+        /// Lista paginada de equipes, com filtros simples e incluindo Members.
+        /// </summary>
+        public async Task<PagedResult<Team>> GetPagedTeams(
+            int page,
+            int pageSize,
+            string status = "all",
+            string? search = null)
         {
             var query = _dbContext.Teams
-                .Include(t => t.Company)
+                .Include(t => t.Members)
+                    .ThenInclude(m => m.Professional)
+                .Include(t => t.Members)
+                    .ThenInclude(m => m.User)
                 .AsQueryable();
-
-            if (!string.IsNullOrEmpty(status) && status.ToLower() != "all")
-            {
-                StatusEnum? statusEnum = status.ToLower() switch
-                {
-                    "ativo" => StatusEnum.Active,
-                    "inativo" => StatusEnum.Inactive,
-                    _ => null
-                };
-
-                if (statusEnum.HasValue)
-                    query = query.Where(t => t.Status == statusEnum.Value);
-            }
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                query = query.Where(t => t.Name.ToLower().Contains(search.ToLower()));
+                query = query.Where(t => t.Name.Contains(search));
             }
 
-            return await query.OrderByDescending(t => t.CreatedDate)
-                              .GetPagedAsync(page, pageSize);
+            if (!string.IsNullOrWhiteSpace(status) && !string.Equals(status, "all", StringComparison.OrdinalIgnoreCase))
+            {
+                if (Enum.TryParse<StatusEnum>(status, true, out var statusEnum))
+                {
+                    query = query.Where(t => t.Status == statusEnum);
+                }
+            }
+
+            query = query.OrderBy(t => t.Name);
+
+            return await query.GetPagedAsync(page, pageSize);
         }
 
+        /// <summary>
+        /// Lista paginada usando TeamFiltersDTO, incluindo Members.
+        /// </summary>
         public async Task<PagedResult<Team>> GetPagedTeamsFilteredAsync(TeamFiltersDTO filters)
         {
             var query = _dbContext.Teams
-                .Include(t => t.Company)
+                .Include(t => t.Members)
+                    .ThenInclude(m => m.Professional)
+                .Include(t => t.Members)
+                    .ThenInclude(m => m.User)
                 .AsQueryable();
 
             if (filters.CompanyId.HasValue)
+            {
                 query = query.Where(t => t.CompanyId == filters.CompanyId.Value);
+            }
 
             if (filters.LeaderId.HasValue)
-                query = query.Where(t => t.LeaderId == filters.LeaderId.Value);
-
-            if (!string.IsNullOrEmpty(filters.Status) && filters.Status.ToLower() != "all")
             {
-                StatusEnum? statusEnum = filters.Status.ToLower() switch
-                {
-                    "ativo" => StatusEnum.Active,
-                    "inativo" => StatusEnum.Inactive,
-                    _ => null
-                };
+                query = query.Where(t => t.LeaderId == filters.LeaderId.Value);
+            }
 
-                if (statusEnum.HasValue)
-                    query = query.Where(t => t.Status == statusEnum.Value);
+            if (!string.IsNullOrWhiteSpace(filters.Status) && !string.Equals(filters.Status, "all", StringComparison.OrdinalIgnoreCase))
+            {
+                if (Enum.TryParse<StatusEnum>(filters.Status, true, out var statusEnum))
+                {
+                    query = query.Where(t => t.Status == statusEnum);
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(filters.Search))
             {
-                query = query.Where(t => t.Name.ToLower().Contains(filters.Search.ToLower()));
+                query = query.Where(t => t.Name.Contains(filters.Search));
             }
 
-            return await query.OrderByDescending(t => t.CreatedDate)
-                              .GetPagedAsync(filters.Page, filters.PageSize);
+            query = query.OrderBy(t => t.Name);
+
+            return await query.GetPagedAsync(filters.Page, filters.PageSize);
+        }
+
+        /// <summary>
+        /// Busca única com Members (para o GET /api/Team/{id}).
+        /// </summary>
+        public async Task<Team?> GetByIdWithMembersAsync(int id)
+        {
+            return await _dbContext.Teams
+                .Include(t => t.Members)
+                    .ThenInclude(m => m.Professional)
+                .Include(t => t.Members)
+                    .ThenInclude(m => m.User)
+                .FirstOrDefaultAsync(t => t.Id == id);
         }
     }
 
@@ -84,5 +110,6 @@ namespace Infrastructure.Repositories
     {
         Task<PagedResult<Team>> GetPagedTeams(int page, int pageSize, string status = "all", string? search = null);
         Task<PagedResult<Team>> GetPagedTeamsFilteredAsync(TeamFiltersDTO filters);
+        Task<Team?> GetByIdWithMembersAsync(int id);
     }
 }

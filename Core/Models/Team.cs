@@ -1,4 +1,5 @@
-﻿using Core.Enum;
+﻿using System.Collections.Generic;
+using Core.Enum;
 using Core.Enums;
 
 namespace Core.Models
@@ -17,5 +18,8 @@ namespace Core.Models
 
         public int? LeaderId { get; set; }
         public Leader? Leader { get; set; }    // nullable
+        // Members of this team (professionals assigned to this team with a custom description)
+        public ICollection<TeamMember> Members { get; set; } = new List<TeamMember>();
+
     }
 }

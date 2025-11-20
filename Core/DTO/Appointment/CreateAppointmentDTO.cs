@@ -1,5 +1,6 @@
 ﻿using Core.Enums.Appointment;
 using System;
+using System.Collections.Generic;
 
 namespace Core.DTO.Appointment
 {
@@ -15,6 +16,7 @@ namespace Core.DTO.Appointment
         public int? CustomerId { get; set; }
         public int? TeamId { get; set; }
         public int? ProfessionalId { get; set; }
+        public List<int>? ProfessionalIds { get; set; }
 
         public AppointmentStatus? Status { get; set; }
         public AppointmentType? Type { get; set; }
