@@ -20,7 +20,6 @@ namespace Core.DTO.Appointment
         public int? CompanyId { get; set; }
         public int? CustomerId { get; set; }
         public int? TeamId { get; set; }
-        public int? ProfessionalId { get; set; }
         public List<int>? ProfessionalIds { get; set; }
 
         public AppointmentStatus? Status { get; set; }

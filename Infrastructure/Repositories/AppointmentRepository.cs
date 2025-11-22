@@ -1,8 +1,12 @@
-﻿using Core.DTO.Appointment;
+using Core.DTO.Appointment;
 using Core.Enums.Appointment;
 using Core.Models;
 using Infrastructure.ServiceExtension;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Infrastructure.Repositories
 {
@@ -16,7 +20,6 @@ namespace Infrastructure.Repositories
                 .Include(a => a.Company)
                 .Include(a => a.Customer)
                 .Include(a => a.Team)
-                .Include(a => a.Professional)
                 .AsQueryable();
 
             // Filtros dinâmicos
@@ -30,7 +33,20 @@ namespace Infrastructure.Repositories
                 query = query.Where(a => a.TeamId == filters.TeamId.Value);
 
             if (filters.ProfessionalId.HasValue)
-                query = query.Where(a => a.ProfessionalId == filters.ProfessionalId.Value);
+            {
+                var idStr = filters.ProfessionalId.Value.ToString();
+                var exact = "[" + idStr + "]";
+                var atStart = "[" + idStr + ",";
+                var atEnd = "," + idStr + "]";
+                var middle = "," + idStr + ",";
+
+                query = query.Where(a =>
+                    a.ProfessionalIdsData != null &&
+                    (a.ProfessionalIdsData == exact ||
+                     a.ProfessionalIdsData.StartsWith(atStart) ||
+                     a.ProfessionalIdsData.EndsWith(atEnd) ||
+                     a.ProfessionalIdsData.Contains(middle)));
+            }
 
             if (filters.Status.HasValue)
                 query = query.Where(a => a.Status == filters.Status.Value);
@@ -39,9 +55,12 @@ namespace Infrastructure.Repositories
                 query = query.Where(a => a.Type == filters.Type.Value);
 
             if (!string.IsNullOrWhiteSpace(filters.Search))
+            {
+                var searchLower = filters.Search.ToLower();
                 query = query.Where(a =>
-                    a.Title.ToLower().Contains(filters.Search.ToLower()) ||
-                    a.Address.ToLower().Contains(filters.Search.ToLower()));
+                    a.Title.ToLower().Contains(searchLower) ||
+                    a.Address.ToLower().Contains(searchLower));
+            }
 
             if (filters.StartDate.HasValue)
                 query = query.Where(a => a.Start >= filters.StartDate.Value);
@@ -59,7 +78,6 @@ namespace Infrastructure.Repositories
             return await _dbContext.Set<Appointment>()
                 .Include(a => a.Customer)
                 .Include(a => a.Team)
-                .Include(a => a.Professional)
                 .Where(a => a.CompanyId == companyId)
                 .ToListAsync();
         }
@@ -69,18 +87,27 @@ namespace Infrastructure.Repositories
             return await _dbContext.Set<Appointment>()
                 .Include(a => a.Company)
                 .Include(a => a.Customer)
-                .Include(a => a.Professional)
                 .Where(a => a.TeamId == teamId)
                 .ToListAsync();
         }
 
         public async Task<List<Appointment>> GetAppointmentsByProfessionalAsync(int professionalId)
         {
+            var idStr = professionalId.ToString();
+            var exact = "[" + idStr + "]";
+            var atStart = "[" + idStr + ",";
+            var atEnd = "," + idStr + "]";
+            var middle = "," + idStr + ",";
+
             return await _dbContext.Set<Appointment>()
                 .Include(a => a.Company)
                 .Include(a => a.Customer)
                 .Include(a => a.Team)
-                .Where(a => a.ProfessionalId == professionalId)
+                .Where(a => a.ProfessionalIdsData != null &&
+                            (a.ProfessionalIdsData == exact ||
+                             a.ProfessionalIdsData.StartsWith(atStart) ||
+                             a.ProfessionalIdsData.EndsWith(atEnd) ||
+                             a.ProfessionalIdsData.Contains(middle)))
                 .ToListAsync();
         }
 
@@ -89,7 +116,6 @@ namespace Infrastructure.Repositories
             return await _dbContext.Set<Appointment>()
                 .Include(a => a.Company)
                 .Include(a => a.Team)
-                .Include(a => a.Professional)
                 .Where(a => a.CustomerId == customerId)
                 .ToListAsync();
         }
@@ -100,11 +126,12 @@ namespace Infrastructure.Repositories
                 .Include(a => a.Company)
                 .Include(a => a.Customer)
                 .Include(a => a.Team)
-                .Include(a => a.Professional)
                 .Where(a => a.Start >= start && a.End <= end);
 
             if (companyId.HasValue)
+            {
                 query = query.Where(a => a.CompanyId == companyId.Value);
+            }
 
             return await query.ToListAsync();
         }

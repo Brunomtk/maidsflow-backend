@@ -280,10 +280,6 @@ namespace Infrastructure
                       .WithMany()
                       .HasForeignKey(a => a.TeamId)
                       .OnDelete(DeleteBehavior.Restrict);
-                entity.HasOne(a => a.Professional)
-                      .WithMany()
-                      .HasForeignKey(a => a.ProfessionalId)
-                      .OnDelete(DeleteBehavior.Restrict);
             });
 
                         // User permissions

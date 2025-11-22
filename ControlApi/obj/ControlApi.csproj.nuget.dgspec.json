@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\ControlApi\\ControlApi.csproj": {}
+    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\ControlApi\\ControlApi.csproj": {}
   },
   "projects": {
-    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\ControlApi\\ControlApi.csproj": {
+    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\ControlApi\\ControlApi.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\ControlApi\\ControlApi.csproj",
+        "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\ControlApi\\ControlApi.csproj",
         "projectName": "ControlApi",
-        "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\ControlApi\\ControlApi.csproj",
+        "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\ControlApi\\ControlApi.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\ControlApi\\obj\\",
+        "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\ControlApi\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -32,14 +32,14 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Core\\Core.csproj": {
-                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Core\\Core.csproj"
+              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Core\\Core.csproj": {
+                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Core\\Core.csproj"
               },
-              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Infrastructure\\Infrastructure.csproj": {
-                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Infrastructure\\Infrastructure.csproj"
+              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Infrastructure\\Infrastructure.csproj": {
+                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Infrastructure\\Infrastructure.csproj"
               },
-              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Services\\Services.csproj": {
-                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Services\\Services.csproj"
+              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Services\\Services.csproj": {
+                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Services\\Services.csproj"
               }
             }
           }
@@ -186,14 +186,14 @@
         }
       }
     },
-    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Core\\Core.csproj": {
+    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Core\\Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Core\\Core.csproj",
+        "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Core\\Core.csproj",
         "projectName": "Core",
-        "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Core\\Core.csproj",
+        "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Core\\Core.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Core\\obj\\",
+        "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Core\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -335,14 +335,14 @@
         }
       }
     },
-    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Infrastructure\\Infrastructure.csproj": {
+    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Infrastructure\\Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Infrastructure\\Infrastructure.csproj",
+        "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Infrastructure\\Infrastructure.csproj",
         "projectName": "Infrastructure",
-        "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Infrastructure\\Infrastructure.csproj",
+        "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Infrastructure\\Infrastructure.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Infrastructure\\obj\\",
+        "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -363,8 +363,8 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Core\\Core.csproj": {
-                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Core\\Core.csproj"
+              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Core\\Core.csproj": {
+                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Core\\Core.csproj"
               }
             }
           }
@@ -510,14 +510,14 @@
         }
       }
     },
-    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Services\\Services.csproj": {
+    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Services\\Services.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Services\\Services.csproj",
+        "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Services\\Services.csproj",
         "projectName": "Services",
-        "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Services\\Services.csproj",
+        "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Services\\Services.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Services\\obj\\",
+        "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Services\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -538,11 +538,11 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Core\\Core.csproj": {
-                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Core\\Core.csproj"
+              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Core\\Core.csproj": {
+                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Core\\Core.csproj"
               },
-              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Infrastructure\\Infrastructure.csproj": {
-                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_users_permissions_fullfix_v16_teams_members_fallback_fixed_v3\\Infrastructure\\Infrastructure.csproj"
+              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Infrastructure\\Infrastructure.csproj": {
+                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Infrastructure\\Infrastructure.csproj"
               }
             }
           }

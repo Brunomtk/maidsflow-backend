@@ -4764,11 +4764,6 @@
             "format": "int32",
             "nullable": true
           },
-          "professionalId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
           "professionalIds": {
             "type": "array",
             "items": {
@@ -6262,11 +6257,6 @@
             "nullable": true
           },
           "teamId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "professionalId": {
             "type": "integer",
             "format": "int32",
             "nullable": true

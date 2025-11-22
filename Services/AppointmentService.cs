@@ -58,76 +58,34 @@ namespace Services
             // O horário enviado no DTO (start/end) é salvo exatamente como veio,
             // para que o banco sempre reflita o horário local informado pelo usuário.
 
-            var professionalIds = (dto.ProfessionalIds != null && dto.ProfessionalIds.Any())
-                ? dto.ProfessionalIds.Distinct().ToList()
-                : new List<int>();
-
-            if (professionalIds.Count > 0)
+            var appointment = new Appointment
             {
-                foreach (var professionalId in professionalIds)
-                {
-                    var appointmentMulti = new Appointment
-                    {
-                        Title = dto.Title,
-                        Address = dto.Address,
-                        Start = dto.Start,
-                        End = dto.End,
-                        Notes = dto.Notes,
-                        Status = dto.Status ?? AppointmentStatus.Scheduled,
-                        Type = dto.Type ?? AppointmentType.Regular,
-                        CompanyId = dto.CompanyId,
-                        CustomerId = dto.CustomerId,
-                        TeamId = dto.TeamId,
-                        ProfessionalId = professionalId,
-                        // TimeZoneId vira apenas informação complementar, não afeta o horário salvo.
-                        TimeZoneId = dto.TimeZoneId,
-                        IsRecurring = dto.IsRecurring,
-                        RecurrenceRule = dto.RecurrenceRule,
-                        RecurrenceEnd = dto.RecurrenceEnd,
-                        OccurrenceCount = dto.OccurrenceCount
-                    };
+                Title = dto.Title,
+                Address = dto.Address,
+                Start = dto.Start,
+                End = dto.End,
+                Notes = dto.Notes,
+                Status = dto.Status ?? AppointmentStatus.Scheduled,
+                Type = dto.Type ?? AppointmentType.Regular,
+                CompanyId = dto.CompanyId,
+                CustomerId = dto.CustomerId,
+                TeamId = dto.TeamId,
+                TimeZoneId = dto.TimeZoneId,
+                IsRecurring = dto.IsRecurring,
+                RecurrenceRule = dto.RecurrenceRule,
+                RecurrenceEnd = dto.RecurrenceEnd,
+                OccurrenceCount = dto.OccurrenceCount
+            };
 
-                    // Guarda a lista completa de profissionais no campo de apoio,
-                    // para que a API sempre retorne "professionalIds": [ ... ]
-                    appointmentMulti.ProfessionalIds = professionalIds;
-
-                    await _unitOfWork.Appointments.Add(appointmentMulti);
-                }
-
-                return await _unitOfWork.SaveAsync() > 0;
-            }
-            else
+            if (dto.ProfessionalIds != null)
             {
-                var appointment = new Appointment
-                {
-                    Title = dto.Title,
-                    Address = dto.Address,
-                    Start = dto.Start,
-                    End = dto.End,
-                    Notes = dto.Notes,
-                    Status = dto.Status ?? AppointmentStatus.Scheduled,
-                    Type = dto.Type ?? AppointmentType.Regular,
-                    CompanyId = dto.CompanyId,
-                    CustomerId = dto.CustomerId,
-                    TeamId = dto.TeamId,
-                    ProfessionalId = dto.ProfessionalId,
-                    // TimeZoneId vira apenas informação complementar, não afeta o horário salvo.
-                    TimeZoneId = dto.TimeZoneId,
-                    IsRecurring = dto.IsRecurring,
-                    RecurrenceRule = dto.RecurrenceRule,
-                    RecurrenceEnd = dto.RecurrenceEnd,
-                    OccurrenceCount = dto.OccurrenceCount
-                };
-
-                if (dto.ProfessionalId.HasValue)
-                {
-                    appointment.ProfessionalIds = new List<int> { dto.ProfessionalId.Value };
-                }
-
-                await _unitOfWork.Appointments.Add(appointment);
-                return await _unitOfWork.SaveAsync() > 0;
+                appointment.ProfessionalIds = dto.ProfessionalIds.Distinct().ToList();
             }
+
+            await _unitOfWork.Appointments.Add(appointment);
+            return await _unitOfWork.SaveAsync() > 0;
         }
+
         public async Task<bool> Update(int id, UpdateAppointmentDTO dto)
         {
             var appointment = await _unitOfWork.Appointments.GetById(id);
@@ -155,13 +113,10 @@ namespace Services
             appointment.CompanyId = dto.CompanyId ?? appointment.CompanyId;
             appointment.CustomerId = dto.CustomerId ?? appointment.CustomerId;
             appointment.TeamId = dto.TeamId ?? appointment.TeamId;
-            if (dto.ProfessionalIds != null && dto.ProfessionalIds.Any())
+
+            if (dto.ProfessionalIds != null)
             {
-                appointment.ProfessionalId = dto.ProfessionalIds.First();
-            }
-            else if (dto.ProfessionalId.HasValue)
-            {
-                appointment.ProfessionalId = dto.ProfessionalId.Value;
+                appointment.ProfessionalIds = dto.ProfessionalIds.Distinct().ToList();
             }
 
             // Atualiza campos de recorrência/timezone se vierem
@@ -176,6 +131,7 @@ namespace Services
             _unitOfWork.Appointments.Update(appointment);
             return await _unitOfWork.SaveAsync() > 0;
         }
+
 
         public async Task<bool> Delete(int id)
         {

@@ -33,98 +33,46 @@ namespace ControlApi.Controllers
             var startLocal = dto.Start;
             var endLocal   = dto.End;
 
-            // Lista de profissionais (para suportar múltiplos profissionais no mesmo compromisso)
-            var professionalIds = (dto.ProfessionalIds != null && dto.ProfessionalIds.Any())
-                ? dto.ProfessionalIds.Distinct().ToList()
-                : new List<int>();
-
             // Single (non-recurring) appointment
             if (!dto.IsRecurring)
             {
-                // Se vier lista de profissionais, criamos um Appointment por profissional.
-                if (professionalIds.Count > 0)
-                {
-                    var nonRecurringAppointments = new List<Appointment>();
-
-                    foreach (var professionalId in professionalIds)
-                    {
-                        var appt = MapAppointment(dto, startLocal, endLocal, tz, false, null, professionalId);
-                        await _db.Set<Appointment>().AddAsync(appt);
-                        nonRecurringAppointments.Add(appt);
-                    }
-
-                    await _db.SaveChangesAsync();
-
-                    var firstNonRecurring = nonRecurringAppointments
-                        .OrderBy(a => a.Start)
-                        .FirstOrDefault();
-
-                    return Ok(firstNonRecurring ?? nonRecurringAppointments.FirstOrDefault());
-                }
-                else
-                {
-                    // Comportamento antigo: sem lista => usa ProfessionalId único (ou null)
-                    var appt = MapAppointment(dto, startLocal, endLocal, tz, false, null, null);
-                    await _db.Set<Appointment>().AddAsync(appt);
-                    await _db.SaveChangesAsync();
-                    return Ok(appt);
-                }
+                var appointment = MapAppointment(dto, startLocal, endLocal, tz, false, null);
+                await _db.Set<Appointment>().AddAsync(appointment);
+                await _db.SaveChangesAsync();
+                return Ok(appointment);
             }
 
             // Recurring appointment
             if (string.IsNullOrWhiteSpace(dto.RecurrenceRule))
-                return BadRequest("RecurrenceRule is required when IsRecurring=true.");
+            {
+                return BadRequest("RecurrenceRule é obrigatório para agendamentos recorrentes.");
+            }
 
-            if (dto.OccurrenceCount is null && dto.RecurrenceEnd is null)
-                return BadRequest("Provide either RecurrenceEnd or OccurrenceCount.");
-
-            if (dto.OccurrenceCount is int c && c <= 0)
-                return BadRequest("OccurrenceCount must be > 0.");
-
-            if (dto.RecurrenceEnd is DateTime until && until < dto.Start)
-                return BadRequest("RecurrenceEnd must be >= Start.");
-
-            var seriesId = Guid.NewGuid();
             var occurrences = ExpandOccurrences(
-                dto.RecurrenceRule!,
+                dto.RecurrenceRule,
                 startLocal,
                 endLocal,
                 dto.RecurrenceEnd,
                 dto.OccurrenceCount,
-                tz
-            );
+                tz);
 
+            if (occurrences == null || !occurrences.Any())
+            {
+                return BadRequest("Nenhuma ocorrência gerada para a regra de recorrência.");
+            }
+
+            var seriesId = Guid.NewGuid();
             var toCreate = new List<Appointment>();
 
             foreach (var (start, end) in occurrences)
             {
-                if (professionalIds.Count > 0)
-                {
-                    foreach (var professionalId in professionalIds)
-                    {
-                        bool exists = await _db.Set<Appointment>()
-                            .AnyAsync(a =>
-                                a.SeriesId == seriesId &&
-                                a.Start == start &&
-                                a.ProfessionalId == professionalId);
+                bool exists = await _db.Set<Appointment>()
+                    .AnyAsync(a => a.SeriesId == seriesId && a.Start == start);
 
-                        if (!exists)
-                        {
-                            var appt = MapAppointment(dto, start, end, tz, true, seriesId, professionalId);
-                            toCreate.Add(appt);
-                        }
-                    }
-                }
-                else
+                if (!exists)
                 {
-                    bool exists = await _db.Set<Appointment>()
-                        .AnyAsync(a => a.SeriesId == seriesId && a.Start == start);
-
-                    if (!exists)
-                    {
-                        var appt = MapAppointment(dto, start, end, tz, true, seriesId, null);
-                        toCreate.Add(appt);
-                    }
+                    var appt = MapAppointment(dto, start, end, tz, true, seriesId);
+                    toCreate.Add(appt);
                 }
             }
 
@@ -134,7 +82,6 @@ namespace ControlApi.Controllers
             var first = toCreate.OrderBy(a => a.Start).FirstOrDefault();
             return Ok(first ?? toCreate.FirstOrDefault());
         }
-
 
         // UPDATE with scope
         [HttpPut("{id:int}")]
@@ -219,9 +166,9 @@ namespace ControlApi.Controllers
             => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), tz);
 
         private Appointment MapAppointment(
-            CreateAppointmentDTO dto, DateTime start, DateTime end, TimeZoneInfo tz, bool isRecurring, Guid? seriesId, int? professionalId = null)
+            CreateAppointmentDTO dto, DateTime start, DateTime end, TimeZoneInfo tz, bool isRecurring, Guid? seriesId)
         {
-            return new Appointment
+            var appointment = new Appointment
             {
                 Title = dto.Title,
                 Address = dto.Address,
@@ -232,7 +179,6 @@ namespace ControlApi.Controllers
                 CompanyId = dto.CompanyId,
                 CustomerId = dto.CustomerId,
                 TeamId = dto.TeamId,
-                ProfessionalId = professionalId ?? dto.ProfessionalId,
                 Status = dto.Status ?? Core.Enums.Appointment.AppointmentStatus.Scheduled,
                 Type   = dto.Type   ?? Core.Enums.Appointment.AppointmentType.Regular,
                 IsRecurring = isRecurring,
@@ -242,8 +188,15 @@ namespace ControlApi.Controllers
                 OccurrenceCount = dto.OccurrenceCount,
                 IsException = false
             };
-        }
 
+            // Atribui lista de profissionais, se enviada
+            if (dto.ProfessionalIds != null)
+            {
+                appointment.ProfessionalIds = dto.ProfessionalIds.Distinct().ToList();
+            }
+
+            return appointment;
+        }
 
         // Simple RRULE expansion supporting DAILY and WEEKLY with INTERVAL, BYDAY, COUNT, UNTIL
         private List<(DateTime start, DateTime end)> ExpandOccurrences(
@@ -441,7 +394,7 @@ namespace ControlApi.Controllers
                     CompanyId = anchor.CompanyId,
                     CustomerId = anchor.CustomerId,
                     TeamId = anchor.TeamId,
-                    ProfessionalId = anchor.ProfessionalId,
+                    ProfessionalIdsData = anchor.ProfessionalIdsData,
                     Status = anchor.Status,
                     Type = anchor.Type,
                     IsRecurring = true,

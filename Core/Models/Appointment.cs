@@ -27,9 +27,6 @@ namespace Core.Models
         public int? TeamId { get; set; }
         public Team? Team { get; set; }
 
-        // Profissional "principal" (usado para views simples e filtros)
-        public int? ProfessionalId { get; set; }
-        public Professional? Professional { get; set; }
 
         // Lista de profissionais associada ao agendamento (quando criado com ProfessionalIds)
         // Armazenamos como JSON no banco em ProfessionalIdsData, e expomos como array no JSON da API.
