@@ -17,6 +17,11 @@ namespace Core.DTO.User
         public string? Language { get; set; } // "pt-br" ou "english"
         public string? Theme { get; set; } // "claro" ou "escuro"
 
+                /// <summary>
+        /// Indica se o usuário já concluiu o fluxo de onboarding inicial.
+        /// </summary>
+        public bool Onboarding { get; set; } = false;
+
         /// <summary>
         /// Optional list of permissions to assign to this user.
         /// </summary>

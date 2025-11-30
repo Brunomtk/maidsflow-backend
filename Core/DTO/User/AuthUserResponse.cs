@@ -18,6 +18,8 @@ public class AuthUserResponse
     public string? Language { get; set; }
     public string? Theme { get; set; }
 
+    public bool Onboarding { get; set; }
+
     public string? RefreshToken { get; set; }
 
     public DateTime CreatedDate { get; set; }

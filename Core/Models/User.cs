@@ -23,6 +23,9 @@ namespace Core.Models
         public ICollection<UserPermission> Permissions { get; set; } = new List<UserPermission>();
         
         
+                // Indica se o usuário já concluiu o fluxo de onboarding inicial
+        public bool Onboarding { get; set; } = false;
+        
         // Preferência de idioma do usuário: "pt-br" ou "english"
         public string? Language { get; set; }
         

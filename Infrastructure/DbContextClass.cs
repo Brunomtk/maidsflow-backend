@@ -125,6 +125,9 @@ namespace Infrastructure
             {
                 entity.ToTable("Users");
                 entity.HasKey(u => u.Id);
+
+                entity.Property(u => u.Onboarding)
+                      .HasDefaultValue(false);
             });
 
             // Companies

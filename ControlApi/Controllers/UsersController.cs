@@ -72,6 +72,7 @@ namespace ControlApi.Controllers
                 ProfessionalId = user.ProfessionalId,
                 Language = user.Language,
                 Theme = user.Theme,
+                Onboarding = user.Onboarding,
                 CreatedDate = user.CreatedDate,
                 UpdatedDate = user.UpdatedDate,
                 Permissions = user.Permissions != null
@@ -125,6 +126,7 @@ namespace ControlApi.Controllers
                 ProfessionalId = user.ProfessionalId,
                 Language = user.Language,
                 Theme = user.Theme,
+                Onboarding = user.Onboarding,
                 CreatedDate = user.CreatedDate,
                 UpdatedDate = user.UpdatedDate,
                 Permissions = user.Permissions != null
@@ -185,6 +187,7 @@ namespace ControlApi.Controllers
                 ProfessionalId = request.ProfessionalId,
                 Language = request.Language,
                 Theme = request.Theme,
+                Onboarding = request.Onboarding,
                 CreatedDate = DateTime.UtcNow,
                 UpdatedDate = DateTime.UtcNow
             };

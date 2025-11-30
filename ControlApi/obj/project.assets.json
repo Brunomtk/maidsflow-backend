@@ -10440,11 +10440,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\ControlApi\\ControlApi.csproj",
+      "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get_onboarding\\ControlApi\\ControlApi.csproj",
       "projectName": "ControlApi",
-      "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\ControlApi\\ControlApi.csproj",
+      "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get_onboarding\\ControlApi\\ControlApi.csproj",
       "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\ControlApi\\obj\\",
+      "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get_onboarding\\ControlApi\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -10465,14 +10465,14 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Core\\Core.csproj": {
-              "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Core\\Core.csproj"
+            "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get_onboarding\\Core\\Core.csproj": {
+              "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get_onboarding\\Core\\Core.csproj"
             },
-            "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Infrastructure\\Infrastructure.csproj": {
-              "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Infrastructure\\Infrastructure.csproj"
+            "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get_onboarding\\Infrastructure\\Infrastructure.csproj": {
+              "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get_onboarding\\Infrastructure\\Infrastructure.csproj"
             },
-            "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Services\\Services.csproj": {
-              "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get\\Services\\Services.csproj"
+            "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get_onboarding\\Services\\Services.csproj": {
+              "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_multi_professionalIds_single_appointment_fix_get_onboarding\\Services\\Services.csproj"
             }
           }
         }

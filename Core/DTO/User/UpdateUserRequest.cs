@@ -13,6 +13,8 @@ namespace Core.DTO.User
         public int? CompanyId { get; set; }
         public int? ProfessionalId { get; set; }
 
+        public bool? Onboarding { get; set; }
+
         /// <summary>
         /// Optional list of permissions to replace the current user's permissions.
         /// If null, permissions will not be changed.

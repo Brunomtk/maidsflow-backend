@@ -5550,6 +5550,9 @@
             "type": "string",
             "nullable": true
           },
+          "onboarding": {
+            "type": "boolean"
+          },
           "permissions": {
             "type": "array",
             "items": {
@@ -7000,6 +7003,10 @@
             "format": "int32",
             "nullable": true
           },
+          "onboarding": {
+            "type": "boolean",
+            "nullable": true
+          },
           "permissions": {
             "type": "array",
             "items": {
@@ -7064,6 +7071,9 @@
               "$ref": "#/components/schemas/UserPermission"
             },
             "nullable": true
+          },
+          "onboarding": {
+            "type": "boolean"
           },
           "language": {
             "type": "string",

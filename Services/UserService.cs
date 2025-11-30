@@ -111,6 +111,9 @@ namespace Services
             if (userParam.ProfessionalId.HasValue)
                 user.ProfessionalId = userParam.ProfessionalId;
 
+            if (userParam.Onboarding.HasValue)
+                user.Onboarding = userParam.Onboarding.Value;
+
             if (!string.IsNullOrEmpty(userParam.Password))
                 user.Password = Encrypt.EncryptPassword(userParam.Password);
 
