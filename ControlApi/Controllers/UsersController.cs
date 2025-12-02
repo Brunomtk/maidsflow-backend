@@ -180,7 +180,7 @@ namespace ControlApi.Controllers
             {
                 Name = request.Name,
                 Email = request.Email,
-                Password = Encrypt.EncryptPassword(request.Password),
+                Password = request.Password,
                 Role = request.Role,
                 Status = request.Status,
                 CompanyId = request.CompanyId,
