@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\ControlApi\\ControlApi.csproj": {}
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\ControlApi\\ControlApi.csproj": {}
   },
   "projects": {
-    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\ControlApi\\ControlApi.csproj": {
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\ControlApi\\ControlApi.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\ControlApi\\ControlApi.csproj",
+        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\ControlApi\\ControlApi.csproj",
         "projectName": "ControlApi",
-        "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\ControlApi\\ControlApi.csproj",
+        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\ControlApi\\ControlApi.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\ControlApi\\obj\\",
+        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\ControlApi\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -32,14 +32,14 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Core\\Core.csproj": {
-                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Core\\Core.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Core\\Core.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Core\\Core.csproj"
               },
-              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Infrastructure\\Infrastructure.csproj": {
-                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Infrastructure\\Infrastructure.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Infrastructure\\Infrastructure.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Infrastructure\\Infrastructure.csproj"
               },
-              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Services\\Services.csproj": {
-                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Services\\Services.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Services\\Services.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Services\\Services.csproj"
               }
             }
           }
@@ -186,14 +186,14 @@
         }
       }
     },
-    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Core\\Core.csproj": {
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Core\\Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Core\\Core.csproj",
+        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Core\\Core.csproj",
         "projectName": "Core",
-        "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Core\\Core.csproj",
+        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Core\\Core.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Core\\obj\\",
+        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Core\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -335,14 +335,14 @@
         }
       }
     },
-    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Infrastructure\\Infrastructure.csproj": {
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Infrastructure\\Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Infrastructure\\Infrastructure.csproj",
+        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Infrastructure\\Infrastructure.csproj",
         "projectName": "Infrastructure",
-        "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Infrastructure\\Infrastructure.csproj",
+        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Infrastructure\\Infrastructure.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Infrastructure\\obj\\",
+        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -363,8 +363,8 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Core\\Core.csproj": {
-                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Core\\Core.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Core\\Core.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Core\\Core.csproj"
               }
             }
           }
@@ -510,14 +510,14 @@
         }
       }
     },
-    "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Services\\Services.csproj": {
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Services\\Services.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Services\\Services.csproj",
+        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Services\\Services.csproj",
         "projectName": "Services",
-        "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Services\\Services.csproj",
+        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Services\\Services.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Services\\obj\\",
+        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Services\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -538,11 +538,11 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Core\\Core.csproj": {
-                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Core\\Core.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Core\\Core.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Core\\Core.csproj"
               },
-              "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Infrastructure\\Infrastructure.csproj": {
-                "projectPath": "C:\\Users\\bruno\\OneDrive\\Área de Trabalho\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401\\Infrastructure\\Infrastructure.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Infrastructure\\Infrastructure.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fix_users_401_teams_fixed\\Infrastructure\\Infrastructure.csproj"
               }
             }
           }

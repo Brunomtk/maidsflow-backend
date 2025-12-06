@@ -75,11 +75,17 @@ namespace Services
             team.CompanyId = updatedTeam.CompanyId;
             team.Status = updatedTeam.Status;
 
-            // Recria os members se vierem preenchidos
+            // Remove todos os membros atuais diretamente no banco
+            if (_unitOfWork.Teams is ITeamRepository teamRepo)
+            {
+                await teamRepo.RemoveMembersByTeamIdAsync(id);
+            }
+
+            // Reconstrói a coleção de membros em memória com base no que veio do updatedTeam
+            team.Members.Clear();
+
             if (updatedTeam.Members != null)
             {
-                team.Members.Clear();
-
                 foreach (var member in updatedTeam.Members)
                 {
                     team.Members.Add(new TeamMember
@@ -96,7 +102,7 @@ namespace Services
             _unitOfWork.Teams.Update(team);
             await _unitOfWork.SaveAsync();
 
-            // Recarrega a equipe com Members
+            // Recarrega a equipe com Members atualizados
             var reloaded = await _unitOfWork.Teams.GetByIdWithMembersAsync(id);
             return reloaded ?? team;
         }

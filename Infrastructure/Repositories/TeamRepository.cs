@@ -114,6 +114,22 @@ namespace Infrastructure.Repositories
                 .Where(m => m.TeamId == teamId)
                 .ToListAsync();
         }
+
+        /// <summary>
+        /// Remove todos os membros de uma equipe diretamente no banco.
+        /// Não executa SaveChanges; quem chama deve salvar via UnitOfWork.
+        /// </summary>
+        public async Task RemoveMembersByTeamIdAsync(int teamId)
+        {
+            var existingMembers = await _dbContext.TeamMembers
+                .Where(m => m.TeamId == teamId)
+                .ToListAsync();
+
+            if (existingMembers.Count > 0)
+            {
+                _dbContext.TeamMembers.RemoveRange(existingMembers);
+            }
+        }
     }
 
     public interface ITeamRepository : IGenericRepository<Team>
@@ -122,5 +138,6 @@ namespace Infrastructure.Repositories
         Task<PagedResult<Team>> GetPagedTeamsFilteredAsync(TeamFiltersDTO filters);
         Task<Team?> GetByIdWithMembersAsync(int id);
         Task<List<TeamMember>> GetMembersByTeamIdAsync(int teamId);
+        Task RemoveMembersByTeamIdAsync(int teamId);
     }
 }

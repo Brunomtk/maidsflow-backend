@@ -1,14 +1,14 @@
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401\Core\bin\Debug\net8.0\Core.deps.json
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401\Core\bin\Debug\net8.0\Core.runtimeconfig.json
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401\Core\bin\Debug\net8.0\Core.dll
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401\Core\bin\Debug\net8.0\Core.pdb
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401\Core\obj\Debug\net8.0\Core.csproj.AssemblyReference.cache
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401\Core\obj\Debug\net8.0\Core.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401\Core\obj\Debug\net8.0\Core.AssemblyInfoInputs.cache
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401\Core\obj\Debug\net8.0\Core.AssemblyInfo.cs
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401\Core\obj\Debug\net8.0\Core.csproj.CoreCompileInputs.cache
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401\Core\obj\Debug\net8.0\Core.dll
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401\Core\obj\Debug\net8.0\refint\Core.dll
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401\Core\obj\Debug\net8.0\Core.pdb
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401\Core\obj\Debug\net8.0\Core.genruntimeconfig.cache
-C:\Users\bruno\OneDrive\Área de Trabalho\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401\Core\obj\Debug\net8.0\ref\Core.dll
+E:\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401_teams_fixed\Core\bin\Debug\net8.0\Core.deps.json
+E:\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401_teams_fixed\Core\bin\Debug\net8.0\Core.runtimeconfig.json
+E:\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401_teams_fixed\Core\bin\Debug\net8.0\Core.dll
+E:\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401_teams_fixed\Core\bin\Debug\net8.0\Core.pdb
+E:\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401_teams_fixed\Core\obj\Debug\net8.0\Core.csproj.AssemblyReference.cache
+E:\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401_teams_fixed\Core\obj\Debug\net8.0\Core.GeneratedMSBuildEditorConfig.editorconfig
+E:\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401_teams_fixed\Core\obj\Debug\net8.0\Core.AssemblyInfoInputs.cache
+E:\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401_teams_fixed\Core\obj\Debug\net8.0\Core.AssemblyInfo.cs
+E:\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401_teams_fixed\Core\obj\Debug\net8.0\Core.csproj.CoreCompileInputs.cache
+E:\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401_teams_fixed\Core\obj\Debug\net8.0\Core.dll
+E:\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401_teams_fixed\Core\obj\Debug\net8.0\refint\Core.dll
+E:\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401_teams_fixed\Core\obj\Debug\net8.0\Core.pdb
+E:\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401_teams_fixed\Core\obj\Debug\net8.0\Core.genruntimeconfig.cache
+E:\Projetos B7\maidsflow\DEV\maidsflow-backend_fix_users_401_teams_fixed\Core\obj\Debug\net8.0\ref\Core.dll
