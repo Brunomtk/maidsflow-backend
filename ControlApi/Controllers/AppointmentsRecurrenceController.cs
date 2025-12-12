@@ -24,16 +24,16 @@ namespace ControlApi.Controllers
         }
 
         // CREATE (single or recurring)
-        [HttpPost]
+                [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateAppointmentDTO dto)
         {
             var tz = ResolveTimeZone(dto.TimeZoneId);
 
-            // Work only with local times (no UTC conversion)
+            // Sempre trabalhamos com horários locais (sem conversão para UTC aqui).
             var startLocal = dto.Start;
             var endLocal   = dto.End;
 
-            // Single (non-recurring) appointment
+            // Agendamento NÃO recorrente: mantém o comportamento original.
             if (!dto.IsRecurring)
             {
                 var appointment = MapAppointment(dto, startLocal, endLocal, tz, false, null);
@@ -42,48 +42,24 @@ namespace ControlApi.Controllers
                 return Ok(appointment);
             }
 
-            // Recurring appointment
+            // Agendamento recorrente:
+            // A partir de agora vamos persistir apenas UM registro na tabela de Appointments,
+            // carregando a regra de recorrência (RecurrenceRule / RecurrenceEnd / OccurrenceCount).
+            // A expansão em múltiplas ocorrências fica para a camada de leitura.
             if (string.IsNullOrWhiteSpace(dto.RecurrenceRule))
             {
                 return BadRequest("RecurrenceRule é obrigatório para agendamentos recorrentes.");
             }
 
-            var occurrences = ExpandOccurrences(
-                dto.RecurrenceRule,
-                startLocal,
-                endLocal,
-                dto.RecurrenceEnd,
-                dto.OccurrenceCount,
-                tz);
-
-            if (occurrences == null || !occurrences.Any())
-            {
-                return BadRequest("Nenhuma ocorrência gerada para a regra de recorrência.");
-            }
-
             var seriesId = Guid.NewGuid();
-            var toCreate = new List<Appointment>();
+            var recurringAppointment = MapAppointment(dto, startLocal, endLocal, tz, true, seriesId);
 
-            foreach (var (start, end) in occurrences)
-            {
-                bool exists = await _db.Set<Appointment>()
-                    .AnyAsync(a => a.SeriesId == seriesId && a.Start == start);
-
-                if (!exists)
-                {
-                    var appt = MapAppointment(dto, start, end, tz, true, seriesId);
-                    toCreate.Add(appt);
-                }
-            }
-
-            await _db.Set<Appointment>().AddRangeAsync(toCreate);
+            await _db.Set<Appointment>().AddAsync(recurringAppointment);
             await _db.SaveChangesAsync();
 
-            var first = toCreate.OrderBy(a => a.Start).FirstOrDefault();
-            return Ok(first ?? toCreate.FirstOrDefault());
+            return Ok(recurringAppointment);
         }
-
-        // UPDATE with scope
+// UPDATE with scope
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateAppointmentDTO dto)
         {
@@ -355,62 +331,15 @@ namespace ControlApi.Controllers
         }
 
 
-        private async Task UpdateThisAndFollowingAsync(Appointment anchor, UpdateAppointmentDTO dto, TimeZoneInfo tz)
+                private async Task UpdateThisAndFollowingAsync(Appointment anchor, UpdateAppointmentDTO dto, TimeZoneInfo tz)
         {
-            var seriesId = anchor.SeriesId;
-            if (seriesId == null)
-            {
-                await UpdateThisAsync(anchor, dto, tz);
-                return;
-            }
-
-            var following = await _db.Set<Appointment>()
-                .Where(a => a.SeriesId == seriesId && a.Start >= anchor.Start && !a.IsException)
-                .OrderBy(a => a.Start)
-                .ToListAsync();
-
-            _db.Set<Appointment>().RemoveRange(following);
-
-            var baseStartLocal = dto.Start ?? anchor.Start;
-            var baseEndLocal   = dto.End   ?? anchor.End;
-            var rrule = dto.RecurrenceRule ?? anchor.RecurrenceRule ?? "FREQ=DAILY;INTERVAL=1";
-            var untilLocal = dto.RecurrenceEnd ?? anchor.RecurrenceEnd;
-            var count = dto.OccurrenceCount ?? anchor.OccurrenceCount;
-
-            var newSeriesId = Guid.NewGuid();
-            var occurrences = ExpandOccurrences(rrule, baseStartLocal, baseEndLocal, untilLocal, count, tz);
-            var toCreate = new List<Appointment>();
-            foreach (var (start, end) in occurrences)
-            {
-                if (start < anchor.Start) continue;
-                toCreate.Add(new Appointment
-                {
-                    Title = dto.Title ?? anchor.Title,
-                    Address = dto.Address ?? anchor.Address,
-                    Notes = dto.Notes ?? anchor.Notes,
-                    Start = start,
-                    End = end,
-                    TimeZoneId = tz.Id,
-                    CompanyId = anchor.CompanyId,
-                    CustomerId = anchor.CustomerId,
-                    TeamId = anchor.TeamId,
-                    ProfessionalIdsData = anchor.ProfessionalIdsData,
-                    Status = anchor.Status,
-                    Type = anchor.Type,
-                    IsRecurring = true,
-                    RecurrenceRule = rrule,
-                    SeriesId = newSeriesId,
-                    RecurrenceEnd = untilLocal ?? anchor.RecurrenceEnd,
-                    OccurrenceCount = count,
-                    IsException = false
-                });
-            }
-
-            await _db.Set<Appointment>().AddRangeAsync(toCreate);
+            // No modelo atual, cada recorrência é persistida como um único registro na tabela de Appointments.
+            // Isso significa que "ThisAndFollowing" (Este e os próximos) não precisa mais recriar a série inteira
+            // nem gerar múltiplos registros. Em vez disso, tratamos "ThisAndFollowing" como uma atualização
+            // da própria série/registro âncora, reaproveitando a lógica central de UpdateThisAsync.
+            await UpdateThisAsync(anchor, dto, tz);
         }
-
-
-        private async Task UpdateAllAsync(Appointment anchor, UpdateAppointmentDTO dto, TimeZoneInfo tz)
+private async Task UpdateAllAsync(Appointment anchor, UpdateAppointmentDTO dto, TimeZoneInfo tz)
         {
             if (anchor.SeriesId == null)
             {
