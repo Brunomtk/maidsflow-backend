@@ -433,7 +433,7 @@ public async Task<IActionResult> GetCalendar(
 /// scope: This / ThisAndFollowing / All
 /// </summary>
 [HttpPut("instance/{instanceId}")]
-public async Task<IActionResult> UpdateInstance(string instanceId, [FromBody] UpdateAppointmentDTO dto)
+public async Task<IActionResult> UpdateInstance(string instanceId, [FromBody] UpdateRecurrenceInstanceDTO payload)
 {
     if (!TryDecodeInstanceId(instanceId, out var seriesId, out var occStart))
         return BadRequest("InstanceId inválido.");
@@ -443,11 +443,23 @@ public async Task<IActionResult> UpdateInstance(string instanceId, [FromBody] Up
 
     if (anchor == null) return NotFound();
 
+    // Mapeia payload (aceita tanto {title,start,...} quanto {overrideTitle,overrideStart,...})
+    var dto = payload.ToUpdateAppointmentDTO();
+
     // Força a identificação da ocorrência clicada
     dto.OccurrenceStart = occStart;
 
-    // Reaproveita a lógica de Update por ID
-    return await Update(anchor.Id, dto);
+    // Reaproveita a lógica de Update por ID (salva override/exceção, split, ou update geral)
+    var result = await Update(anchor.Id, dto);
+
+    // Para Scope=This, devolve o evento já com override aplicado (pra UI poder refletir imediatamente)
+    if (dto.Scope == RecurrenceScope.This)
+    {
+        var occ = await BuildOccurrenceResponseAsync(seriesId, occStart);
+        return Ok(occ);
+    }
+
+    return result;
 }
 
 /// <summary>
@@ -468,6 +480,96 @@ public async Task<IActionResult> DeleteInstance(
 
     return await Delete(anchor.Id, scope, occStart, null);
 }
+
+        /// <summary>
+        /// Constrói o DTO de uma ocorrência (virtual) já com exceção aplicada, se existir.
+        /// Usado principalmente após PUT instance/{instanceId} para o front receber os valores corretos.
+        /// </summary>
+        private async Task<CalendarOccurrenceDTO> BuildOccurrenceResponseAsync(Guid seriesId, DateTime occStart)
+        {
+            var anchor = await _db.Set<Appointment>().AsNoTracking()
+                .Include(a => a.Customer)
+                .Include(a => a.Team)
+                .FirstOrDefaultAsync(a => a.IsRecurring && a.SeriesId == seriesId);
+
+            if (anchor == null)
+            {
+                var inst = EncodeInstanceId(seriesId, occStart);
+                return new CalendarOccurrenceDTO
+                {
+                    Id = inst,
+                    InstanceId = inst,
+                    IsVirtualOccurrence = true,
+                    IsRecurring = true,
+                    SeriesId = seriesId,
+                    Start = occStart,
+                    End = occStart,
+                    Title = "Series not found"
+                };
+            }
+
+            var customerMini = anchor.Customer != null
+                ? new CalendarCustomerMiniDTO { Id = anchor.Customer.Id, Name = anchor.Customer.Name }
+                : null;
+            var teamMini = anchor.Team != null
+                ? new CalendarTeamMiniDTO { Id = anchor.Team.Id, Name = anchor.Team.Name }
+                : null;
+
+            var duration = anchor.End - anchor.Start;
+            var occEnd = occStart + duration;
+
+            var ex = await _db.Set<AppointmentRecurrenceException>().AsNoTracking()
+                .OrderByDescending(e => e.UpdatedDate)
+                .FirstOrDefaultAsync(e => e.SeriesId == seriesId && e.OccurrenceStart == occStart);
+
+            var startFinal = ex?.OverrideStart ?? occStart;
+            var endFinal = ex?.OverrideEnd ?? occEnd;
+
+            var titleFinal = !string.IsNullOrWhiteSpace(ex?.OverrideTitle)
+                ? ex!.OverrideTitle
+                : (!string.IsNullOrWhiteSpace(anchor.Title)
+                    ? anchor.Title
+                    : (customerMini?.Name ?? "No Customer"));
+
+            var instId = EncodeInstanceId(seriesId, occStart);
+
+            var professionalIdsFinal = ex?.OverrideProfessionalIds?.ToList()
+                ?? anchor.ProfessionalIds?.ToList()
+                ?? new List<int>();
+
+            return new CalendarOccurrenceDTO
+            {
+                Id = instId,
+                InstanceId = instId,
+                IsVirtualOccurrence = true,
+                IsRecurring = true,
+
+                AppointmentId = anchor.Id,
+                AnchorAppointmentId = anchor.Id,
+                SeriesId = anchor.SeriesId,
+
+                Start = startFinal,
+                End = endFinal,
+                Title = titleFinal,
+                Address = ex?.OverrideAddress ?? anchor.Address,
+                Notes = ex?.OverrideNotes ?? anchor.Notes,
+
+                CompanyId = anchor.CompanyId,
+                CustomerId = anchor.CustomerId,
+                TeamId = anchor.TeamId,
+                Status = (ex?.OverrideStatus ?? anchor.Status),
+                Type = (ex?.OverrideType ?? anchor.Type),
+
+                Customer = customerMini,
+                Team = teamMini,
+
+                ProfessionalIds = professionalIdsFinal,
+                ProfessionalId = professionalIdsFinal.Any() ? professionalIdsFinal.First() : null,
+
+                IsCancelled = ex?.IsCancelled ?? false,
+                HasOverride = ex != null && !ex.IsCancelled
+            };
+        }
 // ---------------- helpers ----------------
 
         private static TimeZoneInfo ResolveTimeZone(string? tz)
