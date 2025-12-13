@@ -4,6 +4,18 @@ using Core.Enums.Appointment;
 
 namespace Core.DTO.Appointment
 {
+    public class CalendarCustomerMiniDTO
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class CalendarTeamMiniDTO
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
     /// <summary>
     /// Item pronto para renderizar no calendário.
     /// - Eventos normais: AppointmentId preenchido e IsVirtualOccurrence=false
@@ -39,6 +51,13 @@ namespace Core.DTO.Appointment
 
         public AppointmentStatus Status { get; set; }
         public AppointmentType Type { get; set; }
+
+        // Front geralmente espera estes objetos (mesmo que simplificados) para exibir nome.
+        public CalendarCustomerMiniDTO? Customer { get; set; }
+        public CalendarTeamMiniDTO? Team { get; set; }
+
+        // Alguns clientes ainda usam um "professionalId" único.
+        public int? ProfessionalId { get; set; }
 
         public List<int> ProfessionalIds { get; set; } = new();
 

@@ -211,6 +211,8 @@ public async Task<IActionResult> GetCalendar(
 
     // 1) Eventos não recorrentes (normais)
     var normalQuery = _db.Set<Appointment>().AsNoTracking()
+        .Include(a => a.Customer)
+        .Include(a => a.Team)
         .Where(a => !a.IsRecurring && a.Start < rangeEnd && a.End > rangeStart);
 
     if (companyId.HasValue) normalQuery = normalQuery.Where(a => a.CompanyId == companyId.Value);
@@ -221,6 +223,8 @@ public async Task<IActionResult> GetCalendar(
 
     // 2) Âncoras recorrentes
     var anchorsQuery = _db.Set<Appointment>().AsNoTracking()
+        .Include(a => a.Customer)
+        .Include(a => a.Team)
         .Where(a => a.IsRecurring
                  && a.SeriesId != null
                  && !string.IsNullOrWhiteSpace(a.RecurrenceRule)
@@ -255,6 +259,17 @@ public async Task<IActionResult> GetCalendar(
     // Normal -> Calendar DTO
     foreach (var a in normals)
     {
+        var customerMini = a.Customer != null
+            ? new CalendarCustomerMiniDTO { Id = a.Customer.Id, Name = a.Customer.Name }
+            : null;
+        var teamMini = a.Team != null
+            ? new CalendarTeamMiniDTO { Id = a.Team.Id, Name = a.Team.Name }
+            : null;
+
+        var title = !string.IsNullOrWhiteSpace(a.Title)
+            ? a.Title
+            : (customerMini?.Name ?? "No Customer");
+
         outList.Add(new CalendarOccurrenceDTO
         {
             Id = a.Id.ToString(),
@@ -264,7 +279,7 @@ public async Task<IActionResult> GetCalendar(
 
             Start = a.Start,
             End = a.End,
-            Title = a.Title,
+            Title = title,
             Address = a.Address,
             Notes = a.Notes,
 
@@ -273,13 +288,23 @@ public async Task<IActionResult> GetCalendar(
             TeamId = a.TeamId,
             Status = a.Status,
             Type = a.Type,
-            ProfessionalIds = a.ProfessionalIds?.ToList() ?? new List<int>()
+            Customer = customerMini,
+            Team = teamMini,
+            ProfessionalIds = a.ProfessionalIds?.ToList() ?? new List<int>(),
+            ProfessionalId = (a.ProfessionalIds != null && a.ProfessionalIds.Any()) ? a.ProfessionalIds.First() : null
         });
     }
 
     // Recorrentes -> expand + apply exceptions
     foreach (var anchor in anchors)
     {
+        var customerMini = anchor.Customer != null
+            ? new CalendarCustomerMiniDTO { Id = anchor.Customer.Id, Name = anchor.Customer.Name }
+            : null;
+        var teamMini = anchor.Team != null
+            ? new CalendarTeamMiniDTO { Id = anchor.Team.Id, Name = anchor.Team.Name }
+            : null;
+
         var tz = ResolveTimeZone(anchor.TimeZoneId);
 
         // Limita geração ao rangeEnd (ou RecurrenceEnd, se menor)
@@ -314,18 +339,25 @@ public async Task<IActionResult> GetCalendar(
 
                 var instId = EncodeInstanceId(anchor.SeriesId!.Value, occStart);
 
+                var title = !string.IsNullOrWhiteSpace(ex.OverrideTitle)
+                    ? ex.OverrideTitle
+                    : (!string.IsNullOrWhiteSpace(anchor.Title)
+                        ? anchor.Title
+                        : (customerMini?.Name ?? "No Customer"));
+
                 outList.Add(new CalendarOccurrenceDTO
                 {
                     Id = instId,
                     InstanceId = instId,
                     IsVirtualOccurrence = true,
                     IsRecurring = true,
+                    AppointmentId = anchor.Id,
                     AnchorAppointmentId = anchor.Id,
                     SeriesId = anchor.SeriesId,
 
                     Start = startFinal,
                     End = endFinal,
-                    Title = ex.OverrideTitle ?? anchor.Title,
+                    Title = title,
                     Address = ex.OverrideAddress ?? anchor.Address,
                     Notes = ex.OverrideNotes ?? anchor.Notes,
 
@@ -335,9 +367,18 @@ public async Task<IActionResult> GetCalendar(
                     Status = ex.OverrideStatus ?? anchor.Status,
                     Type = ex.OverrideType ?? anchor.Type,
 
+                    Customer = customerMini,
+                    Team = teamMini,
+
                     ProfessionalIds = ex.OverrideProfessionalIds?.ToList()
                         ?? anchor.ProfessionalIds?.ToList()
                         ?? new List<int>(),
+
+                    ProfessionalId = (ex.OverrideProfessionalIds != null && ex.OverrideProfessionalIds.Any())
+                        ? ex.OverrideProfessionalIds.First()
+                        : ((anchor.ProfessionalIds != null && anchor.ProfessionalIds.Any())
+                            ? anchor.ProfessionalIds.First()
+                            : null),
 
                     HasOverride = true
                 });
@@ -348,19 +389,24 @@ public async Task<IActionResult> GetCalendar(
             // sem exceção
             var instanceId = EncodeInstanceId(anchor.SeriesId!.Value, occStart);
 
+            var baseTitle = !string.IsNullOrWhiteSpace(anchor.Title)
+                ? anchor.Title
+                : (customerMini?.Name ?? "No Customer");
+
             outList.Add(new CalendarOccurrenceDTO
             {
                 Id = instanceId,
                 InstanceId = instanceId,
                 IsVirtualOccurrence = true,
                 IsRecurring = true,
+                AppointmentId = anchor.Id,
                 AnchorAppointmentId = anchor.Id,
                 SeriesId = anchor.SeriesId,
 
                 Start = occStart,
                 End = occEnd,
 
-                Title = anchor.Title,
+                Title = baseTitle,
                 Address = anchor.Address,
                 Notes = anchor.Notes,
 
@@ -370,7 +416,11 @@ public async Task<IActionResult> GetCalendar(
                 Status = anchor.Status,
                 Type = anchor.Type,
 
-                ProfessionalIds = anchor.ProfessionalIds?.ToList() ?? new List<int>()
+                Customer = customerMini,
+                Team = teamMini,
+
+                ProfessionalIds = anchor.ProfessionalIds?.ToList() ?? new List<int>(),
+                ProfessionalId = (anchor.ProfessionalIds != null && anchor.ProfessionalIds.Any()) ? anchor.ProfessionalIds.First() : null
             });
         }
     }
@@ -589,6 +639,7 @@ public async Task<IActionResult> DeleteInstance(
             var occurrences = 0;
 
             DateTime cursor = startLocal;
+            var timeOfDay = startLocal.TimeOfDay;
 
             if (rule.Freq == "DAILY")
             {
@@ -608,6 +659,11 @@ public async Task<IActionResult> DeleteInstance(
                 int interval = rule.Interval;
                 var days = rule.ByDay; // e.g., ["MO","WE","FR"]
                 if (days.Count == 0) days = new List<string> { DayToByDay(cursor.DayOfWeek) };
+                days = days
+                    .Select(d => d.ToUpperInvariant())
+                    .Distinct()
+                    .OrderBy(DaySortKey)
+                    .ToList();
 
                 DateTime limit = endLocalSeries ?? startLocal.AddYears(2);
                 DateTime weekStart = cursor.Date;
@@ -620,10 +676,7 @@ public async Task<IActionResult> DeleteInstance(
                         if (dayDate < startLocal.Date) continue;
                         if (dayDate > limit) break;
 
-                        var startCandidate = dayDate.Date
-                            .AddHours(startLocal.Hour)
-                            .AddMinutes(startLocal.Minute)
-                            .AddSeconds(startLocal.Second);
+                        var startCandidate = dayDate.Date + timeOfDay;
 
                         if (startCandidate < startLocal) continue;
                         if (endLocalSeries.HasValue && startCandidate > endLocalSeries.Value) continue;
@@ -638,6 +691,37 @@ public async Task<IActionResult> DeleteInstance(
                     weekStart = weekStart.AddDays(7 * interval);
                 }
             }
+            else if (rule.Freq == "MONTHLY")
+            {
+                int interval = rule.Interval;
+                DateTime limit = endLocalSeries ?? startLocal.AddYears(2);
+
+                // Por padrão, repete no mesmo dia do mês do START.
+                // Se BYMONTHDAY vier, usa ele (suporta 1 valor).
+                var monthDays = rule.ByMonthDay;
+                int targetDay = monthDays.Count > 0 ? monthDays[0] : startLocal.Day;
+
+                // Começa do mês do startLocal
+                var monthCursor = new DateTime(startLocal.Year, startLocal.Month, 1, 0, 0, 0, startLocal.Kind);
+
+                while (monthCursor <= limit && (count == null || occurrences < count.Value))
+                {
+                    var daysInMonth = DateTime.DaysInMonth(monthCursor.Year, monthCursor.Month);
+                    if (targetDay >= 1 && targetDay <= daysInMonth)
+                    {
+                        var dayDate = new DateTime(monthCursor.Year, monthCursor.Month, targetDay, 0, 0, 0, monthCursor.Kind);
+                        var startCandidate = dayDate + timeOfDay;
+
+                        if (startCandidate >= startLocal && startCandidate <= limit)
+                        {
+                            list.Add((startCandidate, startCandidate + duration));
+                            occurrences++;
+                        }
+                    }
+
+                    monthCursor = monthCursor.AddMonths(interval);
+                }
+            }
             else
             {
                 // Fallback: single occurrence
@@ -650,7 +734,30 @@ public async Task<IActionResult> DeleteInstance(
                 list = list.Where(o => o.Item1 <= endLocalSeries.Value).ToList();
             }
 
-            return list;
+            // Remove duplicatas e ordena (garante estabilidade no calendário)
+            // NOTE: usamos Item1/Item2 porque a tupla pode não estar nomeada.
+            // Se a lista for List<(DateTime start, DateTime end)> então x.start também funciona,
+            // mas Item1 é compatível em ambos os casos.
+            return list
+                .GroupBy(x => x.Item1)
+                .Select(g => g.First())
+                .OrderBy(x => x.Item1)
+                .ToList();
+        }
+
+        private static int DaySortKey(string byday)
+        {
+            return byday.ToUpperInvariant() switch
+            {
+                "MO" => 1,
+                "TU" => 2,
+                "WE" => 3,
+                "TH" => 4,
+                "FR" => 5,
+                "SA" => 6,
+                "SU" => 7,
+                _ => 8
+            };
         }
 
 
@@ -693,6 +800,7 @@ public async Task<IActionResult> DeleteInstance(
             public string Freq { get; set; } = "DAILY";
             public int Interval { get; set; } = 1;
             public List<string> ByDay { get; set; } = new List<string>();
+            public List<int> ByMonthDay { get; set; } = new List<int>();
         }
 
         private static RRule ParseRRule(string rrule)
@@ -709,6 +817,14 @@ public async Task<IActionResult> DeleteInstance(
                 if (key == "FREQ") r.Freq = val;
                 else if (key == "INTERVAL" && int.TryParse(val, out var iv)) r.Interval = Math.Max(1, iv);
                 else if (key == "BYDAY") r.ByDay = val.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+                else if (key == "BYMONTHDAY")
+                {
+                    r.ByMonthDay = val
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Select(x => int.TryParse(x, out var md) ? md : 0)
+                        .Where(x => x != 0)
+                        .ToList();
+                }
                 // COUNT and UNTIL handled via parameters (dto.OccurrenceCount / dto.RecurrenceEnd)
             }
             return r;
