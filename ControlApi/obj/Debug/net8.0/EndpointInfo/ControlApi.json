@@ -309,6 +309,22 @@
             "schema": {
               "$ref": "#/components/schemas/RecurrenceScope"
             }
+          },
+          {
+            "name": "occurrenceStart",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "occurrenceEnd",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
           }
         ],
         "responses": {
@@ -319,6 +335,29 @@
       }
     },
     "/api/AppointmentsRecurrence/series/{seriesId}": {
+      "get": {
+        "tags": [
+          "AppointmentsRecurrence"
+        ],
+        "parameters": [
+          {
+            "name": "seriesId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/AppointmentsRecurrence/series/{seriesId}/exceptions": {
       "get": {
         "tags": [
           "AppointmentsRecurrence"
@@ -6245,6 +6284,16 @@
             "nullable": true
           },
           "end": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "occurrenceStart": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "occurrenceEnd": {
             "type": "string",
             "format": "date-time",
             "nullable": true

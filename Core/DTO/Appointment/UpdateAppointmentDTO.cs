@@ -17,6 +17,10 @@ namespace Core.DTO.Appointment
         public DateTime? Start { get; set; }
         public DateTime? End { get; set; }
 
+        // For recurring actions: identify the clicked occurrence within the series
+        public DateTime? OccurrenceStart { get; set; }
+        public DateTime? OccurrenceEnd { get; set; }
+
         public int? CompanyId { get; set; }
         public int? CustomerId { get; set; }
         public int? TeamId { get; set; }

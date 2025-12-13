@@ -188,6 +188,16 @@
         "Name": "scope",
         "Type": "System.String",
         "IsRequired": false
+      },
+      {
+        "Name": "occurrenceStart",
+        "Type": "System.Nullable\u00601[[System.DateTime, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "occurrenceEnd",
+        "Type": "System.Nullable\u00601[[System.DateTime, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
       }
     ],
     "ReturnTypes": []
@@ -196,6 +206,22 @@
     "ContainingType": "ControlApi.Controllers.AppointmentsRecurrenceController",
     "Method": "GetSeries",
     "RelativePath": "api/AppointmentsRecurrence/series/{seriesId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "seriesId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.AppointmentsRecurrenceController",
+    "Method": "GetSeriesExceptions",
+    "RelativePath": "api/AppointmentsRecurrence/series/{seriesId}/exceptions",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,

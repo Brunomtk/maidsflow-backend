@@ -33,6 +33,7 @@ namespace Infrastructure
         public DbSet<TeamMember> TeamMembers { get; set; }
         public DbSet<Leader> Leaders { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
+        public DbSet<AppointmentRecurrenceException> AppointmentRecurrenceExceptions { get; set; }
         public DbSet<Customer> Customers { get; set; }
         public DbSet<CheckRecord> CheckRecords { get; set; }
         public DbSet<Recurrence> Recurrences { get; set; }
