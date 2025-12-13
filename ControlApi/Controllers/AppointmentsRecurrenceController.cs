@@ -187,6 +187,237 @@ namespace ControlApi.Controllers
 
             return Ok(exceptions);
         }
+
+
+/// <summary>
+/// Endpoint de leitura para calendário: retorna eventos normais + ocorrências recorrentes EXPANDIDAS
+/// no intervalo informado, já com exceções (edit/cancel) aplicadas.
+///
+/// - Eventos normais retornam AppointmentId
+/// - Ocorrências recorrentes retornam InstanceId (rec_{seriesIdN}_{ticks})
+/// </summary>
+[HttpGet("calendar")]
+public async Task<IActionResult> GetCalendar(
+    [FromQuery] DateTime start,
+    [FromQuery] DateTime end,
+    [FromQuery] int? companyId = null,
+    [FromQuery] int? teamId = null,
+    [FromQuery] int? customerId = null)
+{
+    if (end <= start) return BadRequest("end deve ser maior que start.");
+
+    var rangeStart = start;
+    var rangeEnd = end;
+
+    // 1) Eventos não recorrentes (normais)
+    var normalQuery = _db.Set<Appointment>().AsNoTracking()
+        .Where(a => !a.IsRecurring && a.Start < rangeEnd && a.End > rangeStart);
+
+    if (companyId.HasValue) normalQuery = normalQuery.Where(a => a.CompanyId == companyId.Value);
+    if (teamId.HasValue) normalQuery = normalQuery.Where(a => a.TeamId == teamId.Value);
+    if (customerId.HasValue) normalQuery = normalQuery.Where(a => a.CustomerId == customerId.Value);
+
+    var normals = await normalQuery.ToListAsync();
+
+    // 2) Âncoras recorrentes
+    var anchorsQuery = _db.Set<Appointment>().AsNoTracking()
+        .Where(a => a.IsRecurring
+                 && a.SeriesId != null
+                 && !string.IsNullOrWhiteSpace(a.RecurrenceRule)
+                 && a.Start <= rangeEnd
+                 && (!a.RecurrenceEnd.HasValue || a.RecurrenceEnd.Value >= rangeStart));
+
+    if (companyId.HasValue) anchorsQuery = anchorsQuery.Where(a => a.CompanyId == companyId.Value);
+    if (teamId.HasValue) anchorsQuery = anchorsQuery.Where(a => a.TeamId == teamId.Value);
+    if (customerId.HasValue) anchorsQuery = anchorsQuery.Where(a => a.CustomerId == customerId.Value);
+
+    var anchors = await anchorsQuery.ToListAsync();
+    var seriesIds = anchors.Select(a => a.SeriesId!.Value).Distinct().ToList();
+
+    // 3) Exceções (somente do intervalo — com buffer pra não perder overrides próximos)
+    var exStart = rangeStart.AddDays(-7);
+    var exEnd = rangeEnd.AddDays(7);
+
+    var exceptions = await _db.Set<AppointmentRecurrenceException>().AsNoTracking()
+        .Where(e => seriesIds.Contains(e.SeriesId)
+                 && e.OccurrenceStart <= exEnd
+                 && e.OccurrenceEnd >= exStart)
+        .OrderBy(e => e.SeriesId)
+        .ThenBy(e => e.OccurrenceStart)
+        .ToListAsync();
+
+    var exMap = exceptions
+        .GroupBy(e => (e.SeriesId, e.OccurrenceStart))
+        .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.UpdatedDate).First());
+
+    var outList = new List<CalendarOccurrenceDTO>();
+
+    // Normal -> Calendar DTO
+    foreach (var a in normals)
+    {
+        outList.Add(new CalendarOccurrenceDTO
+        {
+            Id = a.Id.ToString(),
+            AppointmentId = a.Id,
+            IsVirtualOccurrence = false,
+            IsRecurring = false,
+
+            Start = a.Start,
+            End = a.End,
+            Title = a.Title,
+            Address = a.Address,
+            Notes = a.Notes,
+
+            CompanyId = a.CompanyId,
+            CustomerId = a.CustomerId,
+            TeamId = a.TeamId,
+            Status = a.Status,
+            Type = a.Type,
+            ProfessionalIds = a.ProfessionalIds?.ToList() ?? new List<int>()
+        });
+    }
+
+    // Recorrentes -> expand + apply exceptions
+    foreach (var anchor in anchors)
+    {
+        var tz = ResolveTimeZone(anchor.TimeZoneId);
+
+        // Limita geração ao rangeEnd (ou RecurrenceEnd, se menor)
+        DateTime? seriesEnd = anchor.RecurrenceEnd.HasValue
+            ? (anchor.RecurrenceEnd.Value < rangeEnd ? anchor.RecurrenceEnd.Value : rangeEnd)
+            : rangeEnd;
+
+        var occs = ExpandOccurrences(
+            anchor.RecurrenceRule!,
+            anchor.Start,
+            anchor.End,
+            seriesEnd,
+            anchor.OccurrenceCount,
+            tz);
+
+        foreach (var (occStart, occEnd) in occs)
+        {
+            // filtra por interseção com o range
+            if (occStart >= rangeEnd || occEnd <= rangeStart) continue;
+
+            var key = (anchor.SeriesId!.Value, occStart);
+            if (exMap.TryGetValue(key, out var ex))
+            {
+                if (ex.IsCancelled)
+                    continue; // cancelado -> não aparece no calendário
+
+                var startFinal = ex.OverrideStart ?? occStart;
+                var endFinal = ex.OverrideEnd ?? occEnd;
+
+                // após override, ainda precisa intersectar o range
+                if (startFinal >= rangeEnd || endFinal <= rangeStart) continue;
+
+                var instId = EncodeInstanceId(anchor.SeriesId!.Value, occStart);
+
+                outList.Add(new CalendarOccurrenceDTO
+                {
+                    Id = instId,
+                    InstanceId = instId,
+                    IsVirtualOccurrence = true,
+                    IsRecurring = true,
+                    AnchorAppointmentId = anchor.Id,
+                    SeriesId = anchor.SeriesId,
+
+                    Start = startFinal,
+                    End = endFinal,
+                    Title = ex.OverrideTitle ?? anchor.Title,
+                    Address = ex.OverrideAddress ?? anchor.Address,
+                    Notes = ex.OverrideNotes ?? anchor.Notes,
+
+                    CompanyId = anchor.CompanyId,
+                    CustomerId = anchor.CustomerId,
+                    TeamId = anchor.TeamId,
+                    Status = ex.OverrideStatus ?? anchor.Status,
+                    Type = ex.OverrideType ?? anchor.Type,
+
+                    ProfessionalIds = ex.OverrideProfessionalIds?.ToList()
+                        ?? anchor.ProfessionalIds?.ToList()
+                        ?? new List<int>(),
+
+                    HasOverride = true
+                });
+
+                continue;
+            }
+
+            // sem exceção
+            var instanceId = EncodeInstanceId(anchor.SeriesId!.Value, occStart);
+
+            outList.Add(new CalendarOccurrenceDTO
+            {
+                Id = instanceId,
+                InstanceId = instanceId,
+                IsVirtualOccurrence = true,
+                IsRecurring = true,
+                AnchorAppointmentId = anchor.Id,
+                SeriesId = anchor.SeriesId,
+
+                Start = occStart,
+                End = occEnd,
+
+                Title = anchor.Title,
+                Address = anchor.Address,
+                Notes = anchor.Notes,
+
+                CompanyId = anchor.CompanyId,
+                CustomerId = anchor.CustomerId,
+                TeamId = anchor.TeamId,
+                Status = anchor.Status,
+                Type = anchor.Type,
+
+                ProfessionalIds = anchor.ProfessionalIds?.ToList() ?? new List<int>()
+            });
+        }
+    }
+
+    return Ok(outList.OrderBy(x => x.Start).ToList());
+}
+
+/// <summary>
+/// Atualiza uma ocorrência recorrente por InstanceId (sem o front precisar calcular OccurrenceStart).
+/// scope: This / ThisAndFollowing / All
+/// </summary>
+[HttpPut("instance/{instanceId}")]
+public async Task<IActionResult> UpdateInstance(string instanceId, [FromBody] UpdateAppointmentDTO dto)
+{
+    if (!TryDecodeInstanceId(instanceId, out var seriesId, out var occStart))
+        return BadRequest("InstanceId inválido.");
+
+    var anchor = await _db.Set<Appointment>()
+        .FirstOrDefaultAsync(a => a.IsRecurring && a.SeriesId == seriesId);
+
+    if (anchor == null) return NotFound();
+
+    // Força a identificação da ocorrência clicada
+    dto.OccurrenceStart = occStart;
+
+    // Reaproveita a lógica de Update por ID
+    return await Update(anchor.Id, dto);
+}
+
+/// <summary>
+/// Deleta uma ocorrência recorrente por InstanceId (sem o front precisar calcular OccurrenceStart).
+/// </summary>
+[HttpDelete("instance/{instanceId}")]
+public async Task<IActionResult> DeleteInstance(
+    string instanceId,
+    [FromQuery] RecurrenceScope scope = RecurrenceScope.This)
+{
+    if (!TryDecodeInstanceId(instanceId, out var seriesId, out var occStart))
+        return BadRequest("InstanceId inválido.");
+
+    var anchor = await _db.Set<Appointment>()
+        .FirstOrDefaultAsync(a => a.IsRecurring && a.SeriesId == seriesId);
+
+    if (anchor == null) return NotFound();
+
+    return await Delete(anchor.Id, scope, occStart, null);
+}
 // ---------------- helpers ----------------
 
         private static TimeZoneInfo ResolveTimeZone(string? tz)
@@ -604,6 +835,37 @@ private async Task UpdateAllAsync(Appointment anchor, UpdateAppointmentDTO dto, 
                 if (dto.OccurrenceCount.HasValue) a.OccurrenceCount = dto.OccurrenceCount.Value;
             }
         }
+
+private static string EncodeInstanceId(Guid seriesId, DateTime occurrenceStart)
+{
+    // occurrenceStart é armazenado como horário local/unspecified no padrão do projeto
+    return $"rec_{seriesId:N}_{occurrenceStart.Ticks}";
+}
+
+private static bool TryDecodeInstanceId(string instanceId, out Guid seriesId, out DateTime occurrenceStart)
+{
+    seriesId = default;
+    occurrenceStart = default;
+
+    if (string.IsNullOrWhiteSpace(instanceId)) return false;
+    var parts = instanceId.Split('_', StringSplitOptions.RemoveEmptyEntries);
+    if (parts.Length != 3) return false;
+    if (!parts[0].Equals("rec", StringComparison.OrdinalIgnoreCase)) return false;
+
+    if (!Guid.TryParseExact(parts[1], "N", out seriesId)) return false;
+    if (!long.TryParse(parts[2], out var ticks)) return false;
+
+    try
+    {
+        occurrenceStart = new DateTime(ticks, DateTimeKind.Unspecified);
+        return true;
+    }
+    catch
+    {
+        return false;
+    }
+}
+
 
     }
 }

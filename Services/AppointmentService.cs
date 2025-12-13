@@ -3,6 +3,8 @@ using Core.Enums.Appointment;
 using Core.Models;
 using Infrastructure.Repositories;
 using Infrastructure.ServiceExtension;
+using System;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -55,6 +57,15 @@ namespace Services
         public async Task<bool> Create(CreateAppointmentDTO dto)
         {
             // Nesta versão, NÃO fazemos conversão de fuso horário.
+            //
+            // Recorrência com 1 INSERT:
+            // - se IsRecurring=true, criamos um SeriesId e persistimos apenas o registro âncora
+            // - as ocorrências são expandidas na leitura (endpoint /api/AppointmentsRecurrence/calendar)
+
+            if (dto.IsRecurring && string.IsNullOrWhiteSpace(dto.RecurrenceRule))
+                return false;
+
+// Nesta versão, NÃO fazemos conversão de fuso horário.
             // O horário enviado no DTO (start/end) é salvo exatamente como veio,
             // para que o banco sempre reflita o horário local informado pelo usuário.
 
@@ -73,6 +84,7 @@ namespace Services
                 TimeZoneId = dto.TimeZoneId,
                 IsRecurring = dto.IsRecurring,
                 RecurrenceRule = dto.RecurrenceRule,
+                SeriesId = dto.IsRecurring ? Guid.NewGuid() : null,
                 RecurrenceEnd = dto.RecurrenceEnd,
                 OccurrenceCount = dto.OccurrenceCount
             };
