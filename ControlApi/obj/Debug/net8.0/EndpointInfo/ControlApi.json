@@ -387,7 +387,7 @@
         ],
         "parameters": [
           {
-            "name": "start",
+            "name": "Start",
             "in": "query",
             "schema": {
               "type": "string",
@@ -395,7 +395,7 @@
             }
           },
           {
-            "name": "end",
+            "name": "End",
             "in": "query",
             "schema": {
               "type": "string",
@@ -420,6 +420,14 @@
           },
           {
             "name": "customerId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "ProfessionalId",
             "in": "query",
             "schema": {
               "type": "integer",
@@ -453,17 +461,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateRecurrenceInstanceDTO"
+                "$ref": "#/components/schemas/UpdateAppointmentDTO"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateRecurrenceInstanceDTO"
+                "$ref": "#/components/schemas/UpdateAppointmentDTO"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateRecurrenceInstanceDTO"
+                "$ref": "#/components/schemas/UpdateAppointmentDTO"
               }
             }
           }
@@ -7023,130 +7031,6 @@
           "nextExecution": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "UpdateRecurrenceInstanceDTO": {
-        "type": "object",
-        "properties": {
-          "scope": {
-            "$ref": "#/components/schemas/RecurrenceScope"
-          },
-          "title": {
-            "type": "string",
-            "nullable": true
-          },
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
-          "start": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "end": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "status": {
-            "$ref": "#/components/schemas/AppointmentStatus"
-          },
-          "type": {
-            "$ref": "#/components/schemas/AppointmentType"
-          },
-          "professionalIds": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "nullable": true
-          },
-          "companyId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "customerId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "teamId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "timeZoneId": {
-            "type": "string",
-            "nullable": true
-          },
-          "recurrenceRule": {
-            "type": "string",
-            "nullable": true
-          },
-          "recurrenceEnd": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "occurrenceCount": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "overrideTitle": {
-            "type": "string",
-            "nullable": true
-          },
-          "overrideAddress": {
-            "type": "string",
-            "nullable": true
-          },
-          "overrideStart": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "overrideEnd": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "overrideNotes": {
-            "type": "string",
-            "nullable": true
-          },
-          "overrideStatus": {
-            "$ref": "#/components/schemas/AppointmentStatus"
-          },
-          "overrideType": {
-            "$ref": "#/components/schemas/AppointmentType"
-          },
-          "overrideProfessionalIds": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "nullable": true
-          },
-          "overrideTeamId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "overrideCustomerId": {
-            "type": "integer",
-            "format": "int32",
             "nullable": true
           }
         },

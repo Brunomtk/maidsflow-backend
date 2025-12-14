@@ -198,11 +198,14 @@ namespace ControlApi.Controllers
 /// </summary>
 [HttpGet("calendar")]
 public async Task<IActionResult> GetCalendar(
-    [FromQuery] DateTime start,
-    [FromQuery] DateTime end,
+    // Aceita tanto ?start quanto ?Start (binder é case-insensitive, mas deixamos explícito)
+    [FromQuery(Name = "Start")] DateTime start,
+    [FromQuery(Name = "End")] DateTime end,
     [FromQuery] int? companyId = null,
     [FromQuery] int? teamId = null,
-    [FromQuery] int? customerId = null)
+    [FromQuery] int? customerId = null,
+    // Filtro do calendário do PROFESSIONAL
+    [FromQuery(Name = "ProfessionalId")] int? professionalId = null)
 {
     if (end <= start) return BadRequest("end deve ser maior que start.");
 
@@ -221,6 +224,16 @@ public async Task<IActionResult> GetCalendar(
 
     var normals = await normalQuery.ToListAsync();
 
+    // Filtro por ProfessionalId (view do professional):
+    // Appointment.ProfessionalIds é NotMapped, então filtramos em memória.
+    if (professionalId.HasValue)
+    {
+        var pid = professionalId.Value;
+        normals = normals
+            .Where(a => a.ProfessionalIds != null && a.ProfessionalIds.Contains(pid))
+            .ToList();
+    }
+
     // 2) Âncoras recorrentes
     var anchorsQuery = _db.Set<Appointment>().AsNoTracking()
         .Include(a => a.Customer)
@@ -236,6 +249,17 @@ public async Task<IActionResult> GetCalendar(
     if (customerId.HasValue) anchorsQuery = anchorsQuery.Where(a => a.CustomerId == customerId.Value);
 
     var anchors = await anchorsQuery.ToListAsync();
+
+    // Se for calendário do professional, reduzimos o trabalho: só séries que tenham o ProfessionalId
+    // OU que tenham exceção com overrideProfessionalIds contendo o ProfessionalId (tratado mais abaixo).
+    // Aqui fazemos um filtro inicial pelo "base".
+    if (professionalId.HasValue)
+    {
+        var pid = professionalId.Value;
+        anchors = anchors
+            .Where(a => a.ProfessionalIds != null && a.ProfessionalIds.Contains(pid))
+            .ToList();
+    }
     var seriesIds = anchors.Select(a => a.SeriesId!.Value).Distinct().ToList();
 
     // 3) Exceções (somente do intervalo — com buffer pra não perder overrides próximos)
@@ -345,6 +369,15 @@ public async Task<IActionResult> GetCalendar(
                         ? anchor.Title
                         : (customerMini?.Name ?? "No Customer"));
 
+                // ProfessionalIds: só usa override se tiver pelo menos 1 id, senão mantém o da âncora
+                var finalProfessionalIds = (ex.OverrideProfessionalIds != null && ex.OverrideProfessionalIds.Any())
+                    ? ex.OverrideProfessionalIds.Distinct().ToList()
+                    : anchor.ProfessionalIds?.Distinct().ToList() ?? new List<int>();
+
+                // Aplica filtro do ProfessionalId após o merge (override pode mudar profissionais)
+                if (professionalId.HasValue && !finalProfessionalIds.Contains(professionalId.Value))
+                    continue;
+
                 outList.Add(new CalendarOccurrenceDTO
                 {
                     Id = instId,
@@ -370,15 +403,9 @@ public async Task<IActionResult> GetCalendar(
                     Customer = customerMini,
                     Team = teamMini,
 
-                    ProfessionalIds = ex.OverrideProfessionalIds?.ToList()
-                        ?? anchor.ProfessionalIds?.ToList()
-                        ?? new List<int>(),
+                    ProfessionalIds = finalProfessionalIds,
 
-                    ProfessionalId = (ex.OverrideProfessionalIds != null && ex.OverrideProfessionalIds.Any())
-                        ? ex.OverrideProfessionalIds.First()
-                        : ((anchor.ProfessionalIds != null && anchor.ProfessionalIds.Any())
-                            ? anchor.ProfessionalIds.First()
-                            : null),
+                    ProfessionalId = finalProfessionalIds.Any() ? finalProfessionalIds.First() : null,
 
                     HasOverride = true
                 });
@@ -392,6 +419,10 @@ public async Task<IActionResult> GetCalendar(
             var baseTitle = !string.IsNullOrWhiteSpace(anchor.Title)
                 ? anchor.Title
                 : (customerMini?.Name ?? "No Customer");
+
+            var baseProfessionalIds = anchor.ProfessionalIds?.Distinct().ToList() ?? new List<int>();
+            if (professionalId.HasValue && !baseProfessionalIds.Contains(professionalId.Value))
+                continue;
 
             outList.Add(new CalendarOccurrenceDTO
             {
@@ -419,8 +450,8 @@ public async Task<IActionResult> GetCalendar(
                 Customer = customerMini,
                 Team = teamMini,
 
-                ProfessionalIds = anchor.ProfessionalIds?.ToList() ?? new List<int>(),
-                ProfessionalId = (anchor.ProfessionalIds != null && anchor.ProfessionalIds.Any()) ? anchor.ProfessionalIds.First() : null
+                ProfessionalIds = baseProfessionalIds,
+                ProfessionalId = baseProfessionalIds.Any() ? baseProfessionalIds.First() : null
             });
         }
     }
@@ -433,7 +464,7 @@ public async Task<IActionResult> GetCalendar(
 /// scope: This / ThisAndFollowing / All
 /// </summary>
 [HttpPut("instance/{instanceId}")]
-public async Task<IActionResult> UpdateInstance(string instanceId, [FromBody] UpdateRecurrenceInstanceDTO payload)
+public async Task<IActionResult> UpdateInstance(string instanceId, [FromBody] UpdateAppointmentDTO dto)
 {
     if (!TryDecodeInstanceId(instanceId, out var seriesId, out var occStart))
         return BadRequest("InstanceId inválido.");
@@ -443,23 +474,11 @@ public async Task<IActionResult> UpdateInstance(string instanceId, [FromBody] Up
 
     if (anchor == null) return NotFound();
 
-    // Mapeia payload (aceita tanto {title,start,...} quanto {overrideTitle,overrideStart,...})
-    var dto = payload.ToUpdateAppointmentDTO();
-
     // Força a identificação da ocorrência clicada
     dto.OccurrenceStart = occStart;
 
-    // Reaproveita a lógica de Update por ID (salva override/exceção, split, ou update geral)
-    var result = await Update(anchor.Id, dto);
-
-    // Para Scope=This, devolve o evento já com override aplicado (pra UI poder refletir imediatamente)
-    if (dto.Scope == RecurrenceScope.This)
-    {
-        var occ = await BuildOccurrenceResponseAsync(seriesId, occStart);
-        return Ok(occ);
-    }
-
-    return result;
+    // Reaproveita a lógica de Update por ID
+    return await Update(anchor.Id, dto);
 }
 
 /// <summary>
@@ -480,96 +499,6 @@ public async Task<IActionResult> DeleteInstance(
 
     return await Delete(anchor.Id, scope, occStart, null);
 }
-
-        /// <summary>
-        /// Constrói o DTO de uma ocorrência (virtual) já com exceção aplicada, se existir.
-        /// Usado principalmente após PUT instance/{instanceId} para o front receber os valores corretos.
-        /// </summary>
-        private async Task<CalendarOccurrenceDTO> BuildOccurrenceResponseAsync(Guid seriesId, DateTime occStart)
-        {
-            var anchor = await _db.Set<Appointment>().AsNoTracking()
-                .Include(a => a.Customer)
-                .Include(a => a.Team)
-                .FirstOrDefaultAsync(a => a.IsRecurring && a.SeriesId == seriesId);
-
-            if (anchor == null)
-            {
-                var inst = EncodeInstanceId(seriesId, occStart);
-                return new CalendarOccurrenceDTO
-                {
-                    Id = inst,
-                    InstanceId = inst,
-                    IsVirtualOccurrence = true,
-                    IsRecurring = true,
-                    SeriesId = seriesId,
-                    Start = occStart,
-                    End = occStart,
-                    Title = "Series not found"
-                };
-            }
-
-            var customerMini = anchor.Customer != null
-                ? new CalendarCustomerMiniDTO { Id = anchor.Customer.Id, Name = anchor.Customer.Name }
-                : null;
-            var teamMini = anchor.Team != null
-                ? new CalendarTeamMiniDTO { Id = anchor.Team.Id, Name = anchor.Team.Name }
-                : null;
-
-            var duration = anchor.End - anchor.Start;
-            var occEnd = occStart + duration;
-
-            var ex = await _db.Set<AppointmentRecurrenceException>().AsNoTracking()
-                .OrderByDescending(e => e.UpdatedDate)
-                .FirstOrDefaultAsync(e => e.SeriesId == seriesId && e.OccurrenceStart == occStart);
-
-            var startFinal = ex?.OverrideStart ?? occStart;
-            var endFinal = ex?.OverrideEnd ?? occEnd;
-
-            var titleFinal = !string.IsNullOrWhiteSpace(ex?.OverrideTitle)
-                ? ex!.OverrideTitle
-                : (!string.IsNullOrWhiteSpace(anchor.Title)
-                    ? anchor.Title
-                    : (customerMini?.Name ?? "No Customer"));
-
-            var instId = EncodeInstanceId(seriesId, occStart);
-
-            var professionalIdsFinal = ex?.OverrideProfessionalIds?.ToList()
-                ?? anchor.ProfessionalIds?.ToList()
-                ?? new List<int>();
-
-            return new CalendarOccurrenceDTO
-            {
-                Id = instId,
-                InstanceId = instId,
-                IsVirtualOccurrence = true,
-                IsRecurring = true,
-
-                AppointmentId = anchor.Id,
-                AnchorAppointmentId = anchor.Id,
-                SeriesId = anchor.SeriesId,
-
-                Start = startFinal,
-                End = endFinal,
-                Title = titleFinal,
-                Address = ex?.OverrideAddress ?? anchor.Address,
-                Notes = ex?.OverrideNotes ?? anchor.Notes,
-
-                CompanyId = anchor.CompanyId,
-                CustomerId = anchor.CustomerId,
-                TeamId = anchor.TeamId,
-                Status = (ex?.OverrideStatus ?? anchor.Status),
-                Type = (ex?.OverrideType ?? anchor.Type),
-
-                Customer = customerMini,
-                Team = teamMini,
-
-                ProfessionalIds = professionalIdsFinal,
-                ProfessionalId = professionalIdsFinal.Any() ? professionalIdsFinal.First() : null,
-
-                IsCancelled = ex?.IsCancelled ?? false,
-                HasOverride = ex != null && !ex.IsCancelled
-            };
-        }
 // ---------------- helpers ----------------
 
         private static TimeZoneInfo ResolveTimeZone(string? tz)
