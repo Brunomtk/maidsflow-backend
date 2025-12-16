@@ -1,5 +1,6 @@
 ﻿// Services/PaymentService.cs
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Core.DTO.Payments;
 using Core.Models;
@@ -23,11 +24,15 @@ namespace Services
         public Task<Payment?> GetByIdAsync(int id)
             => _unitOfWork.Payments.GetByIdAsync(id);
 
+        public Task<List<Payment>> GetByCustomer(int customerId)
+            => _unitOfWork.Payments.GetByCustomerIdAsync(customerId);
+
         public async Task<Payment> CreateAsync(CreatePaymentDto dto)
         {
             var entity = new Payment
             {
                 CompanyId = dto.CompanyId,
+                CustomerId = dto.CustomerId,
                 Amount = dto.Amount,
                 DueDate = dto.DueDate,
                 PaymentDate = dto.PaymentDate,
@@ -50,6 +55,7 @@ namespace Services
             if (entity == null) return null;
 
             if (dto.CompanyId.HasValue) entity.CompanyId = dto.CompanyId.Value;
+            if (dto.CustomerId.HasValue) entity.CustomerId = dto.CustomerId.Value;
             if (dto.Amount.HasValue) entity.Amount = dto.Amount.Value;
             if (dto.DueDate.HasValue) entity.DueDate = dto.DueDate.Value;
             if (dto.PaymentDate.HasValue) entity.PaymentDate = dto.PaymentDate.Value;
@@ -87,12 +93,15 @@ namespace Services
             await _unitOfWork.SaveAsync();
             return entity;
         }
+
+        
     }
 
     public interface IPaymentService
     {
         Task<PagedResult<Payment>> GetPagedAsync(PaymentFiltersDto filters);
         Task<Payment?> GetByIdAsync(int id);
+        Task<List<Payment>> GetByCustomer(int customerId);
         Task<Payment> CreateAsync(CreatePaymentDto dto);
         Task<Payment?> UpdateAsync(int id, UpdatePaymentDto dto);
         Task<bool> DeleteAsync(int id);

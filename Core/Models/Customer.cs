@@ -40,5 +40,8 @@ namespace Core.Models
         // Navegação: lista de agendamentos vinculados a este cliente.
         // Observação: os appointments já possuem CustomerId (nullable), então aqui é apenas navegação.
         public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
+
+        // Navegação: lista de pagamentos vinculados a este cliente (opcional)
+        public ICollection<Payment> Payments { get; set; } = new List<Payment>();
     }
 }

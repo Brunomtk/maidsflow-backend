@@ -22,7 +22,12 @@ namespace Core.Models
 
         public string Reference { get; set; } = null!;
 
-        public int PlanId { get; set; }
+        // Plan agora é opcional (não obrigatório)
+        public int? PlanId { get; set; }
         public string? PlanName { get; set; }
+
+        // Customer agora pode ser vinculado ao pagamento (opcional)
+        public int? CustomerId { get; set; }
+        public Customer? Customer { get; set; }
     }
 }

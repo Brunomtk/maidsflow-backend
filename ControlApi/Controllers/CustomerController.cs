@@ -16,11 +16,13 @@ namespace ControlApi.Controllers
     {
         private readonly ICustomerService _customerService;
         private readonly IAppointmentService _appointmentService;
+        private readonly IPaymentService _paymentService;
 
-        public CustomerController(ICustomerService customerService, IAppointmentService appointmentService)
+        public CustomerController(ICustomerService customerService, IAppointmentService appointmentService, IPaymentService paymentService)
         {
             _customerService = customerService;
             _appointmentService = appointmentService;
+            _paymentService = paymentService;
         }
 
         /// <summary>
@@ -65,6 +67,28 @@ namespace ControlApi.Controllers
                 appointments = appointments.Where(a => a.End <= end.Value).ToList();
 
             return Ok(appointments);
+        }
+
+        /// <summary>
+        /// Lista todos os pagamentos (Payments) vinculados a um cliente.
+        /// Dica: também dá pra usar GET /api/Payments?CustomerId=...
+        /// </summary>
+        [HttpGet("{id}/payments")]
+        public async Task<IActionResult> GetPaymentsByCustomer(int id, [FromQuery] DateTime? start = null, [FromQuery] DateTime? end = null)
+        {
+            if (id <= 0) return BadRequest("ID inválido.");
+
+            var customer = await _customerService.GetByIdAsync(id);
+            if (customer == null) return NotFound();
+
+            var payments = await _paymentService.GetByCustomer(id);
+
+            if (start.HasValue)
+                payments = payments.Where(p => p.DueDate >= start.Value).ToList();
+            if (end.HasValue)
+                payments = payments.Where(p => p.DueDate <= end.Value).ToList();
+
+            return Ok(payments);
         }
 
         /// <summary>

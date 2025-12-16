@@ -505,8 +505,16 @@ namespace Infrastructure
                 entity.Property(p => p.Status).HasConversion<string>().IsRequired();
                 entity.Property(p => p.Method).HasConversion<string>();
                 entity.Property(p => p.Reference).IsRequired();
-                entity.Property(p => p.PlanId).IsRequired();
+                entity.Property(p => p.PlanId).IsRequired(false);
                 entity.Property(p => p.PlanName);
+                entity.Property(p => p.CustomerId).IsRequired(false);
+
+                entity.HasOne(p => p.Customer)
+                      .WithMany(c => c.Payments)
+                      .HasForeignKey(p => p.CustomerId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(p => p.CustomerId);
                 entity.Property(p => p.CreatedDate).HasDefaultValueSql("now()");
                 entity.Property(p => p.UpdatedDate).HasDefaultValueSql("now()");
             });

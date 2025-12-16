@@ -6,6 +6,7 @@ namespace Core.DTO.Payments
     public class PaymentFiltersDto
     {
         public int? CompanyId { get; set; }
+        public int? CustomerId { get; set; }
         public PaymentStatus? Status { get; set; }
         public string? Search { get; set; }
         public DateTime? StartDate { get; set; }

@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Core.DTO.Payments;
 using Core.Enums;
@@ -24,6 +25,9 @@ namespace Infrastructure.Repositories
             if (filters.CompanyId.HasValue)
                 query = query.Where(p => p.CompanyId == filters.CompanyId.Value);
 
+            if (filters.CustomerId.HasValue)
+                query = query.Where(p => p.CustomerId == filters.CustomerId.Value);
+
             if (filters.Status.HasValue)
                 query = query.Where(p => p.Status == filters.Status.Value);
 
@@ -45,6 +49,12 @@ namespace Infrastructure.Repositories
         public Task<Payment?> GetByIdAsync(int id)
             => _dbContext.Payments.FirstOrDefaultAsync(p => p.Id == id);
 
+        public Task<List<Payment>> GetByCustomerIdAsync(int customerId)
+            => _dbContext.Payments
+                .Where(p => p.CustomerId == customerId)
+                .OrderByDescending(p => p.DueDate)
+                .ToListAsync();
+
         public void Add(Payment entity)
             => _dbContext.Payments.Add(entity);
 
@@ -59,6 +69,7 @@ public interface IPaymentRepository
 {
     Task<PagedResult<Payment>> GetPagedAsync(PaymentFiltersDto filters);
     Task<Payment?> GetByIdAsync(int id);
+    Task<List<Payment>> GetByCustomerIdAsync(int customerId);
     void Add(Payment entity);
     void Update(Payment entity);
     void Delete(Payment entity);

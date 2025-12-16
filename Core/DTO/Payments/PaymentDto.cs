@@ -11,6 +11,8 @@ namespace Core.DTO.Payments
         public int CompanyId { get; set; }
         public string CompanyName { get; set; }
 
+        public int? CustomerId { get; set; }
+
         public decimal Amount { get; set; }
 
         public DateTime DueDate { get; set; }
@@ -21,8 +23,8 @@ namespace Core.DTO.Payments
 
         public string Reference { get; set; }
 
-        public int PlanId { get; set; }
-        public string PlanName { get; set; }
+        public int? PlanId { get; set; }
+        public string? PlanName { get; set; }
 
         public DateTime CreatedDate { get; set; }
         public DateTime UpdatedDate { get; set; }
