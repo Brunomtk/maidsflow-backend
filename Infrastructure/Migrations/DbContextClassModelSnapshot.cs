@@ -432,7 +432,7 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("PlanId")
+                    b.Property<int?>("PlanId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Responsible")
@@ -1482,8 +1482,7 @@ namespace Infrastructure.Migrations
                     b.HasOne("Core.Models.Plan", "Plan")
                         .WithMany()
                         .HasForeignKey("PlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Plan");
                 });

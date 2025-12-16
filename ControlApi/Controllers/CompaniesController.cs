@@ -63,8 +63,9 @@ namespace Api.Controllers
         [HttpGet("{companyId}/plan-id")]
         public async Task<IActionResult> GetPlanIdByCompanyId(int companyId)
         {
-            var planId = await _companyService.GetPlanIdByCompanyId(companyId);
-            return planId.HasValue ? Ok(planId.Value) : NotFound("Company not found.");
+            var company = await _companyService.GetCompanyById(companyId);
+            if (company == null) return NotFound("Company not found.");
+            return Ok(company.PlanId);
         }
 
         [HttpPost]

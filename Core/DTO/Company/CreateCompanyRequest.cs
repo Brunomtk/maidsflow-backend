@@ -9,7 +9,8 @@ namespace Core.DTO.Company
         public required string Responsible { get; set; }
         public required string Email { get; set; }
         public required string Phone { get; set; }
-        public required int PlanId { get; set; }
+        // Agora é opcional (pode ser atribuído depois).
+        public int? PlanId { get; set; }
         public StatusEnum Status { get; set; } = StatusEnum.Active;
     }
 }

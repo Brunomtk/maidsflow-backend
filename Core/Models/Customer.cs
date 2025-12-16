@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Core.Enums;
 
@@ -35,5 +36,9 @@ namespace Core.Models
 
         public int CompanyId { get; set; } 
         public Company Company { get; set; } = null!;
+
+        // Navegação: lista de agendamentos vinculados a este cliente.
+        // Observação: os appointments já possuem CustomerId (nullable), então aqui é apenas navegação.
+        public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
     }
 }

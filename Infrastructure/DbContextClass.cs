@@ -50,11 +50,6 @@ namespace Infrastructure
         {
             
             // Checklist module
-            modelBuilder.Entity<Customer>(entity =>
-            {
-                entity.Property(c => c.ClientType).HasConversion<string>();
-            });
-
             modelBuilder.Entity<CustomerArea>(entity =>
             {
                 entity.ToTable("CustomerAreas");
@@ -62,6 +57,8 @@ namespace Infrastructure
                 entity.Property(a => a.Name).IsRequired().HasMaxLength(120);
                 entity.Property(a => a.Active).HasDefaultValue(true);
                 entity.HasOne(a => a.Customer)
+                      // CustomerArea pertence ao Customer. Customer.Appointments é outra relação (Customer -> Appointment).
+                      // Se apontarmos para Appointments aqui, o EF tenta criar FK "CustomerId1" e explode no runtime.
                       .WithMany()
                       .HasForeignKey(a => a.CustomerId)
                       .OnDelete(DeleteBehavior.Cascade);
@@ -136,6 +133,11 @@ namespace Infrastructure
             {
                 entity.ToTable("Companies");
                 entity.HasKey(c => c.Id);
+                // Plan agora é opcional: uma Company pode existir sem estar vinculada a um plano.
+                entity.HasOne(c => c.Plan)
+                      .WithMany()
+                      .HasForeignKey(c => c.PlanId)
+                      .OnDelete(DeleteBehavior.SetNull);
                 entity.HasMany(c => c.Users)
                       .WithOne()
                       .HasForeignKey(u => u.CompanyId)
@@ -277,7 +279,7 @@ namespace Infrastructure
                       .HasForeignKey(a => a.CompanyId)
                       .OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(a => a.Customer)
-                      .WithMany()
+                      .WithMany(c => c.Appointments)
                       .HasForeignKey(a => a.CustomerId)
                       .OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(a => a.Team)
@@ -314,6 +316,7 @@ namespace Infrastructure
             {
                 entity.ToTable("Customers");
                 entity.HasKey(c => c.Id);
+                entity.Property(c => c.ClientType).HasConversion<string>();
                 entity.Property(c => c.Name).IsRequired();
                 
                 entity.Property(c => c.Email).IsRequired(false);

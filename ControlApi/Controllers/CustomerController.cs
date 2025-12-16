@@ -3,6 +3,8 @@ using Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services;
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace ControlApi.Controllers
@@ -13,10 +15,12 @@ namespace ControlApi.Controllers
     public class CustomerController : ControllerBase
     {
         private readonly ICustomerService _customerService;
+        private readonly IAppointmentService _appointmentService;
 
-        public CustomerController(ICustomerService customerService)
+        public CustomerController(ICustomerService customerService, IAppointmentService appointmentService)
         {
             _customerService = customerService;
+            _appointmentService = appointmentService;
         }
 
         /// <summary>
@@ -39,6 +43,28 @@ namespace ControlApi.Controllers
 
             var customer = await _customerService.GetByIdAsync(id);
             return customer != null ? Ok(customer) : NotFound();
+        }
+
+        /// <summary>
+        /// Lista todos os agendamentos (Appointments) vinculados a um cliente.
+        /// Dica: se você preferir paginação/filtros avançados, também dá pra usar GET /api/Appointment?CustomerId=...
+        /// </summary>
+        [HttpGet("{id}/appointments")]
+        public async Task<IActionResult> GetAppointmentsByCustomer(int id, [FromQuery] DateTime? start = null, [FromQuery] DateTime? end = null)
+        {
+            if (id <= 0) return BadRequest("ID inválido.");
+
+            var customer = await _customerService.GetByIdAsync(id);
+            if (customer == null) return NotFound();
+
+            var appointments = await _appointmentService.GetByCustomer(id);
+
+            if (start.HasValue)
+                appointments = appointments.Where(a => a.Start >= start.Value).ToList();
+            if (end.HasValue)
+                appointments = appointments.Where(a => a.End <= end.Value).ToList();
+
+            return Ok(appointments);
         }
 
         /// <summary>

@@ -46,7 +46,7 @@ namespace Infrastructure.Repositories
         {
             return await _dbContext.Companies
                 .Where(c => c.Id == companyId)
-                .Select(c => (int?)c.PlanId)
+                .Select(c => c.PlanId)
                 .FirstOrDefaultAsync();
         }
 

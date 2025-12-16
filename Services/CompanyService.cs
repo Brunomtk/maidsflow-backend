@@ -63,7 +63,11 @@ namespace Services
             company.Responsible = request.Responsible;
             company.Email = request.Email;
             company.Phone = request.Phone;
-            company.PlanId = request.PlanId;
+            // PlanId agora é opcional.
+            // Para evitar limpar o plano sem querer (quando o front não envia PlanId),
+            // só atualizamos se vier um valor.
+            if (request.PlanId.HasValue)
+                company.PlanId = request.PlanId;
             company.Status = request.Status;
 
             _unitOfWork.Companies.Update(company);
