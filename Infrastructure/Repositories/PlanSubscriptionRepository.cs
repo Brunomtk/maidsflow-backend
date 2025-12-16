@@ -2,6 +2,8 @@
 using Core.Models;
 using Infrastructure.ServiceExtension;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
 
 namespace Infrastructure.Repositories
 {
@@ -23,10 +25,41 @@ namespace Infrastructure.Repositories
                 .OrderByDescending(s => s.StartDate)
                 .GetPagedAsync(page, pageSize);
         }
+
+        public async Task<PlanSubscription?> GetActiveByCompanyAsync(int companyId)
+        {
+            return await _dbContext.Set<PlanSubscription>()
+                .Include(s => s.Plan)
+                .Include(s => s.Company)
+                .Where(s => s.CompanyId == companyId && s.Status == Core.Enums.Plan.PlanSubscriptionStatusEnum.Active)
+                .OrderByDescending(s => s.StartDate)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<List<PlanSubscription>> GetByCompanyAsync(int companyId)
+        {
+            return await _dbContext.Set<PlanSubscription>()
+                .Include(s => s.Plan)
+                .Include(s => s.Company)
+                .Where(s => s.CompanyId == companyId)
+                .OrderByDescending(s => s.StartDate)
+                .ToListAsync();
+        }
+
+        public async Task<List<PlanSubscription>> GetActivesPastEndDateAsync(DateTime utcNow)
+        {
+            return await _dbContext.Set<PlanSubscription>()
+                .Where(s => s.Status == Core.Enums.Plan.PlanSubscriptionStatusEnum.Active && s.EndDate < utcNow)
+                .ToListAsync();
+        }
     }
 
     public interface IPlanSubscriptionRepository : IGenericRepository<PlanSubscription>
     {
         Task<PagedResult<PlanSubscription>> GetSubscribersPaged(int planId, int page, int pageSize);
+
+        Task<PlanSubscription?> GetActiveByCompanyAsync(int companyId);
+        Task<List<PlanSubscription>> GetByCompanyAsync(int companyId);
+        Task<List<PlanSubscription>> GetActivesPastEndDateAsync(DateTime utcNow);
     }
 }

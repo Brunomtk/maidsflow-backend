@@ -1,16 +1,33 @@
 using System.Collections.Generic;
-using Core.Enums;
+using Core.DTO;
 
 namespace Core.DTO.Plan
 {
+    /// <summary>
+    /// Payload mínimo para atualização de um plano.
+    /// Campos opcionais para manter o PUT simples (estilo PATCH).
+    /// Obs: Status é atualizado no endpoint /status.
+    /// </summary>
     public class UpdatePlanRequest
     {
-        public required string Name { get; set; }
-        public required decimal Price { get; set; }
-        public required List<string> Features { get; set; } = new();
-        public required int Duration { get; set; }
-        public required StatusEnum Status { get; set; }
+        public string? Name { get; set; }
+        public decimal? Price { get; set; }
 
-        public LimitsDTO Limits { get; set; } = new();
+        /// <summary>
+        /// Duração do plano em meses (contada a partir da ativação).
+        /// </summary>
+        public int? Duration { get; set; }
+
+        /// <summary>
+        /// Lista de funcionalidades. Se vier null, mantém o valor atual.
+        /// Envie lista vazia para limpar.
+        /// </summary>
+        public List<string>? Features { get; set; }
+
+        /// <summary>
+        /// Limites opcionais. Se vier null, mantém o valor atual.
+        /// (Os campos internos são nullable, então pode limpar mandando null neles.)
+        /// </summary>
+        public LimitsDTO? Limits { get; set; }
     }
 }

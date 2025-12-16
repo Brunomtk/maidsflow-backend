@@ -1,4 +1,5 @@
 ﻿using Core.Models;
+using System;
 using Infrastructure.Repositories;
 using Infrastructure.ServiceExtension;
 
@@ -15,12 +16,95 @@ namespace Services
 
         public async Task<PagedResult<PlanSubscription>> GetSubscribersByPlan(int planId, int page, int pageSize)
         {
+            await RefreshExpiredSubscriptionsAsync();
             return await _unitOfWork.PlanSubscriptions.GetSubscribersPaged(planId, page, pageSize);
+        }
+
+        public async Task<PlanSubscription?> GetActiveByCompanyAsync(int companyId)
+        {
+            await RefreshExpiredSubscriptionsAsync();
+            return await _unitOfWork.PlanSubscriptions.GetActiveByCompanyAsync(companyId);
+        }
+
+        public async Task<List<PlanSubscription>> GetByCompanyAsync(int companyId)
+        {
+            await RefreshExpiredSubscriptionsAsync();
+            return await _unitOfWork.PlanSubscriptions.GetByCompanyAsync(companyId);
+        }
+
+        public async Task<PlanSubscription> ActivateAsync(int planId, int companyId, bool autoRenew)
+        {
+            // validações básicas
+            var plan = await _unitOfWork.Plans.GetById(planId);
+            if (plan == null) throw new InvalidOperationException("Plano não encontrado.");
+
+            var company = await _unitOfWork.Companies.GetById(companyId);
+            if (company == null) throw new InvalidOperationException("Company não encontrada.");
+
+            await RefreshExpiredSubscriptionsAsync();
+
+            // desativa assinatura ativa anterior
+            var currentActive = await _unitOfWork.PlanSubscriptions.GetActiveByCompanyAsync(companyId);
+            if (currentActive != null)
+            {
+                currentActive.Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Inactive;
+                _unitOfWork.PlanSubscriptions.Update(currentActive);
+            }
+
+            var start = DateTime.UtcNow;
+            var durationMonths = plan.Duration <= 0 ? 1 : plan.Duration;
+            var end = start.AddMonths(durationMonths);
+
+            var subscription = new PlanSubscription
+            {
+                PlanId = planId,
+                CompanyId = companyId,
+                StartDate = start,
+                EndDate = end,
+                Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Active,
+                AutoRenew = autoRenew
+            };
+
+            await _unitOfWork.PlanSubscriptions.Add(subscription);
+            _unitOfWork.Save();
+
+            return subscription;
+        }
+
+        public async Task<bool> CancelAsync(int subscriptionId)
+        {
+            var subscription = await _unitOfWork.PlanSubscriptions.GetById(subscriptionId);
+            if (subscription == null) return false;
+
+            subscription.Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Cancelled;
+            _unitOfWork.PlanSubscriptions.Update(subscription);
+            return _unitOfWork.Save() > 0;
+        }
+
+        public async Task<int> RefreshExpiredSubscriptionsAsync()
+        {
+            var now = DateTime.UtcNow;
+            var expired = await _unitOfWork.PlanSubscriptions.GetActivesPastEndDateAsync(now);
+            if (expired.Count == 0) return 0;
+
+            foreach (var sub in expired)
+            {
+                sub.Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Expired;
+                _unitOfWork.PlanSubscriptions.Update(sub);
+            }
+
+            return _unitOfWork.Save();
         }
     }
 
     public interface IPlanSubscriptionService
     {
         Task<PagedResult<PlanSubscription>> GetSubscribersByPlan(int planId, int page, int pageSize);
+
+        Task<PlanSubscription?> GetActiveByCompanyAsync(int companyId);
+        Task<List<PlanSubscription>> GetByCompanyAsync(int companyId);
+        Task<PlanSubscription> ActivateAsync(int planId, int companyId, bool autoRenew);
+        Task<bool> CancelAsync(int subscriptionId);
+        Task<int> RefreshExpiredSubscriptionsAsync();
     }
 }

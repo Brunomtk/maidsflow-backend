@@ -4,17 +4,6 @@ using Core.Enums.Appointment;
 
 namespace Core.DTO.Appointment
 {
-    public class CalendarCustomerMiniDTO
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-    }
-
-    public class CalendarTeamMiniDTO
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-    }
 
     /// <summary>
     /// Item pronto para renderizar no calendário.

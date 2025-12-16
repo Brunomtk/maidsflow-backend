@@ -9,6 +9,24 @@ namespace Infrastructure.Repositories
     {
         public PlanRepository(DbContextClass dbContext) : base(dbContext) { }
 
+        public async Task<Plan?> GetByIdWithCompaniesAsync(int id)
+        {
+            return await _dbContext.Set<Plan>()
+                .Include(p => p.Subscriptions!)
+                    .ThenInclude(s => s.Company)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == id);
+        }
+
+        public async Task<IEnumerable<Plan>> GetAllWithCompaniesAsync()
+        {
+            return await _dbContext.Set<Plan>()
+                .Include(p => p.Subscriptions!)
+                    .ThenInclude(s => s.Company)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
         public async Task<PagedResult<Plan>> GetPlansPaged(FiltersDTO filtersDTO)
         {
             var query = _dbContext.Set<Plan>().AsQueryable();
@@ -31,5 +49,8 @@ namespace Infrastructure.Repositories
     public interface IPlanRepository : IGenericRepository<Plan>
     {
         Task<PagedResult<Plan>> GetPlansPaged(FiltersDTO filtersDTO);
+
+        Task<Plan?> GetByIdWithCompaniesAsync(int id);
+        Task<IEnumerable<Plan>> GetAllWithCompaniesAsync();
     }
 }

@@ -848,9 +848,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<int?>("CustomerId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -860,7 +857,7 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime?>("PaymentDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("PlanId")
+                    b.Property<int>("PlanId")
                         .HasColumnType("integer");
 
                     b.Property<string>("PlanName")
@@ -880,8 +877,6 @@ namespace Infrastructure.Migrations
                         .HasDefaultValueSql("now()");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CustomerId");
 
                     b.ToTable("Payments", (string)null);
                 });
@@ -1403,7 +1398,7 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("Core.Models.Customer", "Customer")
-                        .WithMany("Appointments")
+                        .WithMany()
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Restrict);
 
@@ -1570,16 +1565,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Core.Models.Payment", b =>
-                {
-                    b.HasOne("Core.Models.Customer", "Customer")
-                        .WithMany("Payments")
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Customer");
-                });
-
             modelBuilder.Entity("Core.Models.PlanSubscription", b =>
                 {
                     b.HasOne("Core.Models.Company", "Company")
@@ -1717,13 +1702,6 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Models.Company", b =>
                 {
                     b.Navigation("Users");
-                });
-
-            modelBuilder.Entity("Core.Models.Customer", b =>
-                {
-                    b.Navigation("Appointments");
-
-                    b.Navigation("Payments");
                 });
 
             modelBuilder.Entity("Core.Models.InternalFeedback", b =>

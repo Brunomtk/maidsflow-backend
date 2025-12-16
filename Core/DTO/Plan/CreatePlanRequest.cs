@@ -1,21 +1,29 @@
-using Core.Enums;
+using Core.DTO;
 
 namespace Core.DTO.Plan
 {
+    /// <summary>
+    /// Payload m√≠nimo para cria√ß√£o de um plano.
+    /// Mant√©m apenas o necess√°rio, como nas outras entidades.
+    /// </summary>
     public class CreatePlanRequest
     {
-        // InformaÁıes b·sicas do plano
         public required string Name { get; set; }
         public required decimal Price { get; set; }
-        public required int Duration { get; set; } // DuraÁ„o em meses
 
-        // Funcionalidades inclusas no plano
-        public required List<string> Features { get; set; } = new();
+        /// <summary>
+        /// Dura√ß√£o do plano em meses (contada a partir da ativa√ß√£o).
+        /// </summary>
+        public required int Duration { get; set; }
 
-        // Status inicial do plano
-        public required StatusEnum Status { get; set; }
+        /// <summary>
+        /// Lista opcional de funcionalidades do plano.
+        /// </summary>
+        public List<string>? Features { get; set; }
 
-        // Limites do plano (profissionais, clientes, etc.)
-        public LimitsDTO Limits { get; set; } = new();
+        /// <summary>
+        /// Limites opcionais do plano (profissionais, clientes, etc.).
+        /// </summary>
+        public LimitsDTO? Limits { get; set; }
     }
 }

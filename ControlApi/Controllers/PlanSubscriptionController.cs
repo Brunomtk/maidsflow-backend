@@ -32,5 +32,38 @@ namespace Api.Controllers
             var result = await _subscriptionService.GetSubscribersByPlan(planId, page, pageSize);
             return Ok(result);
         }
+
+        /// <summary>
+        /// Retorna a assinatura ativa de uma Company.
+        /// </summary>
+        [HttpGet("company/{companyId}/active")]
+        public async Task<IActionResult> GetActiveByCompany([FromRoute] int companyId)
+        {
+            if (companyId <= 0) return BadRequest("CompanyId inválido.");
+            var result = await _subscriptionService.GetActiveByCompanyAsync(companyId);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Lista todas as assinaturas de uma Company.
+        /// </summary>
+        [HttpGet("company/{companyId}")]
+        public async Task<IActionResult> GetByCompany([FromRoute] int companyId)
+        {
+            if (companyId <= 0) return BadRequest("CompanyId inválido.");
+            var result = await _subscriptionService.GetByCompanyAsync(companyId);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Cancela uma assinatura (Status = Cancelled).
+        /// </summary>
+        [HttpPut("{subscriptionId}/cancel")]
+        public async Task<IActionResult> Cancel([FromRoute] int subscriptionId)
+        {
+            if (subscriptionId <= 0) return BadRequest("subscriptionId inválido.");
+            var ok = await _subscriptionService.CancelAsync(subscriptionId);
+            return ok ? Ok("Assinatura cancelada.") : NotFound("Assinatura não encontrada.");
+        }
     }
 }

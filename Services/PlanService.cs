@@ -9,10 +9,12 @@ namespace Services
     public class PlanService : IPlanService
     {
         private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
+        private readonly IPlanSubscriptionService _planSubscriptionService;
 
-        public PlanService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
+        public PlanService(Infrastructure.Repositories.IUnitOfWork unitOfWork, IPlanSubscriptionService planSubscriptionService)
         {
             _unitOfWork = unitOfWork;
+            _planSubscriptionService = planSubscriptionService;
         }
 
         public async Task<PagedResult<Plan>> GetPlansPaged(FiltersDTO filtersDTO)
@@ -22,12 +24,14 @@ namespace Services
 
         public async Task<IEnumerable<Plan>> GetAllPlans()
         {
-            return await _unitOfWork.Plans.GetAll();
+            await _planSubscriptionService.RefreshExpiredSubscriptionsAsync();
+            return await _unitOfWork.Plans.GetAllWithCompaniesAsync();
         }
 
         public async Task<Plan?> GetPlanById(int id)
         {
-            return await _unitOfWork.Plans.GetById(id);
+            await _planSubscriptionService.RefreshExpiredSubscriptionsAsync();
+            return await _unitOfWork.Plans.GetByIdWithCompaniesAsync(id);
         }
 
         public async Task<bool> CreatePlan(Plan plan)

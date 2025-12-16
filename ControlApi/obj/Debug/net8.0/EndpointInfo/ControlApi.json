@@ -3318,17 +3318,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Plan"
+                "$ref": "#/components/schemas/CreatePlanRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/Plan"
+                "$ref": "#/components/schemas/CreatePlanRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/Plan"
+                "$ref": "#/components/schemas/CreatePlanRequest"
               }
             }
           }
@@ -3434,17 +3434,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Plan"
+                "$ref": "#/components/schemas/UpdatePlanRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/Plan"
+                "$ref": "#/components/schemas/UpdatePlanRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/Plan"
+                "$ref": "#/components/schemas/UpdatePlanRequest"
               }
             }
           }
@@ -3519,6 +3519,71 @@
         }
       }
     },
+    "/api/Plan/{id}/activate": {
+      "post": {
+        "tags": [
+          "Plan"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivatePlanDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivatePlanDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivatePlanDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Plan/{id}/companies": {
+      "get": {
+        "tags": [
+          "Plan"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/PlanSubscription/{planId}/subscribers": {
       "get": {
         "tags": [
@@ -3550,6 +3615,75 @@
               "type": "integer",
               "format": "int32",
               "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/PlanSubscription/company/{companyId}/active": {
+      "get": {
+        "tags": [
+          "PlanSubscription"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/PlanSubscription/company/{companyId}": {
+      "get": {
+        "tags": [
+          "PlanSubscription"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/PlanSubscription/{subscriptionId}/cancel": {
+      "put": {
+        "tags": [
+          "PlanSubscription"
+        ],
+        "parameters": [
+          {
+            "name": "subscriptionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -4765,6 +4899,22 @@
   },
   "components": {
     "schemas": {
+      "ActivatePlanDTO": {
+        "required": [
+          "companyId"
+        ],
+        "type": "object",
+        "properties": {
+          "companyId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "autoRenew": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "AddChecklistItemPhotosDTO": {
         "required": [
           "itemId",
@@ -5692,6 +5842,34 @@
         },
         "additionalProperties": false
       },
+      "CreatePlanRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "price": {
+            "type": "number",
+            "format": "double"
+          },
+          "duration": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "limits": {
+            "$ref": "#/components/schemas/LimitsDTO"
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateProfessionalRequest": {
         "type": "object",
         "properties": {
@@ -6073,6 +6251,32 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "LimitsDTO": {
+        "type": "object",
+        "properties": {
+          "professionals": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "teams": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "customers": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "appointments": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "LoginRequest": {
         "type": "object",
@@ -7397,6 +7601,36 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdatePlanRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "price": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "duration": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "limits": {
+            "$ref": "#/components/schemas/LimitsDTO"
           }
         },
         "additionalProperties": false
