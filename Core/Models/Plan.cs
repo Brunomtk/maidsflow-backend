@@ -17,7 +17,7 @@ namespace Core.Models
         public int? AppointmentsLimit { get; set; }
 
         /// <summary>
-        /// Duração do plano em meses
+        /// Duração do plano em dias
         /// </summary>
         public int Duration { get; set; }
 

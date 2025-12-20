@@ -3614,7 +3614,7 @@
             "schema": {
               "type": "integer",
               "format": "int32",
-              "default": 10
+              "default": 50
             }
           }
         ],
@@ -3664,6 +3664,163 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/PlanSubscription/activate": {
+      "post": {
+        "tags": [
+          "PlanSubscription"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivatePlanSubscriptionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivatePlanSubscriptionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivatePlanSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/PlanSubscription/{subscriptionId}/activate": {
+      "put": {
+        "tags": [
+          "PlanSubscription"
+        ],
+        "parameters": [
+          {
+            "name": "subscriptionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateExistingPlanSubscriptionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateExistingPlanSubscriptionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateExistingPlanSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/PlanSubscription/{subscriptionId}": {
+      "put": {
+        "tags": [
+          "PlanSubscription"
+        ],
+        "parameters": [
+          {
+            "name": "subscriptionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlanSubscriptionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlanSubscriptionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlanSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/PlanSubscription/company/{companyId}/switch-plan": {
+      "post": {
+        "tags": [
+          "PlanSubscription"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwitchCompanyPlanRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwitchCompanyPlanRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwitchCompanyPlanRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Success"
@@ -4899,6 +5056,26 @@
   },
   "components": {
     "schemas": {
+      "ActivateExistingPlanSubscriptionRequest": {
+        "type": "object",
+        "properties": {
+          "autoRenew": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "startDateUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "endDateUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ActivatePlanDTO": {
         "required": [
           "companyId"
@@ -4911,6 +5088,33 @@
           },
           "autoRenew": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ActivatePlanSubscriptionRequest": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "companyId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "autoRenew": {
+            "type": "boolean"
+          },
+          "startDateUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "endDateUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -6876,6 +7080,29 @@
         "type": "integer",
         "format": "int32"
       },
+      "SwitchCompanyPlanRequest": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "autoRenew": {
+            "type": "boolean"
+          },
+          "startDateUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "endDateUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "Team": {
         "type": "object",
         "properties": {
@@ -7631,6 +7858,30 @@
           },
           "limits": {
             "$ref": "#/components/schemas/LimitsDTO"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdatePlanSubscriptionRequest": {
+        "type": "object",
+        "properties": {
+          "autoRenew": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "startDateUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "endDateUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

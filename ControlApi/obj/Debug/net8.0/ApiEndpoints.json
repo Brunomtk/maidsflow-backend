@@ -2234,6 +2234,48 @@
   },
   {
     "ContainingType": "Api.Controllers.PlanSubscriptionController",
+    "Method": "Update",
+    "RelativePath": "api/PlanSubscription/{subscriptionId}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "subscriptionId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "req",
+        "Type": "Core.DTO.Plan.UpdatePlanSubscriptionRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Api.Controllers.PlanSubscriptionController",
+    "Method": "ActivateExisting",
+    "RelativePath": "api/PlanSubscription/{subscriptionId}/activate",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "subscriptionId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "req",
+        "Type": "Core.DTO.Plan.ActivateExistingPlanSubscriptionRequest",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Api.Controllers.PlanSubscriptionController",
     "Method": "Cancel",
     "RelativePath": "api/PlanSubscription/{subscriptionId}/cancel",
     "HttpMethod": "PUT",
@@ -2243,6 +2285,22 @@
       {
         "Name": "subscriptionId",
         "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Api.Controllers.PlanSubscriptionController",
+    "Method": "Activate",
+    "RelativePath": "api/PlanSubscription/activate",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "req",
+        "Type": "Core.DTO.Plan.ActivatePlanSubscriptionRequest",
         "IsRequired": true
       }
     ],
@@ -2275,6 +2333,27 @@
       {
         "Name": "companyId",
         "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Api.Controllers.PlanSubscriptionController",
+    "Method": "SwitchPlan",
+    "RelativePath": "api/PlanSubscription/company/{companyId}/switch-plan",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "companyId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "req",
+        "Type": "Core.DTO.Plan.SwitchCompanyPlanRequest",
         "IsRequired": true
       }
     ],
