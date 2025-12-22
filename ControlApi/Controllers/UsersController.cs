@@ -169,7 +169,7 @@ namespace ControlApi.Controllers
 
             return Ok(user);
         }
-
+        [AllowAnonymous]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateUserRequest request)
         {

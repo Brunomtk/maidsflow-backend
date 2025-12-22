@@ -33,6 +33,7 @@ namespace Infrastructure.ServiceExtension
             services.AddScoped<ICancellationRepository, CancellationRepository>();
             services.AddScoped<IPaymentRepository, PaymentRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
+            services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
             
             
 

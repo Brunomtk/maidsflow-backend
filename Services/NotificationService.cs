@@ -13,10 +13,12 @@ namespace Services
     public class NotificationService : INotificationService
     {
         private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
+        private readonly IPushNotificationSender _pushSender;
 
-        public NotificationService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
+        public NotificationService(Infrastructure.Repositories.IUnitOfWork unitOfWork, IPushNotificationSender pushSender)
         {
             _unitOfWork = unitOfWork;
+            _pushSender = pushSender;
         }
 
         public Task<List<Notification>> GetAsync(NotificationFiltersDTO filters)
@@ -33,7 +35,9 @@ namespace Services
             var roleEnum = Enum.Parse<UserRole>(dto.RecipientRole, ignoreCase: true);
             var defaultStatus = NotificationStatus.Unread;
 
-            var companyId = dto.CompanyId ?? 0;
+            // CompanyId é opcional. Se não vier, deve ficar NULL (não "0"),
+            // para permitir broadcasts globais e filtros corretos.
+            var companyId = dto.CompanyId;
 
             if (dto.IsBroadcast)
             {
@@ -77,6 +81,10 @@ namespace Services
             }
 
             await _unitOfWork.SaveAsync();
+
+            // Dispara push notification (Web Push) para os destinatários
+            await _pushSender.TrySendForCreatedNotificationsAsync(created, dto);
+
             return created;
         }
 
@@ -127,21 +135,70 @@ namespace Services
 
         public async Task<List<Notification>> GetUserNotificationsAsync(string userId)
         {
+            // Esse endpoint precisa retornar:
+            // 1) notificações diretas do usuário (RecipientId = uid)
+            // 2) notificações broadcast (RecipientId = 0) compatíveis com o papel/empresa do usuário
             var uid = int.Parse(userId);
-            var filters = new NotificationFiltersDTO { RecipientId = uid };
-            var all = await _unitOfWork.Notifications.GetAsync(filters);
 
-            return all
-                .Where(n => n.RecipientId == uid || n.RecipientId == 0)
+	            // IUserRepository/IGenericRepository expõe GetById (Task<User>), não GetByIdAsync.
+	            // Mantemos como nullable para lidar com usuário inexistente.
+	            Core.Models.User? user = await _unitOfWork.Users.GetById(uid);
+            if (user == null)
+            {
+                // Mantém comportamento anterior: sem usuário, retorna apenas as diretas.
+                var onlyDirect = await _unitOfWork.Notifications.GetAsync(new NotificationFiltersDTO { RecipientId = uid });
+                return onlyDirect;
+            }
+
+            // Busca diretas
+            var direct = await _unitOfWork.Notifications.GetAsync(new NotificationFiltersDTO { RecipientId = uid });
+
+            // Busca broadcasts (RecipientId=0) para o papel do usuário.
+            // Regra de empresa:
+            // - broadcast global: CompanyId NULL ou 0
+            // - broadcast por empresa: CompanyId == user.CompanyId
+            var broadcastsAllByRole = await _unitOfWork.Notifications.GetAsync(new NotificationFiltersDTO
+            {
+                RecipientId = 0,
+                RecipientRole = user.Role
+            });
+
+            var broadcasts = broadcastsAllByRole
+                .Where(n => n.CompanyId == null || n.CompanyId == 0 || (user.CompanyId.HasValue && n.CompanyId == user.CompanyId.Value))
+                .ToList();
+
+            return direct
+                .Concat(broadcasts)
+                .OrderByDescending(n => n.SentAt)
                 .ToList();
         }
 
         public async Task<int> GetUnreadCountAsync(string userId)
         {
             var uid = int.Parse(userId);
-            var filters = new NotificationFiltersDTO { RecipientId = uid };
-            var all = await _unitOfWork.Notifications.GetAsync(filters);
-            return all.Count(n => n.RecipientId == uid && n.Status == NotificationStatus.Unread);
+	            // IUserRepository/IGenericRepository expõe GetById (Task<User>), não GetByIdAsync.
+	            Core.Models.User? user = await _unitOfWork.Users.GetById(uid);
+
+            // Diretas não lidas
+            var direct = await _unitOfWork.Notifications.GetAsync(new NotificationFiltersDTO { RecipientId = uid });
+            var directCount = direct.Count(n => n.Status == NotificationStatus.Unread);
+
+            if (user == null)
+                return directCount;
+
+            // Broadcasts não lidas (no modelo atual, broadcast é um registro só; o Status é o mesmo pra todo mundo)
+            var broadcastsAllByRole = await _unitOfWork.Notifications.GetAsync(new NotificationFiltersDTO
+            {
+                RecipientId = 0,
+                RecipientRole = user.Role
+            });
+
+            var broadcasts = broadcastsAllByRole
+                .Where(n => n.CompanyId == null || n.CompanyId == 0 || (user.CompanyId.HasValue && n.CompanyId == user.CompanyId.Value))
+                .ToList();
+
+            var broadcastCount = broadcasts.Count(n => n.Status == NotificationStatus.Unread);
+            return directCount + broadcastCount;
         }
     }
 

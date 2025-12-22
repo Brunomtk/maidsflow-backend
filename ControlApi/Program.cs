@@ -47,6 +47,8 @@ namespace ControlApi
             builder.Services.AddScoped<ICancellationService, CancellationService>();
             builder.Services.AddScoped<IPaymentService, PaymentService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
+            builder.Services.AddScoped<IPushSubscriptionService, PushSubscriptionService>();
+            builder.Services.AddScoped<IPushNotificationSender, WebPushNotificationSender>();
             
             // -----------------------------
             // JWT

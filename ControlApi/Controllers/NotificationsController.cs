@@ -3,12 +3,14 @@ using System.Threading.Tasks;
 using Core.DTO.Notifications;
 using Core.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Services;
 
 namespace ControlApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class NotificationsController : ControllerBase
     {
         private readonly INotificationService _service;

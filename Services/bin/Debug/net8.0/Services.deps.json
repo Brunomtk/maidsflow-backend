@@ -29,6 +29,7 @@
           "Serilog.Sinks.Seq": "5.1.1",
           "SharpCompress": "0.37.2",
           "SkiaSharp.NativeAssets.Linux.NoDependencies": "2.80.3",
+          "WebPush": "1.0.12",
           "Xamarin.Forms": "5.0.0.2662",
           "iTextSharp": "5.5.13.4",
           "itext7": "8.0.4",
@@ -871,6 +872,7 @@
           }
         }
       },
+      "Portable.BouncyCastle/1.8.1.3": {},
       "runtime.debian.8-x64.runtime.native.System.Security.Cryptography.OpenSsl/4.3.2": {},
       "runtime.fedora.23-x64.runtime.native.System.Security.Cryptography.OpenSsl/4.3.2": {},
       "runtime.fedora.24-x64.runtime.native.System.Security.Cryptography.OpenSsl/4.3.2": {},
@@ -1862,6 +1864,18 @@
           "System.Xml.ReaderWriter": "4.3.0"
         }
       },
+      "WebPush/1.0.12": {
+        "dependencies": {
+          "Newtonsoft.Json": "13.0.3",
+          "Portable.BouncyCastle": "1.8.1.3"
+        },
+        "runtime": {
+          "lib/net5.0/WebPush.dll": {
+            "assemblyVersion": "1.0.11.0",
+            "fileVersion": "1.0.11.0"
+          }
+        }
+      },
       "Xamarin.Forms/5.0.0.2662": {
         "runtime": {
           "lib/netstandard2.0/Xamarin.Forms.Core.dll": {
@@ -2479,6 +2493,13 @@
       "sha512": "sha512-Tvc3mzowW3XG6AWk4gRi836Hy7FwqhXirpjQRH6JJll0vxiz5yWbAVjr0iV5yKRnPCwVbjOfwjfaMlwYzcPASg==",
       "path": "pdfsharp/6.1.0",
       "hashPath": "pdfsharp.6.1.0.nupkg.sha512"
+    },
+    "Portable.BouncyCastle/1.8.1.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-1jUpszv0ETm+hl78HKnYgY3wPzt6qRtjxaPENNrGCuB8nondbR/j75WAKdd6sxXzOzBcX07WMZhZEYc4s5jVWg==",
+      "path": "portable.bouncycastle/1.8.1.3",
+      "hashPath": "portable.bouncycastle.1.8.1.3.nupkg.sha512"
     },
     "runtime.debian.8-x64.runtime.native.System.Security.Cryptography.OpenSsl/4.3.2": {
       "type": "package",
@@ -3235,6 +3256,13 @@
       "sha512": "sha512-lJ8AxvkX7GQxpC6GFCeBj8ThYVyQczx2+f/cWHJU8tjS7YfI6Cv6bon70jVEgs2CiFbmmM8b9j1oZVx0dSI2Ww==",
       "path": "system.xml.xmldocument/4.3.0",
       "hashPath": "system.xml.xmldocument.4.3.0.nupkg.sha512"
+    },
+    "WebPush/1.0.12": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-vc91Uby6UaQQijOPRY4B1tWFaQJlbfOyfOMIPpdAT6mANcPhHcvDJeLjr6B0Adjij71WIAH718MC7coQdrJZAw==",
+      "path": "webpush/1.0.12",
+      "hashPath": "webpush.1.0.12.nupkg.sha512"
     },
     "Xamarin.Forms/5.0.0.2662": {
       "type": "package",

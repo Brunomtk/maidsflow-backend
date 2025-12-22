@@ -16,6 +16,7 @@ namespace Infrastructure.Repositories
         IInternalFeedbackRepository InternalFeedbacks { get; }
         ILeaderRepository Leaders { get; }
         INotificationRepository Notifications { get; }
+        IPushSubscriptionRepository PushSubscriptions { get; }
         IPaymentRepository Payments { get; }
         IPlanRepository Plans { get; }
         IPlanSubscriptionRepository PlanSubscriptions { get; }
@@ -50,6 +51,7 @@ namespace Infrastructure.Repositories
             IInternalFeedbackRepository internalFeedbackRepository,
             ILeaderRepository leaderRepository,
             INotificationRepository notificationRepository,
+            IPushSubscriptionRepository pushSubscriptionRepository,
             IPaymentRepository paymentRepository,
             IPlanRepository planRepository,
             IPlanSubscriptionRepository planSubscriptionRepository,
@@ -76,6 +78,7 @@ namespace Infrastructure.Repositories
             InternalFeedbacks = internalFeedbackRepository;
             Leaders = leaderRepository;
             Notifications = notificationRepository;
+            PushSubscriptions = pushSubscriptionRepository;
             Payments = paymentRepository;
             Plans = planRepository;
             PlanSubscriptions = planSubscriptionRepository;
@@ -101,6 +104,7 @@ namespace Infrastructure.Repositories
         public IInternalFeedbackRepository InternalFeedbacks { get; }
         public ILeaderRepository Leaders { get; }
         public INotificationRepository Notifications { get; }
+        public IPushSubscriptionRepository PushSubscriptions { get; }
         public IPaymentRepository Payments { get; }
         public IPlanRepository Plans { get; }
         public IPlanSubscriptionRepository PlanSubscriptions { get; }

@@ -43,6 +43,7 @@ namespace Infrastructure
         public DbSet<Cancellation> Cancellations { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<PushSubscription> PushSubscriptions { get; set; }
         
         
 
@@ -539,7 +540,29 @@ namespace Infrastructure
 
            
             
-        }
+        
+
+            // PushSubscriptions (Web Push)
+            modelBuilder.Entity<PushSubscription>(entity =>
+            {
+                entity.ToTable("PushSubscriptions");
+                entity.HasKey(p => p.Id);
+
+                entity.Property(p => p.Endpoint).IsRequired();
+                entity.Property(p => p.P256dh).IsRequired();
+                entity.Property(p => p.Auth).IsRequired();
+
+                entity.Property(p => p.CreatedDate).HasDefaultValueSql("now()");
+                entity.Property(p => p.UpdatedDate).HasDefaultValueSql("now()");
+
+                entity.HasIndex(p => new { p.UserId, p.Endpoint }).IsUnique();
+
+                entity.HasOne<User>()
+                      .WithMany()
+                      .HasForeignKey(p => p.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+}
 
         public override int SaveChanges()
         {

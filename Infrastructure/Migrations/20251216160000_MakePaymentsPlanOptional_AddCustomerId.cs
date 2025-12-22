@@ -17,27 +17,26 @@ namespace Infrastructure.Migrations
                 oldClrType: typeof(int),
                 oldType: "integer");
 
-                        // CustomerId: new nullable FK to Customers (SAFE / idempotente)
-            // - não quebra se a coluna já existir
-            // - não quebra se o índice/FK já existirem
-            migrationBuilder.Sql(@"ALTER TABLE ""Payments"" ADD COLUMN IF NOT EXISTS ""CustomerId"" integer;");
+            // CustomerId: new nullable FK to Customers
+            migrationBuilder.AddColumn<int>(
+                name: "CustomerId",
+                table: "Payments",
+                type: "integer",
+                nullable: true);
 
-            migrationBuilder.Sql(@"CREATE INDEX IF NOT EXISTS ""IX_Payments_CustomerId""
-ON ""Payments"" (""CustomerId"");");
+            migrationBuilder.CreateIndex(
+                name: "IX_Payments_CustomerId",
+                table: "Payments",
+                column: "CustomerId");
 
-            migrationBuilder.Sql(@"
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'FK_Payments_Customers_CustomerId'
-  ) THEN
-    ALTER TABLE ""Payments""
-    ADD CONSTRAINT ""FK_Payments_Customers_CustomerId""
-    FOREIGN KEY (""CustomerId"") REFERENCES ""Customers"" (""Id"")
-    ON DELETE SET NULL;
-  END IF;
-END $$;
-");}
+            migrationBuilder.AddForeignKey(
+                name: "FK_Payments_Customers_CustomerId",
+                table: "Payments",
+                column: "CustomerId",
+                principalTable: "Customers",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.SetNull);
+        }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
