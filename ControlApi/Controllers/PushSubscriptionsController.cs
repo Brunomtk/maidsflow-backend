@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Core.DTO.PushSubscriptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Services;
 
 namespace ControlApi.Controllers
@@ -13,10 +14,28 @@ namespace ControlApi.Controllers
     public class PushSubscriptionsController : ControllerBase
     {
         private readonly IPushSubscriptionService _service;
+        private readonly IConfiguration _config;
 
-        public PushSubscriptionsController(IPushSubscriptionService service)
+        public PushSubscriptionsController(IPushSubscriptionService service, IConfiguration config)
         {
             _service = service;
+            _config = config;
+        }
+
+        // GET: api/PushSubscriptions/public-config
+        // Endpoint público para o frontend obter a VAPID Public Key automaticamente.
+        [HttpGet("public-config")]
+        [AllowAnonymous]
+        public IActionResult GetPublicConfig()
+        {
+            var key = _config["WebPush:PublicKey"] ?? string.Empty;
+            var configured = !string.IsNullOrWhiteSpace(key) && !key.StartsWith("CHANGE_ME", System.StringComparison.OrdinalIgnoreCase);
+
+            return Ok(new PublicPushConfigDTO
+            {
+                VapidPublicKey = key,
+                Configured = configured
+            });
         }
 
         // POST: api/PushSubscriptions/subscribe

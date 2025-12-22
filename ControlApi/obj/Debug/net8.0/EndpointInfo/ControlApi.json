@@ -3967,6 +3967,18 @@
         }
       }
     },
+    "/api/PushSubscriptions/public-config": {
+      "get": {
+        "tags": [
+          "PushSubscriptions"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/PushSubscriptions/subscribe": {
       "post": {
         "tags": [

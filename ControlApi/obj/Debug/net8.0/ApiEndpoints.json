@@ -2457,6 +2457,16 @@
   },
   {
     "ContainingType": "ControlApi.Controllers.PushSubscriptionsController",
+    "Method": "GetPublicConfig",
+    "RelativePath": "api/PushSubscriptions/public-config",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.PushSubscriptionsController",
     "Method": "Subscribe",
     "RelativePath": "api/PushSubscriptions/subscribe",
     "HttpMethod": "POST",
