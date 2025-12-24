@@ -1,6 +1,9 @@
+using Core.DTO.Appointment;
 using Core.DTO.Professional;
+using Core.Enums.Appointment;
 using Core.Models;
 using Infrastructure.ServiceExtension;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services;
 
@@ -8,13 +11,120 @@ namespace Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ProfessionalController : ControllerBase
     {
         private readonly IProfessionalService _professionalService;
+        private readonly IAppointmentService _appointmentService;
 
-        public ProfessionalController(IProfessionalService professionalService)
+        public ProfessionalController(IProfessionalService professionalService, IAppointmentService appointmentService)
         {
             _professionalService = professionalService;
+            _appointmentService = appointmentService;
+        }
+
+        /// <summary>
+        /// Lista os agendamentos associados a um profissional, com filtros por status.
+        /// Útil para a área "completedservices" no app do Professional.
+        ///
+        /// status aceitos (case-insensitive):
+        /// - scheduled | schedule
+        /// - inprogress | in_progress
+        /// - cancelled | canceled
+        /// - completed
+        /// - all (ou vazio) => não filtra por status
+        /// </summary>
+        [HttpGet("{id:int}/completedservices")]
+        public async Task<ActionResult<PagedResult<AppointmentDTO>>> GetCompletedServices(
+            int id,
+            [FromQuery] string? status,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            var filters = new AppointmentFiltersDTO
+            {
+                ProfessionalId = id,
+                Page = page <= 0 ? 1 : page,
+                PageSize = pageSize is <= 0 or > 200 ? 20 : pageSize,
+                StartDate = startDate,
+                EndDate = endDate
+            };
+
+            var parsedStatus = TryParseAppointmentStatus(status);
+            if (parsedStatus == null && !string.IsNullOrWhiteSpace(status) && !status.Equals("all", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest("Status inválido. Use: scheduled, inprogress, cancelled/canceled, completed ou all.");
+            }
+
+            if (parsedStatus.HasValue)
+                filters.Status = parsedStatus.Value;
+
+            var paged = await _appointmentService.GetPagedAppointments(filters);
+
+            var mapped = new PagedResult<AppointmentDTO>
+            {
+                CurrentPage = paged.CurrentPage,
+                PageCount = paged.PageCount,
+                PageSize = paged.PageSize,
+                TotalItems = paged.TotalItems,
+                Results = paged.Results.Select(a => new AppointmentDTO
+                {
+                    Id = a.Id,
+                    Title = a.Title,
+                    Address = a.Address,
+                    Start = a.Start,
+                    End = a.End,
+                    Status = a.Status.ToString(),
+                    Type = a.Type.ToString(),
+                    Notes = a.Notes,
+                    CompanyId = a.CompanyId,
+                    CompanyName = a.Company?.Name,
+                    CustomerId = a.CustomerId,
+                    CustomerName = a.Customer?.Name,
+                    CustomerTicket = a.Customer?.Ticket,
+                    TeamId = a.TeamId,
+                    TeamName = a.Team?.Name,
+                    ProfessionalIds = a.ProfessionalIds,
+
+                    TimeZoneId = a.TimeZoneId,
+                    IsRecurring = a.IsRecurring,
+                    RecurrenceRule = a.RecurrenceRule,
+                    SeriesId = a.SeriesId,
+                    RecurrenceEnd = a.RecurrenceEnd,
+                    OccurrenceCount = a.OccurrenceCount,
+                    IsException = a.IsException,
+                    OriginalStart = a.OriginalStart,
+                    OriginalEnd = a.OriginalEnd
+                }).ToList()
+            };
+
+            return Ok(mapped);
+        }
+
+        private static AppointmentStatus? TryParseAppointmentStatus(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+                return null;
+
+            var v = raw.Trim().ToLowerInvariant();
+
+            // Normalizações de escrita
+            if (v == "schedule") v = "scheduled";
+            if (v == "in_progress") v = "inprogress";
+            if (v == "canceled") v = "cancelled"; // enum interno é "Cancelled"
+
+            if (v == "all") return null;
+
+            return v switch
+            {
+                "scheduled" => AppointmentStatus.Scheduled,
+                "inprogress" => AppointmentStatus.InProgress,
+                "completed" => AppointmentStatus.Completed,
+                "cancelled" => AppointmentStatus.Cancelled,
+                _ => null
+            };
         }
 
         /// <summary>

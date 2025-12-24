@@ -24,6 +24,8 @@ namespace Core.DTO.Appointment
         public int? CustomerId { get; set; }
         public string? CustomerName { get; set; }
 
+
+        public decimal? CustomerTicket { get; set; }
         public int? TeamId { get; set; }
         public string? TeamName { get; set; }
 
