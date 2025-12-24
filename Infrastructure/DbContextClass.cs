@@ -44,6 +44,7 @@ namespace Infrastructure
         public DbSet<Payment> Payments { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<PushSubscription> PushSubscriptions { get; set; }
+        public DbSet<AppointmentReminderDispatch> AppointmentReminderDispatches { get; set; }
         
         
 
@@ -561,6 +562,19 @@ namespace Infrastructure
                       .WithMany()
                       .HasForeignKey(p => p.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // AppointmentReminderDispatches (idempotência de lembretes automáticos)
+            modelBuilder.Entity<AppointmentReminderDispatch>(entity =>
+            {
+                entity.ToTable("AppointmentReminderDispatches");
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.ReminderType).HasConversion<int>();
+                entity.Property(x => x.OccurrenceStartUtc).HasColumnType("timestamp with time zone");
+
+                entity.HasIndex(x => new { x.RecipientUserId, x.AppointmentId, x.SeriesId, x.OccurrenceStartUtc, x.ReminderType })
+                      .IsUnique();
             });
 }
 

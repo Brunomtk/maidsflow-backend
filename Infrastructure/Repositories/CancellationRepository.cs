@@ -64,12 +64,12 @@ namespace Infrastructure.Repositories
         public void Delete(Cancellation cancellation)
             => _db.Cancellations.Remove(cancellation);
     }
-}
-public interface ICancellationRepository
-{
-    Task<List<Cancellation>> GetAsync(CancellationFiltersDto filters);
-    Task<Cancellation?> GetByIdAsync(int id);
-    Task AddAsync(Cancellation cancellation);
-    void Update(Cancellation cancellation);
-    void Delete(Cancellation cancellation);
+    public interface ICancellationRepository
+    {
+        Task<List<Cancellation>> GetAsync(CancellationFiltersDto filters);
+        Task<Cancellation?> GetByIdAsync(int id);
+        Task AddAsync(Cancellation cancellation);
+        void Update(Cancellation cancellation);
+        void Delete(Cancellation cancellation);
+    }
 }

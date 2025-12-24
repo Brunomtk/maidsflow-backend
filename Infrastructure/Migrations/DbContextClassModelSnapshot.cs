@@ -171,6 +171,43 @@ namespace Infrastructure.Migrations
                     b.ToTable("AppointmentRecurrenceExceptions");
                 });
 
+            modelBuilder.Entity("Core.Models.AppointmentReminderDispatch", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AppointmentId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("OccurrenceStartUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RecipientUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReminderType")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("SeriesId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipientUserId", "AppointmentId", "SeriesId", "OccurrenceStartUtc", "ReminderType")
+                        .IsUnique();
+
+                    b.ToTable("AppointmentReminderDispatches", (string)null);
+                });
+
             modelBuilder.Entity("Core.Models.Cancellation", b =>
                 {
                     b.Property<int>("Id")
@@ -848,6 +885,9 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -857,7 +897,7 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime?>("PaymentDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("PlanId")
+                    b.Property<int?>("PlanId")
                         .HasColumnType("integer");
 
                     b.Property<string>("PlanName")
@@ -877,6 +917,8 @@ namespace Infrastructure.Migrations
                         .HasDefaultValueSql("now()");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
 
                     b.ToTable("Payments", (string)null);
                 });
@@ -1028,6 +1070,53 @@ namespace Infrastructure.Migrations
                     b.HasIndex("TeamId");
 
                     b.ToTable("Professionals", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Models.PushSubscription", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Auth")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long?>("ExpirationTime")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("P256dh")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("text");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Endpoint")
+                        .IsUnique();
+
+                    b.ToTable("PushSubscriptions", (string)null);
                 });
 
             modelBuilder.Entity("Core.Models.Recurrence", b =>
@@ -1398,7 +1487,7 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("Core.Models.Customer", "Customer")
-                        .WithMany()
+                        .WithMany("Appointments")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Restrict);
 
@@ -1565,6 +1654,16 @@ namespace Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Core.Models.Payment", b =>
+                {
+                    b.HasOne("Core.Models.Customer", "Customer")
+                        .WithMany("Payments")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Customer");
+                });
+
             modelBuilder.Entity("Core.Models.PlanSubscription", b =>
                 {
                     b.HasOne("Core.Models.Company", "Company")
@@ -1599,6 +1698,15 @@ namespace Infrastructure.Migrations
                     b.Navigation("Company");
 
                     b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("Core.Models.PushSubscription", b =>
+                {
+                    b.HasOne("Core.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Core.Models.Recurrence", b =>
@@ -1702,6 +1810,13 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Models.Company", b =>
                 {
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("Core.Models.Customer", b =>
+                {
+                    b.Navigation("Appointments");
+
+                    b.Navigation("Payments");
                 });
 
             modelBuilder.Entity("Core.Models.InternalFeedback", b =>

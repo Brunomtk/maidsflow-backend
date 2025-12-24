@@ -7,13 +7,6 @@ using Infrastructure.Repositories;
 
 namespace Services
 {
-    public interface IPushSubscriptionService
-    {
-        Task<List<PushSubscription>> GetMySubscriptionsAsync(int userId);
-        Task<PushSubscription> UpsertAsync(int userId, BrowserPushSubscriptionDTO dto);
-        Task<bool> UnsubscribeAsync(int userId, string endpoint);
-    }
-
     public class PushSubscriptionService : IPushSubscriptionService
     {
         private readonly IUnitOfWork _unitOfWork;

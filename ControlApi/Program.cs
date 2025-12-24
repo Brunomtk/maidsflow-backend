@@ -13,6 +13,7 @@ using Services;
 using System.Text.Json.Serialization;
 using System.Net;
 using System.Text;
+using ControlApi.BackgroundJobs;
 
 
 
@@ -49,6 +50,12 @@ namespace ControlApi
             builder.Services.AddScoped<INotificationService, NotificationService>();
             builder.Services.AddScoped<IPushSubscriptionService, PushSubscriptionService>();
             builder.Services.AddScoped<IPushNotificationSender, WebPushNotificationSender>();
+
+            // -----------------------------
+            // Background Jobs
+            // -----------------------------
+            builder.Services.AddHostedService<AppointmentReminderHostedService>();
+            builder.Services.AddHostedService<NotificationCleanupHostedService>();
             
             // -----------------------------
             // JWT

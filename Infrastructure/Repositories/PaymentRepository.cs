@@ -64,13 +64,13 @@ namespace Infrastructure.Repositories
         public void Delete(Payment entity)
             => _dbContext.Payments.Remove(entity);
     }
-}
-public interface IPaymentRepository
-{
-    Task<PagedResult<Payment>> GetPagedAsync(PaymentFiltersDto filters);
-    Task<Payment?> GetByIdAsync(int id);
-    Task<List<Payment>> GetByCustomerIdAsync(int customerId);
-    void Add(Payment entity);
-    void Update(Payment entity);
-    void Delete(Payment entity);
+    public interface IPaymentRepository
+    {
+        Task<PagedResult<Payment>> GetPagedAsync(PaymentFiltersDto filters);
+        Task<Payment?> GetByIdAsync(int id);
+        Task<List<Payment>> GetByCustomerIdAsync(int customerId);
+        void Add(Payment entity);
+        void Update(Payment entity);
+        void Delete(Payment entity);
+    }
 }
