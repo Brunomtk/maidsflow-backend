@@ -64,27 +64,52 @@ namespace ControlApi.BackgroundJobs
             var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
 
             var nowUtc = DateTime.UtcNow;
-            var targetStartUtc = nowUtc.AddMinutes(30);
-            var targetEndUtc = targetStartUtc.AddMinutes(1); // janela de 1 minuto
+
+            // Janela de disparo do lembrete.
+            // Não usamos "igualdade" exata com +30min porque:
+            // - o loop roda em intervalos de 60s e pode driftar;
+            // - o servidor pode estar em UTC e os agendamentos são salvos em horário local.
+            // A idempotência (AppointmentReminderDispatches) garante que ampliar a janela não duplica envios.
+            var windowStartUtc = nowUtc.AddMinutes(28); // 30min - 2min
+            var windowEndUtc = nowUtc.AddMinutes(32);   // 30min + 2min
+            _logger.LogInformation(
+                "[Reminders] Tick nowUtc={NowUtc:o} windowStartUtc={Ws:o} windowEndUtc={We:o}",
+                nowUtc, windowStartUtc, windowEndUtc);
 
             // ---------------
             // 1) Não recorrentes
             // ---------------
-            var nowLocal = DateTime.Now;
+            // Como o sistema pode rodar em múltiplos fusos, buscamos candidatos numa janela ampla
+            // e depois convertemos cada Start para UTC com base no TimeZoneId do appointment (quando existir).
             var nonRecurringCandidates = await db.Appointments.AsNoTracking()
                 .Where(a => !a.IsRecurring
                             && a.Status == AppointmentStatus.Scheduled
-                            && a.Start >= nowLocal.AddMinutes(0)
-                            && a.Start <= nowLocal.AddMinutes(60))
+                            && a.Start >= nowUtc.AddHours(-24)
+                            && a.Start <= nowUtc.AddHours(24))
                 .ToListAsync(ct);
+
+            _logger.LogInformation("[Reminders] Non-recurring candidates={Count}", nonRecurringCandidates.Count);
 
             foreach (var a in nonRecurringCandidates)
             {
                 var tz = ResolveTimeZoneSafe(a.TimeZoneId);
-                var startUtc = LocalToUtc(a.Start, tz);
+                DateTime startUtc;
+                if (string.IsNullOrWhiteSpace(a.TimeZoneId))
+                {
+                    // Se não temos fuso, assumimos que Start já está em UTC
+                    startUtc = DateTime.SpecifyKind(a.Start, DateTimeKind.Utc);
+                }
+                else
+                {
+                    startUtc = LocalToUtc(a.Start, tz);
+                }
 
-                if (startUtc < targetStartUtc || startUtc >= targetEndUtc)
+                if (startUtc < windowStartUtc || startUtc >= windowEndUtc)
                     continue;
+
+                _logger.LogInformation(
+                    "[Reminders] Match non-recurring appointmentId={Id} startLocal={StartLocal:o} startUtc={StartUtc:o} tz={Tz}",
+                    a.Id, a.Start, startUtc, tz.Id);
 
                 await SendReminderForOccurrenceAsync(
                     db,
@@ -110,8 +135,8 @@ namespace ControlApi.BackgroundJobs
             foreach (var anchor in recurringAnchors)
             {
                 var tz = ResolveTimeZoneSafe(anchor.TimeZoneId);
-                var rangeStartLocal = TimeZoneInfo.ConvertTimeFromUtc(targetStartUtc, tz);
-                var rangeEndLocal = TimeZoneInfo.ConvertTimeFromUtc(targetEndUtc, tz);
+                var rangeStartLocal = TimeZoneInfo.ConvertTimeFromUtc(windowStartUtc, tz);
+                var rangeEndLocal = TimeZoneInfo.ConvertTimeFromUtc(windowEndUtc, tz);
 
                 // Expandimos uma janela um pouco maior para capturar pequenas derivações e overrides.
                 var expandStartLocal = rangeStartLocal.AddMinutes(-2);
@@ -157,7 +182,7 @@ namespace ControlApi.BackgroundJobs
 
                         var effectiveStartUtc = LocalToUtc(effectiveStart, tz);
 
-                        if (effectiveStartUtc < targetStartUtc || effectiveStartUtc >= targetEndUtc)
+                        if (effectiveStartUtc < windowStartUtc || effectiveStartUtc >= windowEndUtc)
                             continue;
 
                         await SendReminderForOccurrenceAsync(
@@ -175,7 +200,7 @@ namespace ControlApi.BackgroundJobs
 
                     // Sem exceção
                     var occStartUtc = LocalToUtc(occ.startLocal, tz);
-                    if (occStartUtc < targetStartUtc || occStartUtc >= targetEndUtc)
+                    if (occStartUtc < windowStartUtc || occStartUtc >= windowEndUtc)
                         continue;
 
                     await SendReminderForOccurrenceAsync(
@@ -191,7 +216,7 @@ namespace ControlApi.BackgroundJobs
             }
         }
 
-        private static async Task SendReminderForOccurrenceAsync(
+        private async Task SendReminderForOccurrenceAsync(
             DbContextClass db,
             INotificationService notificationService,
             Appointment appointmentAnchor,
@@ -202,7 +227,10 @@ namespace ControlApi.BackgroundJobs
             CancellationToken ct)
         {
             if (professionalIds == null || professionalIds.Count == 0)
+            {
+                _logger.LogDebug("[Reminders] Skip appointmentId={Id}: no professionalIds", appointmentAnchor.Id);
                 return;
+            }
 
             // Mapeia ProfessionalIds -> Users
             var proIds = professionalIds.Distinct().ToList();
@@ -211,7 +239,12 @@ namespace ControlApi.BackgroundJobs
                 .ToListAsync(ct);
 
             if (users.Count == 0)
+            {
+                _logger.LogWarning(
+                    "[Reminders] No users mapped for appointmentId={Id} seriesId={SeriesId} proIds=[{ProIds}]",
+                    appointmentAnchor.Id, seriesId, string.Join(",", proIds));
                 return;
+            }
 
             // Filtra usuários elegíveis (ativos)
             users = users
@@ -220,7 +253,12 @@ namespace ControlApi.BackgroundJobs
                 .ToList();
 
             if (users.Count == 0)
+            {
+                _logger.LogWarning(
+                    "[Reminders] No eligible professional users for appointmentId={Id} seriesId={SeriesId}",
+                    appointmentAnchor.Id, seriesId);
                 return;
+            }
 
             // Idempotência: remove os que já receberam
             var recipientIds = users.Select(u => u.Id).Distinct().ToList();
@@ -235,7 +273,12 @@ namespace ControlApi.BackgroundJobs
 
             var toSendUsers = users.Where(u => !already.Contains(u.Id)).ToList();
             if (toSendUsers.Count == 0)
+            {
+                _logger.LogDebug(
+                    "[Reminders] Already dispatched appointmentId={Id} seriesId={SeriesId} startUtc={StartUtc:o}",
+                    appointmentAnchor.Id, seriesId, occurrenceStartUtc);
                 return;
+            }
 
             // Cria logs de dispatch antes (idempotência via índice único)
             var dispatchRows = toSendUsers.Select(u => new AppointmentReminderDispatch
@@ -258,6 +301,14 @@ namespace ControlApi.BackgroundJobs
                 // Se houver corrida/duplicata por índice único, seguimos e deixamos a próxima rodada consolidar.
             }
 
+            _logger.LogInformation(
+                "[Reminders] Dispatching reminder appointmentId={Id} seriesId={SeriesId} startLocal={StartLocal:o} startUtc={StartUtc:o} recipients={Recipients}",
+                appointmentAnchor.Id,
+                seriesId,
+                occurrenceStartLocal,
+                occurrenceStartUtc,
+                string.Join(",", toSendUsers.Select(u => u.Id)));
+
             // Agrupa por idioma para gerar mensagens
             var ptUsers = toSendUsers.Where(IsPtBr).Select(u => u.Id).ToList();
             var enUsers = toSendUsers.Where(u => !IsPtBr(u)).Select(u => u.Id).ToList();
@@ -274,6 +325,10 @@ namespace ControlApi.BackgroundJobs
                     UserIds = ptUsers,
                     CompanyId = appointmentAnchor.CompanyId
                 });
+
+                _logger.LogInformation(
+                    "[Reminders] Created PT notifications appointmentId={Id} users=[{Users}]",
+                    appointmentAnchor.Id, string.Join(",", ptUsers));
             }
 
             if (enUsers.Count > 0)
@@ -288,6 +343,10 @@ namespace ControlApi.BackgroundJobs
                     UserIds = enUsers,
                     CompanyId = appointmentAnchor.CompanyId
                 });
+
+                _logger.LogInformation(
+                    "[Reminders] Created EN notifications appointmentId={Id} users=[{Users}]",
+                    appointmentAnchor.Id, string.Join(",", enUsers));
             }
         }
 
@@ -300,40 +359,31 @@ namespace ControlApi.BackgroundJobs
 
         private static string BuildMessagePt(Appointment a, DateTime startLocal)
         {
-            var time = startLocal.ToString("HH:mm");
+            _ = startLocal;
             var title = string.IsNullOrWhiteSpace(a.Title) ? "Seu agendamento" : a.Title;
 
             if (!string.IsNullOrWhiteSpace(a.Address))
-                return $"{title} começa às {time}. Endereço: {a.Address}.";
+                return $"{title}: começa em 30 minutos. Endereço: {a.Address}.";
 
-            return $"{title} começa às {time}.";
+            return $"{title}: começa em 30 minutos.";
         }
 
         private static string BuildMessageEn(Appointment a, DateTime startLocal)
         {
-            var time = startLocal.ToString("HH:mm");
+            _ = startLocal;
             var title = string.IsNullOrWhiteSpace(a.Title) ? "Your appointment" : a.Title;
 
             if (!string.IsNullOrWhiteSpace(a.Address))
-                return $"{title} starts at {time}. Address: {a.Address}.";
+                return $"{title}: starts in 30 minutes. Address: {a.Address}.";
 
-            return $"{title} starts at {time}.";
+            return $"{title}: starts in 30 minutes.";
         }
 
         private static TimeZoneInfo ResolveTimeZoneSafe(string? timeZoneId)
         {
-            // Default para o fuso do Brasil.
-            // Linux costuma usar IANA (America/Sao_Paulo). Windows usa IDs diferentes.
-            TimeZoneInfo fallback;
-            try { fallback = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo"); }
-            catch
-            {
-                // Windows fallback
-                fallback = TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time");
-            }
-
+            // Não fixamos em um fuso específico: se vier TimeZoneId válido, usamos; caso contrário, UTC.
             if (string.IsNullOrWhiteSpace(timeZoneId))
-                return fallback;
+                return TimeZoneInfo.Utc;
 
             try
             {
@@ -341,7 +391,7 @@ namespace ControlApi.BackgroundJobs
             }
             catch
             {
-                return fallback;
+                return TimeZoneInfo.Utc;
             }
         }
 

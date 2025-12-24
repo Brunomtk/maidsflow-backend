@@ -51,7 +51,7 @@ namespace ControlApi.BackgroundJobs
             {
                 try
                 {
-                    var tz = GetSaoPauloTimeZone();
+                    var tz = ResolveCleanupTimeZone();
                     var (runHour, runMinute) = GetRunTime();
                     var nextRunUtc = GetNextRunUtc(tz, runHour, runMinute);
 
@@ -152,12 +152,15 @@ namespace ControlApi.BackgroundJobs
             return (hour, minute);
         }
 
-        private static TimeZoneInfo GetSaoPauloTimeZone()
+        private TimeZoneInfo ResolveCleanupTimeZone()
         {
-            // Linux: "America/Sao_Paulo"
-            // Windows: "E. South America Standard Time"
-            try { return TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo"); }
-            catch { return TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time"); }
+            // Não fixamos em um fuso. Se quiser, configure AutoNotifications:Cleanup:TimeZoneId (IANA/Windows).
+            var tzId = _config.GetValue<string>("AutoNotifications:Cleanup:TimeZoneId");
+            if (string.IsNullOrWhiteSpace(tzId))
+                return TimeZoneInfo.Utc;
+
+            try { return TimeZoneInfo.FindSystemTimeZoneById(tzId); }
+            catch { return TimeZoneInfo.Utc; }
         }
 
         private static DateTimeOffset GetNextRunUtc(TimeZoneInfo tz, int localHour, int localMinute)
