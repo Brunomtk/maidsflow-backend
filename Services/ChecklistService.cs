@@ -6,6 +6,7 @@ using Core.Enums;
 using Core.Models;
 using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Services.Storage;
 
 namespace Services
 {
@@ -27,7 +28,13 @@ namespace Services
     public class ChecklistService : IChecklistService
     {
         private readonly Infrastructure.Repositories.IUnitOfWork _uow;
-        public ChecklistService(Infrastructure.Repositories.IUnitOfWork uow) => _uow = uow;
+        private readonly IS3StorageService _s3;
+
+        public ChecklistService(Infrastructure.Repositories.IUnitOfWork uow, IS3StorageService s3)
+        {
+            _uow = uow;
+            _s3 = s3;
+        }
 
         
         public async Task<Checklist?> CreateAsync(CreateChecklistDTO dto)
@@ -104,6 +111,13 @@ namespace Services
         {
             var photo = await _uow.ChecklistItemPhotos.GetByIdAsync(photoId);
             if (photo == null) return false;
+
+            // Best-effort cleanup on S3 when the stored value represents an S3 key/URL.
+            if (!string.IsNullOrWhiteSpace(photo.Url) && _s3.TryGetKeyFromStoredValue(photo.Url, out var key))
+            {
+                await _s3.DeleteIfExistsAsync(key);
+            }
+
             _uow.ChecklistItemPhotos.Delete(photo);
             return await _uow.SaveAsync() > 0;
         }

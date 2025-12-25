@@ -741,6 +741,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "ControlApi.Controllers.ChecklistsController",
+    "Method": "PresignChecklistItemPhoto",
+    "RelativePath": "api/Checklists/items/photos/presign",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "Core.DTO.Checklist.PresignChecklistItemPhotoDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "ControlApi.Controllers.CheckRecordController",
     "Method": "GetPaged",
     "RelativePath": "api/CheckRecord",

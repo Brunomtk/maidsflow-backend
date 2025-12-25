@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Infrastructure;
 using Services;
+using Services.Storage;
 
 namespace ControlApi.Controllers
 {
@@ -18,11 +19,13 @@ namespace ControlApi.Controllers
     {
         private readonly IChecklistService _service;
         private readonly DbContextClass _db;
+        private readonly IS3StorageService _s3;
 
-        public ChecklistsController(IChecklistService service, DbContextClass db)
+        public ChecklistsController(IChecklistService service, DbContextClass db, IS3StorageService s3)
         {
             _service = service;
             _db = db;
+            _s3 = s3;
         }
 
         [HttpPost]
@@ -55,25 +58,54 @@ namespace ControlApi.Controllers
         }
 
         [HttpPut("items")]
-public async Task<IActionResult> UpdateItems([FromBody] List<UpdateChecklistItemDTO> dtos)
-{
-    if (!ModelState.IsValid) return BadRequest(ModelState);
-    if (dtos == null || dtos.Count == 0) return BadRequest("Lista vazia.");
+        public async Task<IActionResult> UpdateItems([FromBody] List<UpdateChecklistItemDTO> dtos)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (dtos == null || dtos.Count == 0) return BadRequest("Lista vazia.");
 
-    var updated = 0;
-    foreach (var dto in dtos)
-    {
-        var ok = await _service.UpdateItemAsync(dto);
-        if (ok) updated++;
-    }
-    return updated > 0 ? Ok(new { updated }) : NotFound();
-}
-[HttpPost("items/photos")]
+            var updated = 0;
+            foreach (var dto in dtos)
+            {
+                var ok = await _service.UpdateItemAsync(dto);
+                if (ok) updated++;
+            }
+
+            return updated > 0 ? Ok(new { updated }) : NotFound();
+        }
+
+        [HttpPost("items/photos")]
         public async Task<IActionResult> AddPhotos([FromBody] AddChecklistItemPhotosDTO dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             var ok = await _service.AddPhotosAsync(dto);
             return ok ? Ok() : NotFound();
+        }
+
+        /// <summary>
+        /// Gera URL pré-assinada (PUT) para upload de foto de Checklist Item para S3.
+        /// O backend retorna a Key (que deve ser salva no campo Url da foto) e o UploadUrl.
+        /// </summary>
+        [HttpPost("items/photos/presign")]
+        public async Task<IActionResult> PresignChecklistItemPhoto([FromBody] PresignChecklistItemPhotoDTO dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var item = await _db.ChecklistItems.AsNoTracking()
+                .Include(i => i.Checklist)
+                .FirstOrDefaultAsync(i => i.Id == dto.ItemId);
+
+            if (item == null || item.Checklist == null)
+                return NotFound("Checklist item não encontrado.");
+
+            var contentType = string.IsNullOrWhiteSpace(dto.ContentType) ? "application/octet-stream" : dto.ContentType;
+            var presigned = _s3.CreateChecklistPhotoUploadUrl(item.ChecklistId, item.Id, dto.FileName, contentType!);
+
+            return Ok(new PresignChecklistItemPhotoResponseDTO
+            {
+                Key = presigned.Key,
+                UploadUrl = presigned.UploadUrl,
+                ExpiresAtUnixSeconds = presigned.ExpiresAt.ToUnixTimeSeconds()
+            });
         }
 
         [HttpDelete("items/photos/{photoId:int}")]
@@ -162,7 +194,9 @@ public async Task<IActionResult> UpdateItems([FromBody] List<UpdateChecklistItem
                 Photos = i.Photos.Select(p => new ChecklistDetailsPhotoDTO
                 {
                     Id = p.Id,
-                    Url = p.Url,
+                    Url = _s3.TryGetKeyFromStoredValue(p.Url, out var key)
+                        ? _s3.CreateDownloadUrl(key)
+                        : p.Url,
                     Descricao = p.Descricao
                 }).ToList()
             }).ToList();

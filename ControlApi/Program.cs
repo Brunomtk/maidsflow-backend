@@ -10,6 +10,8 @@ using Serilog;
 using Serilog.Events;
 using Serilog.Exceptions;
 using Services;
+using Services.Storage;
+using Core.Options;
 using System.Text.Json.Serialization;
 using System.Net;
 using System.Text;
@@ -50,6 +52,12 @@ namespace ControlApi
             builder.Services.AddScoped<INotificationService, NotificationService>();
             builder.Services.AddScoped<IPushSubscriptionService, PushSubscriptionService>();
             builder.Services.AddScoped<IPushNotificationSender, WebPushNotificationSender>();
+
+            // -----------------------------
+            // S3 (Checklist Photos)
+            // -----------------------------
+            builder.Services.Configure<S3Options>(builder.Configuration.GetSection("S3"));
+            builder.Services.AddSingleton<IS3StorageService, S3StorageService>();
 
             // -----------------------------
             // Background Jobs

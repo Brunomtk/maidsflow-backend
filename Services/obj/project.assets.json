@@ -2,6 +2,35 @@
   "version": 3,
   "targets": {
     "net8.0": {
+      "AWSSDK.Core/3.7.400": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/AWSSDK.Core.dll": {
+            "related": ".pdb;.xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/AWSSDK.Core.dll": {
+            "related": ".pdb;.xml"
+          }
+        }
+      },
+      "AWSSDK.S3/3.7.400": {
+        "type": "package",
+        "dependencies": {
+          "AWSSDK.Core": "[3.7.400, 4.0.0)"
+        },
+        "compile": {
+          "lib/net8.0/AWSSDK.S3.dll": {
+            "related": ".pdb;.xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/AWSSDK.S3.dll": {
+            "related": ".pdb;.xml"
+          }
+        }
+      },
       "bblanchon.PDFium.Linux/128.0.6569": {
         "type": "package",
         "compile": {
@@ -3415,6 +3444,67 @@
     }
   },
   "libraries": {
+    "AWSSDK.Core/3.7.400": {
+      "sha512": "qw+WGhxcYtZ6wc1uibOu9XXLsfUpQ1r+gWa0euFnm1e9HowQbcwvKvOqQzwBNqIBO7S5IJ26T9kV/eFiwvZAkQ==",
+      "type": "package",
+      "path": "awssdk.core/3.7.400",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "awssdk.core.3.7.400.nupkg.sha512",
+        "awssdk.core.nuspec",
+        "images/AWSLogo.png",
+        "lib/net35/AWSSDK.Core.dll",
+        "lib/net35/AWSSDK.Core.pdb",
+        "lib/net35/AWSSDK.Core.xml",
+        "lib/net45/AWSSDK.Core.dll",
+        "lib/net45/AWSSDK.Core.pdb",
+        "lib/net45/AWSSDK.Core.xml",
+        "lib/net8.0/AWSSDK.Core.dll",
+        "lib/net8.0/AWSSDK.Core.pdb",
+        "lib/net8.0/AWSSDK.Core.xml",
+        "lib/netcoreapp3.1/AWSSDK.Core.dll",
+        "lib/netcoreapp3.1/AWSSDK.Core.pdb",
+        "lib/netcoreapp3.1/AWSSDK.Core.xml",
+        "lib/netstandard2.0/AWSSDK.Core.dll",
+        "lib/netstandard2.0/AWSSDK.Core.pdb",
+        "lib/netstandard2.0/AWSSDK.Core.xml",
+        "tools/account-management.ps1"
+      ]
+    },
+    "AWSSDK.S3/3.7.400": {
+      "sha512": "OWCTOIDLd9tisJBigWlws3zXXU8IPc6MGracx0zojB4z0ki7ruL77ZWbj5j9j3zSVvnnLe4uOL/4w2lco/9kBw==",
+      "type": "package",
+      "path": "awssdk.s3/3.7.400",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "analyzers/dotnet/cs/AWSSDK.S3.CodeAnalysis.dll",
+        "analyzers/dotnet/cs/SharedAnalysisCode.dll",
+        "awssdk.s3.3.7.400.nupkg.sha512",
+        "awssdk.s3.nuspec",
+        "images/AWSLogo.png",
+        "lib/net35/AWSSDK.S3.dll",
+        "lib/net35/AWSSDK.S3.pdb",
+        "lib/net35/AWSSDK.S3.xml",
+        "lib/net45/AWSSDK.S3.dll",
+        "lib/net45/AWSSDK.S3.pdb",
+        "lib/net45/AWSSDK.S3.xml",
+        "lib/net8.0/AWSSDK.S3.dll",
+        "lib/net8.0/AWSSDK.S3.pdb",
+        "lib/net8.0/AWSSDK.S3.xml",
+        "lib/netcoreapp3.1/AWSSDK.S3.dll",
+        "lib/netcoreapp3.1/AWSSDK.S3.pdb",
+        "lib/netcoreapp3.1/AWSSDK.S3.xml",
+        "lib/netstandard2.0/AWSSDK.S3.dll",
+        "lib/netstandard2.0/AWSSDK.S3.pdb",
+        "lib/netstandard2.0/AWSSDK.S3.xml",
+        "tools/install.ps1",
+        "tools/uninstall.ps1"
+      ]
+    },
     "bblanchon.PDFium.Linux/128.0.6569": {
       "sha512": "qJttlj23YjBoyn8jgmBD7/8tFwWjRsLJf02gzKob7CjIWQdY3yH68T1iuL4Z9knxFdwnVVeNZxjO90UkKxIqKQ==",
       "type": "package",
@@ -9955,6 +10045,7 @@
   },
   "projectFileDependencyGroups": {
     "net8.0": [
+      "AWSSDK.S3 >= 3.7.310.9",
       "BouncyCastle >= 1.8.9",
       "ClosedXML >= 0.102.2",
       "Core >= 1.0.0",
@@ -9990,11 +10081,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_review_token_v1_compilefix\\maidsflow-backend_recurrence_exceptions_scopes_fix\\Services\\Services.csproj",
+      "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_checklist_s3_v1\\maidsflow-backend_recurrence_exceptions_scopes_fix\\Services\\Services.csproj",
       "projectName": "Services",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_review_token_v1_compilefix\\maidsflow-backend_recurrence_exceptions_scopes_fix\\Services\\Services.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_checklist_s3_v1\\maidsflow-backend_recurrence_exceptions_scopes_fix\\Services\\Services.csproj",
       "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-      "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_review_token_v1_compilefix\\maidsflow-backend_recurrence_exceptions_scopes_fix\\Services\\obj\\",
+      "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_checklist_s3_v1\\maidsflow-backend_recurrence_exceptions_scopes_fix\\Services\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -10015,11 +10106,11 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_review_token_v1_compilefix\\maidsflow-backend_recurrence_exceptions_scopes_fix\\Core\\Core.csproj": {
-              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_review_token_v1_compilefix\\maidsflow-backend_recurrence_exceptions_scopes_fix\\Core\\Core.csproj"
+            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_checklist_s3_v1\\maidsflow-backend_recurrence_exceptions_scopes_fix\\Core\\Core.csproj": {
+              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_checklist_s3_v1\\maidsflow-backend_recurrence_exceptions_scopes_fix\\Core\\Core.csproj"
             },
-            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_review_token_v1_compilefix\\maidsflow-backend_recurrence_exceptions_scopes_fix\\Infrastructure\\Infrastructure.csproj": {
-              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_review_token_v1_compilefix\\maidsflow-backend_recurrence_exceptions_scopes_fix\\Infrastructure\\Infrastructure.csproj"
+            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_checklist_s3_v1\\maidsflow-backend_recurrence_exceptions_scopes_fix\\Infrastructure\\Infrastructure.csproj": {
+              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_checklist_s3_v1\\maidsflow-backend_recurrence_exceptions_scopes_fix\\Infrastructure\\Infrastructure.csproj"
             }
           }
         }
@@ -10040,6 +10131,10 @@
       "net8.0": {
         "targetAlias": "net8.0",
         "dependencies": {
+          "AWSSDK.S3": {
+            "target": "Package",
+            "version": "[3.7.310.9, )"
+          },
           "BouncyCastle": {
             "target": "Package",
             "version": "[1.8.9, )"
@@ -10160,6 +10255,16 @@
     }
   },
   "logs": [
+    {
+      "code": "NU1603",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Services depende de AWSSDK.S3 (>= 3.7.310.9) mas AWSSDK.S3 3.7.310.9 não foi encontrado. AWSSDK.S3 3.7.400 foi resolvido.",
+      "libraryId": "AWSSDK.S3",
+      "targetGraphs": [
+        "net8.0"
+      ]
+    },
     {
       "code": "NU1902",
       "level": "Warning",

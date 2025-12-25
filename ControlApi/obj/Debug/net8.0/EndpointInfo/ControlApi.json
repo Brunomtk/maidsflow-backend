@@ -1039,6 +1039,37 @@
         }
       }
     },
+    "/api/Checklists/items/photos/presign": {
+      "post": {
+        "tags": [
+          "Checklists"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresignChecklistItemPhotoDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresignChecklistItemPhotoDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresignChecklistItemPhotoDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/Checklists/items/photos/{photoId}": {
       "delete": {
         "tags": [
@@ -7067,6 +7098,28 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "PresignChecklistItemPhotoDTO": {
+        "required": [
+          "fileName",
+          "itemId"
+        ],
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fileName": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "ProcessPaymentStatusDto": {
         "type": "object",
