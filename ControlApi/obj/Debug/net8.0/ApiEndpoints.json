@@ -2680,6 +2680,22 @@
   },
   {
     "ContainingType": "ControlApi.Controllers.ReviewsController",
+    "Method": "Create",
+    "RelativePath": "api/Reviews",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Core.DTO.Review.CreateReviewDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.ReviewsController",
     "Method": "GetById",
     "RelativePath": "api/Reviews/{id}",
     "HttpMethod": "GET",
@@ -2754,15 +2770,15 @@
   },
   {
     "ContainingType": "ControlApi.Controllers.ReviewsController",
-    "Method": "Create",
-    "RelativePath": "api/Reviews/create",
+    "Method": "GetOrCreateLinkForAppointment",
+    "RelativePath": "api/Reviews/appointment/{appointmentId}/link",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "request",
-        "Type": "Core.DTO.Review.CreateReviewDTO",
+        "Name": "appointmentId",
+        "Type": "System.Int32",
         "IsRequired": true
       }
     ],
@@ -2793,27 +2809,27 @@
       },
       {
         "Name": "CustomerId",
-        "Type": "System.String",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
         "IsRequired": false
       },
       {
         "Name": "ProfessionalId",
-        "Type": "System.String",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
         "IsRequired": false
       },
       {
         "Name": "TeamId",
-        "Type": "System.String",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
         "IsRequired": false
       },
       {
         "Name": "CompanyId",
-        "Type": "System.String",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
         "IsRequired": false
       },
       {
         "Name": "AppointmentId",
-        "Type": "System.String",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
         "IsRequired": false
       },
       {
@@ -2825,6 +2841,43 @@
         "Name": "PageSize",
         "Type": "System.Int32",
         "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.ReviewsController",
+    "Method": "GetPublicInfo",
+    "RelativePath": "api/Reviews/public/{token}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "token",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.ReviewsController",
+    "Method": "SubmitPublic",
+    "RelativePath": "api/Reviews/public/{token}/submit",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "token",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "Core.DTO.Review.PublicReviewSubmitDTO",
+        "IsRequired": true
       }
     ],
     "ReturnTypes": []

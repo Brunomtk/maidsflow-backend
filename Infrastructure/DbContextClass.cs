@@ -442,6 +442,9 @@ namespace Infrastructure
                 entity.Property(r => r.CompanyId).IsRequired();
                 entity.Property(r => r.CompanyName);
                 entity.Property(r => r.AppointmentId).IsRequired();
+                entity.Property(r => r.PublicToken);
+                entity.HasIndex(r => r.PublicToken).IsUnique();
+                entity.HasIndex(r => r.AppointmentId);
                 entity.Property(r => r.Rating).IsRequired();
                 entity.Property(r => r.Comment);
                 entity.Property(r => r.Date).IsRequired();
@@ -449,6 +452,7 @@ namespace Infrastructure
                 entity.Property(r => r.Status).HasConversion<int>().IsRequired();
                 entity.Property(r => r.Response);
                 entity.Property(r => r.ResponseDate);
+                entity.Property(r => r.SubmittedAt);
                 entity.Property(r => r.CreatedDate).HasDefaultValueSql("now()");
                 entity.Property(r => r.UpdatedDate).HasDefaultValueSql("now()");
             });

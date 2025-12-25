@@ -6,11 +6,11 @@
         public string? Rating { get; set; }      // e.g. "1", "2", ..., "5", or "all"
         public string? SearchQuery { get; set; }
 
-        public string? CustomerId { get; set; }
-        public string? ProfessionalId { get; set; }
-        public string? TeamId { get; set; }
-        public string? CompanyId { get; set; }
-        public string? AppointmentId { get; set; }
+        public int? CustomerId { get; set; }
+        public int? ProfessionalId { get; set; }
+        public int? TeamId { get; set; }
+        public int? CompanyId { get; set; }
+        public int? AppointmentId { get; set; }
 
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 10;

@@ -6,19 +6,31 @@ namespace Core.Models
 {
     public class Review : BaseModel
     {
-        public string CustomerId { get; set; } = string.Empty;
+        // IDs are persisted as integers across the system (Company/Customer/Professional/Team/Appointment).
+        public int CustomerId { get; set; }
         public string? CustomerName { get; set; }
 
-        public string? ProfessionalId { get; set; }
+        public int? ProfessionalId { get; set; }
         public string? ProfessionalName { get; set; }
 
-        public string? TeamId { get; set; }
+        public int? TeamId { get; set; }
         public string? TeamName { get; set; }
 
-        public string CompanyId { get; set; } = string.Empty;
+        public int CompanyId { get; set; }
         public string? CompanyName { get; set; }
 
-        public string AppointmentId { get; set; } = string.Empty;
+        public int AppointmentId { get; set; }
+
+        /// <summary>
+        /// Public identifier used to generate a shareable review link (no authentication required).
+        /// It is generated server-side and must be treated as a secret.
+        /// </summary>
+        public Guid? PublicToken { get; set; }
+
+        /// <summary>
+        /// When the customer submitted the review through the public link.
+        /// </summary>
+        public DateTime? SubmittedAt { get; set; }
 
         public int Rating { get; set; }
         public string? Comment { get; set; }

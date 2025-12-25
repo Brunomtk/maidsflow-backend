@@ -5,19 +5,25 @@ namespace Core.DTO.Review
 {
     public class CreateReviewDTO
     {
-        public string CustomerId { get; set; } = string.Empty;
+        public int CustomerId { get; set; }
         public string? CustomerName { get; set; }
 
-        public string? ProfessionalId { get; set; }
+        public int? ProfessionalId { get; set; }
         public string? ProfessionalName { get; set; }
 
-        public string? TeamId { get; set; }
+        public int? TeamId { get; set; }
         public string? TeamName { get; set; }
 
-        public string CompanyId { get; set; } = string.Empty;
+        public int CompanyId { get; set; }
         public string? CompanyName { get; set; }
 
-        public string AppointmentId { get; set; } = string.Empty;
+        public int AppointmentId { get; set; }
+
+        /// <summary>
+        /// Public identifier used to generate a shareable review link.
+        /// If omitted, the backend will generate one.
+        /// </summary>
+        public Guid? PublicToken { get; set; }
 
         public int Rating { get; set; }
         public string? Comment { get; set; }

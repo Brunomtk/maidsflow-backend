@@ -4336,7 +4336,7 @@
         }
       }
     },
-    "/api/Reviews/create": {
+    "/api/Reviews": {
       "post": {
         "tags": [
           "Reviews"
@@ -4356,6 +4356,94 @@
             "application/*+json": {
               "schema": {
                 "$ref": "#/components/schemas/CreateReviewDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Reviews/appointment/{appointmentId}/link": {
+      "post": {
+        "tags": [
+          "Reviews"
+        ],
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Reviews/public/{token}": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Reviews/public/{token}/submit": {
+      "post": {
+        "tags": [
+          "Reviews"
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicReviewSubmitDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicReviewSubmitDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicReviewSubmitDTO"
               }
             }
           }
@@ -4482,35 +4570,40 @@
             "name": "CustomerId",
             "in": "query",
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int32"
             }
           },
           {
             "name": "ProfessionalId",
             "in": "query",
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int32"
             }
           },
           {
             "name": "TeamId",
             "in": "query",
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int32"
             }
           },
           {
             "name": "CompanyId",
             "in": "query",
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int32"
             }
           },
           {
             "name": "AppointmentId",
             "in": "query",
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int32"
             }
           },
           {
@@ -6310,15 +6403,16 @@
         "type": "object",
         "properties": {
           "customerId": {
-            "type": "string",
-            "nullable": true
+            "type": "integer",
+            "format": "int32"
           },
           "customerName": {
             "type": "string",
             "nullable": true
           },
           "professionalId": {
-            "type": "string",
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           },
           "professionalName": {
@@ -6326,7 +6420,8 @@
             "nullable": true
           },
           "teamId": {
-            "type": "string",
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           },
           "teamName": {
@@ -6334,15 +6429,20 @@
             "nullable": true
           },
           "companyId": {
-            "type": "string",
-            "nullable": true
+            "type": "integer",
+            "format": "int32"
           },
           "companyName": {
             "type": "string",
             "nullable": true
           },
           "appointmentId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "publicToken": {
             "type": "string",
+            "format": "uuid",
             "nullable": true
           },
           "rating": {
@@ -7148,6 +7248,20 @@
             "items": {
               "$ref": "#/components/schemas/ProfessionalDTO"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublicReviewSubmitDTO": {
+        "type": "object",
+        "properties": {
+          "rating": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "comment": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -8126,7 +8240,8 @@
         "type": "object",
         "properties": {
           "customerId": {
-            "type": "string",
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           },
           "customerName": {
@@ -8134,7 +8249,8 @@
             "nullable": true
           },
           "professionalId": {
-            "type": "string",
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           },
           "professionalName": {
@@ -8142,7 +8258,8 @@
             "nullable": true
           },
           "teamId": {
-            "type": "string",
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           },
           "teamName": {
@@ -8150,7 +8267,8 @@
             "nullable": true
           },
           "companyId": {
-            "type": "string",
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           },
           "companyName": {
@@ -8158,7 +8276,13 @@
             "nullable": true
           },
           "appointmentId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "publicToken": {
             "type": "string",
+            "format": "uuid",
             "nullable": true
           },
           "rating": {

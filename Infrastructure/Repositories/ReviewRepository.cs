@@ -22,6 +22,18 @@ namespace Infrastructure.Repositories
                 .FirstOrDefaultAsync(r => r.Id == id);
         }
 
+        public async Task<Review?> GetByPublicTokenAsync(Guid token)
+        {
+            return await _context.Reviews
+                .FirstOrDefaultAsync(r => r.PublicToken == token);
+        }
+
+        public async Task<Review?> GetByAppointmentIdAsync(int appointmentId)
+        {
+            return await _context.Reviews
+                .FirstOrDefaultAsync(r => r.AppointmentId == appointmentId);
+        }
+
         public async Task<PagedResult<Review>> GetPagedAsync(ReviewFiltersDTO filters)
         {
             var q = _context.Reviews.AsQueryable();
@@ -54,20 +66,20 @@ namespace Infrastructure.Repositories
             }
 
             // Filtros por IDs
-            if (!string.IsNullOrWhiteSpace(filters.CustomerId))
-                q = q.Where(x => x.CustomerId == filters.CustomerId);
+            if (filters.CustomerId.HasValue)
+                q = q.Where(x => x.CustomerId == filters.CustomerId.Value);
 
-            if (!string.IsNullOrWhiteSpace(filters.ProfessionalId))
-                q = q.Where(x => x.ProfessionalId == filters.ProfessionalId);
+            if (filters.ProfessionalId.HasValue)
+                q = q.Where(x => x.ProfessionalId == filters.ProfessionalId.Value);
 
-            if (!string.IsNullOrWhiteSpace(filters.TeamId))
-                q = q.Where(x => x.TeamId == filters.TeamId);
+            if (filters.TeamId.HasValue)
+                q = q.Where(x => x.TeamId == filters.TeamId.Value);
 
-            if (!string.IsNullOrWhiteSpace(filters.CompanyId))
-                q = q.Where(x => x.CompanyId == filters.CompanyId);
+            if (filters.CompanyId.HasValue)
+                q = q.Where(x => x.CompanyId == filters.CompanyId.Value);
 
-            if (!string.IsNullOrWhiteSpace(filters.AppointmentId))
-                q = q.Where(x => x.AppointmentId == filters.AppointmentId);
+            if (filters.AppointmentId.HasValue)
+                q = q.Where(x => x.AppointmentId == filters.AppointmentId.Value);
 
             // Ordenação e paginação
             return await q
@@ -79,6 +91,8 @@ namespace Infrastructure.Repositories
     public interface IReviewRepository : IGenericRepository<Review>
     {
         Task<Review?> GetByIdAsync(int id);
+        Task<Review?> GetByPublicTokenAsync(Guid token);
+        Task<Review?> GetByAppointmentIdAsync(int appointmentId);
         Task<PagedResult<Review>> GetPagedAsync(ReviewFiltersDTO filters);
     }
 }
