@@ -5,6 +5,7 @@ using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
+using Amazon.S3.Util;
 using Core.Options;
 using Microsoft.Extensions.Options;
 
@@ -19,12 +20,14 @@ public class S3StorageService : IS3StorageService
     {
         _opt = opt.Value ?? new S3Options();
 
+        AWSConfigsS3.UseSignatureVersion4 = true;
+
         // Force Signature V4 (modern S3). Signature V2 often results in 403 for presigned PUT in modern accounts/buckets.
-var cfg = new AmazonS3Config
-{
-    RegionEndpoint = RegionEndpoint.GetBySystemName(_opt.Region ?? "us-east-1"),
-    SignatureVersion = "4"
-};
+        var cfg = new AmazonS3Config
+        {
+            RegionEndpoint = RegionEndpoint.GetBySystemName(_opt.Region ?? "us-east-1"),
+            SignatureVersion = "4"
+        };
 
         // Prefer IAM role / environment variables. Explicit creds are optional.
         if (!string.IsNullOrWhiteSpace(_opt.AccessKeyId) && !string.IsNullOrWhiteSpace(_opt.SecretAccessKey))
@@ -58,7 +61,7 @@ var cfg = new AmazonS3Config
     Expires = expiresAt.UtcDateTime
     // NOTE: Do NOT set ContentType here. Browsers may send a Content-Type that doesn't match exactly,
     // which breaks legacy SigV2 presigned URLs and can still be fragile. With SigV4, we can keep this flexible.
-};
+        };
 
         var url = _s3.GetPreSignedURL(req);
         return new PresignedUploadResult(key, url, expiresAt);
