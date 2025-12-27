@@ -29,9 +29,6 @@ public class UserAvatarsController : ControllerBase
     [ProducesResponseType(typeof(PresignUserAvatarResponse), 200)]
     public IActionResult Presign([FromRoute] int userId, [FromBody] PresignUserAvatarRequest req)
     {
-        if (!IsSelfOrAdmin(userId))
-            return Forbid();
-
         var fileName = string.IsNullOrWhiteSpace(req.FileName) ? "avatar" : req.FileName;
         var contentType = string.IsNullOrWhiteSpace(req.ContentType) ? "application/octet-stream" : req.ContentType;
 
@@ -53,11 +50,7 @@ public class UserAvatarsController : ControllerBase
     [HttpPut("confirm")]
     [ProducesResponseType(typeof(UserAvatarResponse), 200)]
     public async Task<IActionResult> Confirm([FromRoute] int userId, [FromBody] UpdateUserAvatarRequest req)
-    {
-        if (!IsSelfOrAdmin(userId))
-            return Forbid();
-
-        var user = await _uow.Users.GetById(userId);
+    {        var user = await _uow.Users.GetById(userId);
         if (user == null)
             return NotFound(new { message = "User not found" });
 
@@ -92,9 +85,6 @@ public class UserAvatarsController : ControllerBase
     [ProducesResponseType(typeof(UserAvatarResponse), 200)]
     public async Task<IActionResult> Get([FromRoute] int userId)
     {
-        if (!IsSelfOrAdmin(userId))
-            return Forbid();
-
         var user = await _uow.Users.GetById(userId);
         if (user == null)
             return NotFound(new { message = "User not found" });
@@ -115,9 +105,6 @@ public class UserAvatarsController : ControllerBase
     [ProducesResponseType(typeof(UserAvatarResponse), 200)]
     public async Task<IActionResult> Delete([FromRoute] int userId)
     {
-        if (!IsSelfOrAdmin(userId))
-            return Forbid();
-
         var user = await _uow.Users.GetById(userId);
         if (user == null)
             return NotFound(new { message = "User not found" });

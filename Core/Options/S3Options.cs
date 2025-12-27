@@ -17,6 +17,7 @@ public class S3Options
     // Optional explicit credentials. Prefer environment variables / IAM role.
     public string? AccessKeyId { get; set; }
     public string? SecretAccessKey { get; set; }
+    public string? SessionToken { get; set; }
 
     public int UploadUrlExpiresMinutes { get; set; } = 10;
     public int DownloadUrlExpiresMinutes { get; set; } = 60;

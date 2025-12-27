@@ -20,6 +20,24 @@ public class S3StorageService : IS3StorageService
     {
         _opt = opt.Value ?? new S3Options();
 
+        // Support standard AWS env vars too (AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY/AWS_REGION)
+        // This avoids the SDK trying to fetch EC2 Instance Metadata credentials on non-EC2 servers.
+        var envAccessKey = Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID")
+                           ?? Environment.GetEnvironmentVariable("AWS_ACCESS_KEY");
+        var envSecretKey = Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY");
+        var envSessionToken = Environment.GetEnvironmentVariable("AWS_SESSION_TOKEN");
+        var envRegion = Environment.GetEnvironmentVariable("AWS_REGION")
+                        ?? Environment.GetEnvironmentVariable("AWS_DEFAULT_REGION");
+
+        if (string.IsNullOrWhiteSpace(_opt.AccessKeyId) && !string.IsNullOrWhiteSpace(envAccessKey))
+            _opt.AccessKeyId = envAccessKey;
+        if (string.IsNullOrWhiteSpace(_opt.SecretAccessKey) && !string.IsNullOrWhiteSpace(envSecretKey))
+            _opt.SecretAccessKey = envSecretKey;
+        if (string.IsNullOrWhiteSpace(_opt.SessionToken) && !string.IsNullOrWhiteSpace(envSessionToken))
+            _opt.SessionToken = envSessionToken;
+        if (string.IsNullOrWhiteSpace(_opt.Region) && !string.IsNullOrWhiteSpace(envRegion))
+            _opt.Region = envRegion;
+
         // Force Signature V4 (modern S3). Signature V2 commonly results in 403 for presigned PUT in modern accounts/buckets.
         AWSConfigsS3.UseSignatureVersion4 = true;
 
@@ -32,7 +50,12 @@ public class S3StorageService : IS3StorageService
         // Prefer IAM role / environment variables. Explicit creds are optional.
         if (!string.IsNullOrWhiteSpace(_opt.AccessKeyId) && !string.IsNullOrWhiteSpace(_opt.SecretAccessKey))
         {
-            var creds = new BasicAWSCredentials(_opt.AccessKeyId, _opt.SecretAccessKey);
+            AWSCredentials creds;
+            if (!string.IsNullOrWhiteSpace(_opt.SessionToken))
+                creds = new SessionAWSCredentials(_opt.AccessKeyId, _opt.SecretAccessKey, _opt.SessionToken);
+            else
+                creds = new BasicAWSCredentials(_opt.AccessKeyId, _opt.SecretAccessKey);
+
             _s3 = new AmazonS3Client(creds, cfg);
         }
         else
@@ -133,7 +156,16 @@ public class S3StorageService : IS3StorageService
             Expires = expiresAt.UtcDateTime
         };
 
-        return _s3.GetPreSignedURL(req);
+        try
+        {
+            return _s3.GetPreSignedURL(req);
+        }
+        catch
+        {
+            // Em ambientes locais/sem credenciais AWS configuradas, o SDK tenta usar IMDS (EC2) e falha.
+            // Para não derrubar a API (e ficar consistente com Company/Checklist), devolvemos a key.
+            return key;
+        }
     }
 
     public bool TryGetKeyFromStoredValue(string storedValue, out string key)
