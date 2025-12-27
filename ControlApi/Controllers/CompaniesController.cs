@@ -1,75 +1,68 @@
-﻿using Microsoft.AspNetCore.Mvc;
 using Core.DTO.Company;
 using Core.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Services;
-using Core.Enums;
+using Services.Storage;
 using System.Linq;
+using System.Threading.Tasks;
 
-namespace Api.Controllers
+namespace ControlApi.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
-    public class CompaniesController : ControllerBase // 🔥 nome plural aqui
+    public class CompaniesController : ControllerBase
     {
         private readonly ICompanyService _companyService;
+        private readonly IS3StorageService _s3;
 
-        public CompaniesController(ICompanyService companyService)
+        public CompaniesController(ICompanyService companyService, IS3StorageService s3)
         {
             _companyService = companyService;
+            _s3 = s3;
         }
 
+        private CompanyDTO ToDto(Company c)
+        {
+            return new CompanyDTO
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Cnpj = c.Cnpj,
+                Responsible = c.Responsible,
+                Email = c.Email,
+                Phone = c.Phone,
+                PlanId = c.PlanId,
+                PlanName = c.Plan?.Name,
+                AvatarKey = c.AvatarKey,
+                AvatarUrl = string.IsNullOrWhiteSpace(c.AvatarKey) ? null : _s3.CreateDownloadUrl(c.AvatarKey),
+                Status = c.Status,
+                CreatedDate = c.CreatedDate,
+                UpdatedDate = c.UpdatedDate
+            };
+        }
+
+        // GET api/Companies
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAllCompanies()
         {
             var companies = await _companyService.GetAllCompanies();
-            return Ok(companies);
+            return Ok(companies.Select(ToDto));
         }
 
-        [HttpGet("paged")]
-        public async Task<IActionResult> GetPaged([FromQuery] CompanyFiltersDTO filters)
-        {
-            var paged = await _companyService.GetCompaniesPagedFilteredAsync(filters);
-
-            var result = new CompanyPagedDTO
-            {
-                PageCount = paged.PageCount,
-                Result = paged.Results.Select(c => new CompanyDTO
-                {
-                    Id = c.Id,
-                    Name = c.Name,
-                    Cnpj = c.Cnpj,
-                    Responsible = c.Responsible,
-                    Email = c.Email,
-                    Phone = c.Phone,
-                    PlanId = c.PlanId,
-                    PlanName = c.Plan?.Name,
-                    Status = c.Status,
-                    CreatedDate = c.CreatedDate,
-                    UpdatedDate = c.UpdatedDate
-                }).ToList()
-            };
-
-            return Ok(result);
-        }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        // GET api/Companies/{id}
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetCompanyById(int id)
         {
             var company = await _companyService.GetCompanyById(id);
-            if (company == null) return NotFound("Company not found.");
-            return Ok(company);
+            if (company == null) return NotFound();
+            return Ok(ToDto(company));
         }
 
-        [HttpGet("{companyId}/plan-id")]
-        public async Task<IActionResult> GetPlanIdByCompanyId(int companyId)
-        {
-            var company = await _companyService.GetCompanyById(companyId);
-            if (company == null) return NotFound("Company not found.");
-            return Ok(company.PlanId);
-        }
-
+        // POST api/Companies
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateCompanyRequest request)
+        public async Task<IActionResult> CreateCompany([FromBody] CreateCompanyRequest request)
         {
             var company = new Company
             {
@@ -82,22 +75,51 @@ namespace Api.Controllers
                 Status = request.Status
             };
 
-            var created = await _companyService.CreateCompany(company);
-            return created ? Ok("Company created successfully.") : BadRequest("Error creating company.");
+            var ok = await _companyService.CreateCompany(company);
+            if (!ok) return BadRequest("Unable to create company.");
+
+            // Recarrega para trazer navegações (Plan) e garantir DTO completo
+            var created = await _companyService.GetCompanyById(company.Id) ?? company;
+
+            return CreatedAtAction(nameof(GetCompanyById), new { id = created.Id }, ToDto(created));
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] CreateCompanyRequest request)
+        // PUT api/Companies/{id}
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> UpdateCompany(int id, [FromBody] CreateCompanyRequest request)
         {
-            var updated = await _companyService.UpdateCompany(request, id);
-            return updated ? Ok("Company updated successfully.") : NotFound("Company not found.");
+            var ok = await _companyService.UpdateCompany(request, id);
+            if (!ok) return NotFound();
+
+            var updated = await _companyService.GetCompanyById(id);
+            if (updated == null) return NotFound();
+
+            return Ok(ToDto(updated));
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        // DELETE api/Companies/{id}
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> DeleteCompany(int id)
         {
-            var deleted = await _companyService.DeleteCompany(id);
-            return deleted ? Ok("Company deleted successfully.") : NotFound("Company not found.");
+            var ok = await _companyService.DeleteCompany(id);
+            if (!ok) return NotFound();
+            return NoContent();
+        }
+
+        // GET api/Companies/paged?Page=1&PageSize=10&Name=...&PlanId=...&Status=...
+        [HttpGet("paged")]
+        public async Task<IActionResult> GetCompaniesPaged([FromQuery] CompanyFiltersDTO filters)
+        {
+            var result = await _companyService.GetCompaniesPagedFilteredAsync(filters);
+
+            return Ok(new
+            {
+                items = result.Results.Select(ToDto),
+                totalCount = result.TotalItems,
+                page = result.CurrentPage,
+                pageSize = result.PageSize,
+                pageCount = result.PageCount
+            });
         }
     }
 }

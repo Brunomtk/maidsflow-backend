@@ -1,13 +1,22 @@
-using System;
+using System.Threading.Tasks;
 
-namespace Services.Storage;
-
-public record PresignedUploadResult(string Key, string UploadUrl, DateTimeOffset ExpiresAt);
-
-public interface IS3StorageService
+namespace Services.Storage
 {
-    PresignedUploadResult CreateChecklistPhotoUploadUrl(int checklistId, int itemId, string fileName, string contentType);
-    string CreateDownloadUrl(string key);
-    bool TryGetKeyFromStoredValue(string storedValue, out string key);
-    System.Threading.Tasks.Task DeleteIfExistsAsync(string key);
+    public interface IS3StorageService
+    {
+        string? CreateDownloadUrl(string key, int? expiresMinutes = null);
+
+        /// <summary>
+        /// Tenta extrair a key do objeto no S3 a partir do valor salvo no banco.
+        /// Preferencialmente salvamos apenas a key (ex.: "Checklists/...").
+        /// Em casos legados, o valor pode ser uma URL do S3 (com ou sem querystring).
+        /// </summary>
+        bool TryGetKeyFromStoredValue(string storedValue, out string key);
+
+        PresignedUploadResult CreateChecklistPhotoUploadUrl(int checklistId, int itemId, string fileName, string contentType);
+
+        PresignedUploadResult CreateCompanyAvatarUploadUrl(int companyId, string fileName, string contentType);
+
+        Task DeleteIfExistsAsync(string key);
+    }
 }

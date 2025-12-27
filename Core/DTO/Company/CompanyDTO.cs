@@ -15,6 +15,9 @@ namespace Core.DTO.Company
         public int? PlanId { get; set; }           // ID do plano associado (opcional)
         public string? PlanName { get; set; }      // Nome do plano, opcional
 
+        public string? AvatarKey { get; set; }
+        public string? AvatarUrl { get; set; }
+
         public StatusEnum Status { get; set; }     // Status da empresa (Active/Inactive/etc.)
         public DateTime CreatedDate { get; set; }
         public DateTime UpdatedDate { get; set; }

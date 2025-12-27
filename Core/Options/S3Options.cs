@@ -8,6 +8,9 @@ public class S3Options
     // Root prefix for checklist photos. Example: "Checklists/"
     public string ChecklistPrefix { get; set; } = "Checklists/";
 
+    // Root prefix for company avatars. Example: "AvatarCompany/"
+    public string CompanyAvatarPrefix { get; set; } = "AvatarCompany/";
+
     // Optional explicit credentials. Prefer environment variables / IAM role.
     public string? AccessKeyId { get; set; }
     public string? SecretAccessKey { get; set; }

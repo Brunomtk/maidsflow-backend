@@ -20,9 +20,9 @@ public class S3StorageService : IS3StorageService
     {
         _opt = opt.Value ?? new S3Options();
 
+        // Force Signature V4 (modern S3). Signature V2 commonly results in 403 for presigned PUT in modern accounts/buckets.
         AWSConfigsS3.UseSignatureVersion4 = true;
 
-        // Force Signature V4 (modern S3). Signature V2 often results in 403 for presigned PUT in modern accounts/buckets.
         var cfg = new AmazonS3Config
         {
             RegionEndpoint = RegionEndpoint.GetBySystemName(_opt.Region ?? "us-east-1"),
@@ -53,26 +53,53 @@ public class S3StorageService : IS3StorageService
         var expiresAt = DateTimeOffset.UtcNow.AddMinutes(_opt.UploadUrlExpiresMinutes <= 0 ? 10 : _opt.UploadUrlExpiresMinutes);
 
         var req = new GetPreSignedUrlRequest
-{
-    BucketName = _opt.BucketName,
-    Key = key,
-    Verb = HttpVerb.PUT,
-    Protocol = Protocol.HTTPS,
-    Expires = expiresAt.UtcDateTime
-    // NOTE: Do NOT set ContentType here. Browsers may send a Content-Type that doesn't match exactly,
-    // which breaks legacy SigV2 presigned URLs and can still be fragile. With SigV4, we can keep this flexible.
+        {
+            BucketName = _opt.BucketName,
+            Key = key,
+            Verb = HttpVerb.PUT,
+            Protocol = Protocol.HTTPS,
+            Expires = expiresAt.UtcDateTime
+            // NOTE: Do NOT set ContentType here. Browsers may send a Content-Type that doesn't match exactly,
+            // which can break presigned URLs. Keep it flexible.
         };
 
         var url = _s3.GetPreSignedURL(req);
         return new PresignedUploadResult(key, url, expiresAt);
     }
 
-    public string CreateDownloadUrl(string key)
+    public PresignedUploadResult CreateCompanyAvatarUploadUrl(int companyId, string fileName, string contentType)
+    {
+        if (companyId <= 0) throw new ArgumentOutOfRangeException(nameof(companyId));
+        if (string.IsNullOrWhiteSpace(_opt.BucketName))
+            throw new InvalidOperationException("S3 BucketName não configurado. Configure em appsettings (S3:BucketName) ou variável de ambiente.");
+
+        var ext = Path.GetExtension(fileName);
+        if (string.IsNullOrWhiteSpace(ext)) ext = ".jpg";
+
+        var key = BuildCompanyAvatarKey(companyId, ext);
+        var expiresAt = DateTimeOffset.UtcNow.AddMinutes(_opt.UploadUrlExpiresMinutes <= 0 ? 10 : _opt.UploadUrlExpiresMinutes);
+
+        var req = new GetPreSignedUrlRequest
+        {
+            BucketName = _opt.BucketName,
+            Key = key,
+            Verb = HttpVerb.PUT,
+            Protocol = Protocol.HTTPS,
+            Expires = expiresAt.UtcDateTime
+        };
+
+        var url = _s3.GetPreSignedURL(req);
+        return new PresignedUploadResult(key, url, expiresAt);
+    }
+
+    public string? CreateDownloadUrl(string key, int? expiresMinutes = null)
     {
         if (string.IsNullOrWhiteSpace(_opt.BucketName)) return key;
         if (string.IsNullOrWhiteSpace(key)) return key;
 
-        var expiresAt = DateTimeOffset.UtcNow.AddMinutes(_opt.DownloadUrlExpiresMinutes <= 0 ? 60 : _opt.DownloadUrlExpiresMinutes);
+        var minutes = expiresMinutes ?? (_opt.DownloadUrlExpiresMinutes <= 0 ? 60 : _opt.DownloadUrlExpiresMinutes);
+        var expiresAt = DateTimeOffset.UtcNow.AddMinutes(minutes);
+
         var req = new GetPreSignedUrlRequest
         {
             BucketName = _opt.BucketName,
@@ -80,6 +107,7 @@ public class S3StorageService : IS3StorageService
             Verb = HttpVerb.GET,
             Expires = expiresAt.UtcDateTime
         };
+
         return _s3.GetPreSignedURL(req);
     }
 
@@ -89,7 +117,8 @@ public class S3StorageService : IS3StorageService
         if (string.IsNullOrWhiteSpace(storedValue)) return false;
 
         // If it's already a key (no scheme), assume it's the S3 key.
-        if (!storedValue.StartsWith("http", StringComparison.OrdinalIgnoreCase) && !storedValue.StartsWith("s3://", StringComparison.OrdinalIgnoreCase))
+        if (!storedValue.StartsWith("http", StringComparison.OrdinalIgnoreCase) &&
+            !storedValue.StartsWith("s3://", StringComparison.OrdinalIgnoreCase))
         {
             key = storedValue.TrimStart('/');
             return true;
@@ -113,7 +142,8 @@ public class S3StorageService : IS3StorageService
             if (string.IsNullOrWhiteSpace(path)) return false;
 
             // If path starts with bucket name, strip it.
-            if (!string.IsNullOrWhiteSpace(_opt.BucketName) && path.StartsWith(_opt.BucketName + "/", StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(_opt.BucketName) &&
+                path.StartsWith(_opt.BucketName + "/", StringComparison.OrdinalIgnoreCase))
                 path = path.Substring(_opt.BucketName.Length + 1);
 
             key = path;
@@ -144,7 +174,17 @@ public class S3StorageService : IS3StorageService
     {
         var prefix = string.IsNullOrWhiteSpace(_opt.ChecklistPrefix) ? "Checklists/" : _opt.ChecklistPrefix;
         if (!prefix.EndsWith('/')) prefix += "/";
+
         var name = $"{Guid.NewGuid():N}{ext}";
         return $"{prefix}{checklistId}/items/{itemId}/{name}";
+    }
+
+    private string BuildCompanyAvatarKey(int companyId, string ext)
+    {
+        var prefix = string.IsNullOrWhiteSpace(_opt.CompanyAvatarPrefix) ? "AvatarCompany/" : _opt.CompanyAvatarPrefix;
+        if (!prefix.EndsWith('/')) prefix += "/";
+
+        var name = $"{Guid.NewGuid():N}{ext}";
+        return $"{prefix}{companyId}/{name}";
     }
 }

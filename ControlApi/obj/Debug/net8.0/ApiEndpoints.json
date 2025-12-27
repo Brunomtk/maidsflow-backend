@@ -929,8 +929,8 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "Api.Controllers.CompaniesController",
-    "Method": "GetAll",
+    "ContainingType": "ControlApi.Controllers.CompaniesController",
+    "Method": "GetAllCompanies",
     "RelativePath": "api/Companies",
     "HttpMethod": "GET",
     "IsController": true,
@@ -939,8 +939,8 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "Api.Controllers.CompaniesController",
-    "Method": "Create",
+    "ContainingType": "ControlApi.Controllers.CompaniesController",
+    "Method": "CreateCompany",
     "RelativePath": "api/Companies",
     "HttpMethod": "POST",
     "IsController": true,
@@ -955,9 +955,30 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "Api.Controllers.CompaniesController",
-    "Method": "GetPlanIdByCompanyId",
-    "RelativePath": "api/Companies/{companyId}/plan-id",
+    "ContainingType": "ControlApi.Controllers.CompanyAvatarsController",
+    "Method": "SetAvatar",
+    "RelativePath": "api/Companies/{companyId}/avatar",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "companyId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "Core.DTO.Company.UpdateCompanyAvatarRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.CompanyAvatarsController",
+    "Method": "GetAvatar",
+    "RelativePath": "api/Companies/{companyId}/avatar",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -971,8 +992,45 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "Api.Controllers.CompaniesController",
-    "Method": "GetById",
+    "ContainingType": "ControlApi.Controllers.CompanyAvatarsController",
+    "Method": "DeleteAvatar",
+    "RelativePath": "api/Companies/{companyId}/avatar",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "companyId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.CompanyAvatarsController",
+    "Method": "PresignUpload",
+    "RelativePath": "api/Companies/{companyId}/avatar/presign",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "companyId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "Core.DTO.Company.PresignCompanyAvatarRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.CompaniesController",
+    "Method": "GetCompanyById",
     "RelativePath": "api/Companies/{id}",
     "HttpMethod": "GET",
     "IsController": true,
@@ -987,8 +1045,8 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "Api.Controllers.CompaniesController",
-    "Method": "Update",
+    "ContainingType": "ControlApi.Controllers.CompaniesController",
+    "Method": "UpdateCompany",
     "RelativePath": "api/Companies/{id}",
     "HttpMethod": "PUT",
     "IsController": true,
@@ -1008,8 +1066,8 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "Api.Controllers.CompaniesController",
-    "Method": "Delete",
+    "ContainingType": "ControlApi.Controllers.CompaniesController",
+    "Method": "DeleteCompany",
     "RelativePath": "api/Companies/{id}",
     "HttpMethod": "DELETE",
     "IsController": true,
@@ -1024,8 +1082,8 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "Api.Controllers.CompaniesController",
-    "Method": "GetPaged",
+    "ContainingType": "ControlApi.Controllers.CompaniesController",
+    "Method": "GetCompaniesPaged",
     "RelativePath": "api/Companies/paged",
     "HttpMethod": "GET",
     "IsController": true,

@@ -10,6 +10,9 @@ namespace Core.Models
         public required string Responsible { get; set; }
         public required string Email { get; set; }
         public required string Phone { get; set; }
+        // Optional S3 key for company avatar image (stored in S3; presigned URLs are generated on demand).
+        public string? AvatarKey { get; set; }
+
 
         // Agora é opcional (pode ser definido depois, via update ou via assinatura).
         public int? PlanId { get; set; }
