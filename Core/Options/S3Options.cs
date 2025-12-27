@@ -11,6 +11,9 @@ public class S3Options
     // Root prefix for company avatars. Example: "AvatarCompany/"
     public string CompanyAvatarPrefix { get; set; } = "AvatarCompany/";
 
+    // Root prefix for user avatars. Example: "UserAvatar/"
+    public string UserAvatarPrefix { get; set; } = "UserAvatar/";
+
     // Optional explicit credentials. Prefer environment variables / IAM role.
     public string? AccessKeyId { get; set; }
     public string? SecretAccessKey { get; set; }

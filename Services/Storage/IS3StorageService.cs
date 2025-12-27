@@ -17,6 +17,8 @@ namespace Services.Storage
 
         PresignedUploadResult CreateCompanyAvatarUploadUrl(int companyId, string fileName, string contentType);
 
+        PresignedUploadResult CreateUserAvatarUploadUrl(int userId, string fileName, string contentType);
+
         Task DeleteIfExistsAsync(string key);
     }
 }

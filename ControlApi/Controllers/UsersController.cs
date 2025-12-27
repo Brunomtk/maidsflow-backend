@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Services;
+using Services.Storage;
 
 namespace ControlApi.Controllers
 {
@@ -22,12 +23,14 @@ namespace ControlApi.Controllers
         private readonly IJWTManager _jwtManager;
         private readonly IUserService _userService;
         private readonly IConfiguration _configuration;
+        private readonly IS3StorageService _s3;
 
-        public UsersController(IJWTManager jwtManager, IUserService userService, IConfiguration configuration)
+        public UsersController(IJWTManager jwtManager, IUserService userService, IConfiguration configuration, IS3StorageService s3)
         {
             _jwtManager = jwtManager;
             _userService = userService;
             _configuration = configuration;
+            _s3 = s3;
         }
 
         // ===== AUTENTICAÇÃO =====
@@ -58,13 +61,19 @@ namespace ControlApi.Controllers
                 DateTime.UtcNow.AddDays(days)
             );
 
-                        var response = new AuthUserResponse
+            var avatarUrl = !string.IsNullOrWhiteSpace(user.AvatarKey)
+                ? _s3.CreateDownloadUrl(user.AvatarKey)
+                : user.Avatar;
+
+            var response = new AuthUserResponse
             {
                 Id = user.Id,
                 Name = user.Name,
                 Email = user.Email,
                 Role = user.Role,
-                Avatar = user.Avatar,
+                Avatar = avatarUrl,
+                AvatarKey = user.AvatarKey,
+                AvatarUrl = avatarUrl,
                 Status = user.Status,
                 Token = token.Token,
                 RefreshToken = token.RefreshToken,
@@ -112,13 +121,19 @@ namespace ControlApi.Controllers
                 DateTime.UtcNow.AddDays(days)
             );
 
-                        var response = new AuthUserResponse
+            var avatarUrl = !string.IsNullOrWhiteSpace(user.AvatarKey)
+                ? _s3.CreateDownloadUrl(user.AvatarKey)
+                : user.Avatar;
+
+            var response = new AuthUserResponse
             {
                 Id = user.Id,
                 Name = user.Name,
                 Email = user.Email,
                 Role = user.Role,
-                Avatar = user.Avatar,
+                Avatar = avatarUrl,
+                AvatarKey = user.AvatarKey,
+                AvatarUrl = avatarUrl,
                 Status = user.Status,
                 Token = token.Token,
                 RefreshToken = token.RefreshToken,

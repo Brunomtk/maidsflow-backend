@@ -8,6 +8,8 @@ public class AuthUserResponse
     public required string Email { get; set; }
     public required string Role { get; set; }
     public string? Avatar { get; set; }
+    public string? AvatarKey { get; set; }
+    public string? AvatarUrl { get; set; }
     public StatusEnum Status { get; set; }
 
     public string Token { get; set; } = string.Empty;

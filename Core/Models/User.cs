@@ -15,6 +15,12 @@ namespace Core.Models
 
         public string? Avatar { get; set; }
 
+        /// <summary>
+        /// S3 object key for the user's avatar (ex: "UserAvatar/10/abcd.png").
+        /// Nullable because avatar is optional.
+        /// </summary>
+        public string? AvatarKey { get; set; }
+
         public int? CompanyId { get; set; }
 
         public int? ProfessionalId { get; set; }

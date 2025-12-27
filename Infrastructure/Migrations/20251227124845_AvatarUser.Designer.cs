@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DbContextClass))]
-    [Migration("20251227005122_avatarcompany")]
-    partial class avatarcompany
+    [Migration("20251227124845_AvatarUser")]
+    partial class AvatarUser
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1399,6 +1399,9 @@ namespace Infrastructure.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Avatar")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AvatarKey")
                         .HasColumnType("text");
 
                     b.Property<int?>("CompanyId")
