@@ -198,18 +198,33 @@ namespace Services
         }
 
         public async Task<bool> Update(int id, UpdateAppointmentDTO dto)
-{
-    if (_currentUser.IsProfessional)
-        throw new ForbiddenException("Profissional não tem permissão para editar agendamentos.");
-
-
+        {
             var appointment = await _unitOfWork.Appointments.GetById(id);
             if (appointment == null) return false;
 
+            // Admin bypass; demais perfis ficam restritos ao escopo
             if (!_currentUser.IsAdmin)
                 await _scope.EnsureCompanyAccessAsync(appointment.CompanyId);
 
-            // Atualiza campos básicos
+            // Profissional pode atualizar SOMENTE campos de check-in/execução (ex.: status/notes)
+            // desde que o agendamento pertença ao seu escopo (profissional ou membership de team).
+            if (_currentUser.IsProfessional)
+            {
+                await _scope.EnsureAppointmentAccessAsync(id);
+
+                EnsureProfessionalUpdateIsSafe(appointment, dto);
+
+                if (dto.Status.HasValue)
+                    appointment.Status = dto.Status.Value;
+
+                if (dto.Notes != null)
+                    appointment.Notes = dto.Notes;
+
+                _unitOfWork.Appointments.Update(appointment);
+                return await _unitOfWork.SaveAsync() > 0;
+            }
+
+            // Company (e demais perfis internos) mantém o comportamento atual de edição
             appointment.Title = dto.Title ?? appointment.Title;
             appointment.Address = dto.Address ?? appointment.Address;
 
@@ -229,7 +244,6 @@ namespace Services
             appointment.Status = dto.Status ?? appointment.Status;
             appointment.Type = dto.Type ?? appointment.Type;
             _ = dto.CompanyId; // CompanyId não é alterável aqui
-            // mantemos CompanyId existente
             appointment.CompanyId = appointment.CompanyId;
             appointment.CustomerId = dto.CustomerId ?? appointment.CustomerId;
             appointment.TeamId = dto.TeamId ?? appointment.TeamId;
@@ -250,6 +264,66 @@ namespace Services
 
             _unitOfWork.Appointments.Update(appointment);
             return await _unitOfWork.SaveAsync() > 0;
+        }
+
+        private static void EnsureProfessionalUpdateIsSafe(Appointment appointment, UpdateAppointmentDTO dto)
+        {
+            // Permitimos que o front envie o objeto inteiro, mas o profissional só pode
+            // efetivamente ALTERAR Status/Notes. Qualquer outro campo diferente do existente
+            // é bloqueado para evitar "edição" indevida do agendamento.
+
+            if (dto.Scope != RecurrenceScope.This)
+                throw new ForbiddenException("Profissional não tem permissão para editar recorrência.");
+
+            if (dto.OccurrenceStart.HasValue || dto.OccurrenceEnd.HasValue)
+                throw new ForbiddenException("Profissional não tem permissão para editar ocorrências de recorrência.");
+
+            if (dto.Title != null && dto.Title != appointment.Title)
+                throw new ForbiddenException("Profissional não tem permissão para alterar título do agendamento.");
+
+            if (dto.Address != null && dto.Address != appointment.Address)
+                throw new ForbiddenException("Profissional não tem permissão para alterar endereço do agendamento.");
+
+            if (dto.Start.HasValue && dto.Start.Value != appointment.Start)
+                throw new ForbiddenException("Profissional não tem permissão para alterar horário do agendamento.");
+
+            if (dto.End.HasValue && dto.End.Value != appointment.End)
+                throw new ForbiddenException("Profissional não tem permissão para alterar horário do agendamento.");
+
+            if (dto.CompanyId.HasValue && dto.CompanyId.Value != appointment.CompanyId)
+                throw new ForbiddenException("Profissional não tem permissão para alterar company do agendamento.");
+
+            if (dto.CustomerId.HasValue && dto.CustomerId.Value != appointment.CustomerId)
+                throw new ForbiddenException("Profissional não tem permissão para alterar cliente do agendamento.");
+
+            if (dto.TeamId.HasValue && dto.TeamId.Value != appointment.TeamId)
+                throw new ForbiddenException("Profissional não tem permissão para alterar equipe do agendamento.");
+
+            if (dto.Type.HasValue && dto.Type.Value != appointment.Type)
+                throw new ForbiddenException("Profissional não tem permissão para alterar tipo do agendamento.");
+
+            if (!string.IsNullOrWhiteSpace(dto.TimeZoneId) && dto.TimeZoneId != appointment.TimeZoneId)
+                throw new ForbiddenException("Profissional não tem permissão para alterar fuso do agendamento.");
+
+            if (dto.IsRecurring.HasValue && dto.IsRecurring.Value != appointment.IsRecurring)
+                throw new ForbiddenException("Profissional não tem permissão para alterar recorrência do agendamento.");
+
+            if (dto.RecurrenceRule != null && dto.RecurrenceRule != appointment.RecurrenceRule)
+                throw new ForbiddenException("Profissional não tem permissão para alterar recorrência do agendamento.");
+
+            if (dto.RecurrenceEnd.HasValue && dto.RecurrenceEnd.Value != appointment.RecurrenceEnd)
+                throw new ForbiddenException("Profissional não tem permissão para alterar recorrência do agendamento.");
+
+            if (dto.OccurrenceCount.HasValue && dto.OccurrenceCount.Value != appointment.OccurrenceCount)
+                throw new ForbiddenException("Profissional não tem permissão para alterar recorrência do agendamento.");
+
+            if (dto.ProfessionalIds != null)
+            {
+                var existing = (appointment.ProfessionalIds ?? new List<int>()).Distinct().OrderBy(x => x).ToList();
+                var incoming = dto.ProfessionalIds.Distinct().OrderBy(x => x).ToList();
+                if (existing.Count != incoming.Count || !existing.SequenceEqual(incoming))
+                    throw new ForbiddenException("Profissional não tem permissão para alterar profissionais do agendamento.");
+            }
         }
 
 
