@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -35,13 +36,19 @@ namespace Infrastructure.Authenticate
             var issuer = _configuration["Jwt:Issuer"];
             var audience = _configuration["Jwt:Audience"];
 
-            var authClaims = new[]
+            var authClaims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
                 new Claim(ClaimTypes.Role, user.Role ?? string.Empty),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
+
+            // Tenant scope claims (used by backend authorization, no front changes required)
+            if (user.CompanyId.HasValue)
+                authClaims.Add(new Claim("companyId", user.CompanyId.Value.ToString()));
+            if (user.ProfessionalId.HasValue)
+                authClaims.Add(new Claim("professionalId", user.ProfessionalId.Value.ToString()));
 
             var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
 

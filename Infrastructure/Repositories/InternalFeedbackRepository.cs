@@ -62,7 +62,18 @@ namespace Infrastructure.Repositories
                 query = query.Where(f => f.Category == filters.Category);
             }
 
-            // Professional filter
+            // Company filter (via Professional.CompanyId)
+if (filters.CompanyId.HasValue)
+{
+    var companyId = filters.CompanyId.Value;
+    var professionalIds = _context.Professionals
+        .Where(p => p.CompanyId == companyId)
+        .Select(p => p.Id);
+
+    query = query.Where(f => professionalIds.Contains(f.ProfessionalId));
+}
+
+// Professional filter
             if (filters.ProfessionalId.HasValue)
             {
                 query = query.Where(f => f.ProfessionalId == filters.ProfessionalId.Value);

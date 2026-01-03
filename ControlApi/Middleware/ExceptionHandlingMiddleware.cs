@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Core.Exceptions;
 using System.Net;
 
 namespace ControlApi.Middleware
@@ -53,15 +54,25 @@ namespace ControlApi.Middleware
             }
         }
 
-        private async Task HandleExceptionAsync(HttpContext context, Exception exception)
+                private async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
-            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
             context.Response.ContentType = "application/json";
+
+            var (statusCode, title) = exception switch
+            {
+                ForbiddenException => ((int)HttpStatusCode.Forbidden, "Forbidden"),
+                UnauthorizedAccessException => ((int)HttpStatusCode.Unauthorized, "Unauthorized"),
+                ArgumentException => ((int)HttpStatusCode.BadRequest, "Bad Request"),
+                KeyNotFoundException => ((int)HttpStatusCode.NotFound, "Not Found"),
+                _ => ((int)HttpStatusCode.InternalServerError, "Internal Server Error")
+            };
+
+            context.Response.StatusCode = statusCode;
 
             var problemDetails = new ProblemDetails
             {
-                Status = context.Response.StatusCode,
-                Title = "Internal Server Error",
+                Status = statusCode,
+                Title = title,
                 Detail = exception.Message
             };
 
@@ -69,3 +80,4 @@ namespace ControlApi.Middleware
         }
     }
 }
+

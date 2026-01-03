@@ -32,6 +32,10 @@ namespace ControlApi
             // DI: Repositórios/Serviços + Db
             // -----------------------------
             builder.Services.AddDIServices(builder.Configuration);
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddScoped<Services.Security.ICurrentUser, Services.Security.CurrentUser>();
+            builder.Services.AddScoped<Services.Security.IScopeGuard, Services.Security.ScopeGuard>();
+
             
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<ICompanyService, CompanyService>();

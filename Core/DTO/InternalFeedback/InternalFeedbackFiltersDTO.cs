@@ -9,6 +9,7 @@ namespace Core.DTO.InternalFeedback
         public string Status { get; set; } = "all";
         public string Priority { get; set; } = "all";
         public string? Category { get; set; }
+        public int? CompanyId { get; set; }
         public int? ProfessionalId { get; set; }
         public int? TeamId { get; set; }
         public string? Search { get; set; }

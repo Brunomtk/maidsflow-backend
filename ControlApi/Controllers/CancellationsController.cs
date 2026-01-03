@@ -1,6 +1,7 @@
 ﻿// ControlApi/Controllers/CancellationsController.cs
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Core.DTO.Cancellation;
 using Infrastructure.ServiceExtension;  // <-- para o PagedResult<T>
 using Services;
@@ -9,6 +10,7 @@ using Core.Models;
 namespace ControlApi.Controllers
 {
     [ApiController]
+[Authorize]
     [Route("api/[controller]")]
     public class CancellationsController : ControllerBase
     {

@@ -4,26 +4,52 @@ using Core.Enums;
 using Infrastructure.Repositories;
 using Infrastructure.ServiceExtension;
 using System.Threading.Tasks;
+using System.Linq;
+using System.Collections.Generic;
+using Core.Exceptions;
+using Services.Security;
 
 namespace Services
 {
     public class TeamService : ITeamService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ICurrentUser _currentUser;
+        private readonly IScopeGuard _scope;
 
-        public TeamService(IUnitOfWork unitOfWork)
+        public TeamService(IUnitOfWork unitOfWork, ICurrentUser currentUser, IScopeGuard scope)
         {
             _unitOfWork = unitOfWork;
+            _currentUser = currentUser;
+            _scope = scope;
         }
 
-        public Task<PagedResult<Team>> GetPagedTeams(int page, int pageSize, string status = "all", string? search = null)
+        public async Task<PagedResult<Team>> GetPagedTeams(int page, int pageSize, string status = "all", string? search = null)
         {
-            return _unitOfWork.Teams.GetPagedTeams(page, pageSize, status, search);
+            // Normalize: always go through the filtered method so we can inject CompanyId scope.
+            var filters = new TeamFiltersDTO
+            {
+                Page = page,
+                PageSize = pageSize,
+                Status = status,
+                Search = search
+            };
+
+            return await GetPagedTeams(filters);
         }
 
-        public Task<PagedResult<Team>> GetPagedTeams(TeamFiltersDTO filters)
+        public async Task<PagedResult<Team>> GetPagedTeams(TeamFiltersDTO filters)
         {
-            return _unitOfWork.Teams.GetPagedTeamsFilteredAsync(filters);
+            if (!_currentUser.IsAdmin)
+            {
+                var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+                if (!scopedCompanyId.HasValue)
+                    throw new ForbiddenException("Escopo de company inválido.");
+
+                filters.CompanyId = scopedCompanyId.Value;
+            }
+
+            return await _unitOfWork.Teams.GetPagedTeamsFilteredAsync(filters);
         }
 
         public async Task<Team?> GetByIdAsync(int id)
@@ -33,19 +59,18 @@ namespace Services
             if (team == null)
                 return null;
 
+            await _scope.EnsureCompanyAccessAsync(team.CompanyId);
+
+            // Professional role: read-only access.
+
             // Fallback de segurança:
-            // Se por qualquer motivo a navegação não tiver carregado Members,
-            // carrega manualmente da tabela TeamMembers.
             if (team.Members == null || team.Members.Count == 0)
             {
-                var repo = _unitOfWork.Teams;
-                if (repo is ITeamRepository teamRepo)
+                if (_unitOfWork.Teams is ITeamRepository teamRepo)
                 {
                     var members = await teamRepo.GetMembersByTeamIdAsync(id);
                     foreach (var m in members)
-                    {
                         team.Members.Add(m);
-                    }
                 }
             }
 
@@ -54,19 +79,41 @@ namespace Services
 
         public async Task<Team> CreateAsync(Team team)
         {
-            _unitOfWork.Teams.Add(team);
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode criar equipes.");
+
+            if (!_currentUser.IsAdmin)
+            {
+                var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+                if (!scopedCompanyId.HasValue)
+                    throw new ForbiddenException("Escopo de company inválido.");
+
+                team.CompanyId = scopedCompanyId.Value;
+            }
+
+            await ValidateMembersScopeAsync(team);
+
+            await _unitOfWork.Teams.Add(team);
             await _unitOfWork.SaveAsync();
             return team;
         }
 
-        /// <summary>
-        /// Atualiza uma equipe existente usando a entidade Team jÃ¡ montada.
-        /// </summary>
         public async Task<Team?> UpdateAsync(int id, Team updatedTeam)
         {
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode atualizar equipes.");
+
             var team = await _unitOfWork.Teams.GetByIdWithMembersAsync(id);
             if (team == null)
                 return null;
+
+            await _scope.EnsureCompanyAccessAsync(team.CompanyId);
+
+            // For company users, don't allow moving between companies
+            if (!_currentUser.IsAdmin)
+                updatedTeam.CompanyId = team.CompanyId;
+
+            await ValidateMembersScopeAsync(updatedTeam);
 
             // Campos principais
             team.Name = updatedTeam.Name;
@@ -81,9 +128,8 @@ namespace Services
                 await teamRepo.RemoveMembersByTeamIdAsync(id);
             }
 
-            // Reconstrói a coleção de membros em memória com base no que veio do updatedTeam
+            // Reconstrói a coleção de membros
             team.Members.Clear();
-
             if (updatedTeam.Members != null)
             {
                 foreach (var member in updatedTeam.Members)
@@ -102,20 +148,45 @@ namespace Services
             _unitOfWork.Teams.Update(team);
             await _unitOfWork.SaveAsync();
 
-            // Recarrega a equipe com Members atualizados
             var reloaded = await _unitOfWork.Teams.GetByIdWithMembersAsync(id);
             return reloaded ?? team;
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode remover equipes.");
+
             var team = await _unitOfWork.Teams.GetById(id);
             if (team == null)
                 return false;
 
+            await _scope.EnsureCompanyAccessAsync(team.CompanyId);
+
             _unitOfWork.Teams.Delete(team);
             await _unitOfWork.SaveAsync();
             return true;
+        }
+
+        private async Task ValidateMembersScopeAsync(Team team)
+        {
+            if (team.Members == null || team.Members.Count == 0) return;
+
+            if (_currentUser.IsAdmin) return; // admin can attach anyone
+
+            var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+            if (!scopedCompanyId.HasValue)
+                throw new ForbiddenException("Escopo de company inválido.");
+
+            foreach (var m in team.Members)
+            {
+                // TeamMember.ProfessionalId é obrigatório (int)
+                if (m.ProfessionalId > 0)
+                    await _scope.EnsureProfessionalInCompanyAsync(m.ProfessionalId);
+
+                if (m.UserId.HasValue)
+                    await _scope.EnsureUserInCompanyAsync(m.UserId.Value);
+            }
         }
     }
 

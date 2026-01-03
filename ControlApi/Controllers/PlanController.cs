@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Core.DTO;
 using Services;
 using Core.DTO.Company;
@@ -8,6 +9,7 @@ using Core.Models;
 namespace Api.Controllers
 {
     [ApiController]
+[Authorize]
     [Route("api/[controller]")]
     public class PlanController : ControllerBase
     {

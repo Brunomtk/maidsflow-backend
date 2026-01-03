@@ -1,21 +1,32 @@
-﻿using Core.Models;
+using Core.Models;
 using System;
 using Infrastructure.Repositories;
 using Infrastructure.ServiceExtension;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Core.Exceptions;
+using Services.Security;
 
 namespace Services
 {
     public class PlanSubscriptionService : IPlanSubscriptionService
     {
-        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly ICurrentUser _currentUser;
+        private readonly IScopeGuard _scope;
 
-        public PlanSubscriptionService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
+        public PlanSubscriptionService(IUnitOfWork unitOfWork, ICurrentUser currentUser, IScopeGuard scope)
         {
             _unitOfWork = unitOfWork;
+            _currentUser = currentUser;
+            _scope = scope;
         }
 
         public async Task<PagedResult<PlanSubscription>> GetSubscribersByPlan(int planId, int page, int pageSize)
         {
+            if (!_currentUser.IsAdmin)
+                throw new ForbiddenException("Somente admin pode listar assinantes por plano.");
+
             await RefreshExpiredSubscriptionsAsync();
             return await _unitOfWork.PlanSubscriptions.GetSubscribersPaged(planId, page, pageSize);
         }
@@ -23,17 +34,47 @@ namespace Services
         public async Task<PlanSubscription?> GetActiveByCompanyAsync(int companyId)
         {
             await RefreshExpiredSubscriptionsAsync();
+
+            if (!_currentUser.IsAdmin)
+            {
+                var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+                if (!scopedCompanyId.HasValue)
+                    throw new ForbiddenException("Escopo de company inválido.");
+                companyId = scopedCompanyId.Value;
+            }
+
             return await _unitOfWork.PlanSubscriptions.GetActiveByCompanyAsync(companyId);
         }
 
         public async Task<List<PlanSubscription>> GetByCompanyAsync(int companyId)
         {
             await RefreshExpiredSubscriptionsAsync();
+
+            if (!_currentUser.IsAdmin)
+            {
+                var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+                if (!scopedCompanyId.HasValue)
+                    throw new ForbiddenException("Escopo de company inválido.");
+                companyId = scopedCompanyId.Value;
+            }
+
             return await _unitOfWork.PlanSubscriptions.GetByCompanyAsync(companyId);
         }
 
         public async Task<PlanSubscription> ActivateAsync(int planId, int companyId, bool autoRenew)
         {
+            // Company can activate only for itself; Professional can't.
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode alterar o plano.");
+
+            if (!_currentUser.IsAdmin)
+            {
+                var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+                if (!scopedCompanyId.HasValue)
+                    throw new ForbiddenException("Escopo de company inválido.");
+                companyId = scopedCompanyId.Value;
+            }
+
             // validações básicas
             var plan = await _unitOfWork.Plans.GetById(planId);
             if (plan == null) throw new InvalidOperationException("Plano não encontrado.");
@@ -73,8 +114,14 @@ namespace Services
 
         public async Task<bool> CancelAsync(int subscriptionId)
         {
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode cancelar assinatura.");
+
             var subscription = await _unitOfWork.PlanSubscriptions.GetById(subscriptionId);
             if (subscription == null) return false;
+
+            if (!_currentUser.IsAdmin)
+                await _scope.EnsureCompanyAccessAsync(subscription.CompanyId);
 
             subscription.Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Cancelled;
             _unitOfWork.PlanSubscriptions.Update(subscription);
@@ -100,7 +147,6 @@ namespace Services
     public interface IPlanSubscriptionService
     {
         Task<PagedResult<PlanSubscription>> GetSubscribersByPlan(int planId, int page, int pageSize);
-
         Task<PlanSubscription?> GetActiveByCompanyAsync(int companyId);
         Task<List<PlanSubscription>> GetByCompanyAsync(int companyId);
         Task<PlanSubscription> ActivateAsync(int planId, int companyId, bool autoRenew);

@@ -2401,6 +2401,14 @@
             }
           },
           {
+            "name": "CompanyId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
             "name": "ProfessionalId",
             "in": "query",
             "schema": {

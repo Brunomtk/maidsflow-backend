@@ -1,34 +1,47 @@
-﻿using Core.Models;
+using Core.Models;
 using Infrastructure.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Core.Exceptions;
+using Services.Security;
 
 namespace Services
 {
     public class LeaderService : ILeaderService
     {
-        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly ICurrentUser _currentUser;
 
-        public LeaderService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
+        public LeaderService(IUnitOfWork unitOfWork, ICurrentUser currentUser)
         {
             _unitOfWork = unitOfWork;
+            _currentUser = currentUser;
+        }
+
+        private void EnsureAdmin()
+        {
+            if (!_currentUser.IsAdmin)
+                throw new ForbiddenException("Somente admin pode acessar Leaders.");
         }
 
         public async Task<IEnumerable<Leader>> GetAllAsync()
         {
+            EnsureAdmin();
             return await _unitOfWork.Leaders.GetAllAsync();
         }
 
         public async Task<Leader?> GetByIdAsync(int id)
         {
+            EnsureAdmin();
             return await _unitOfWork.Leaders.GetByIdAsync(id);
         }
 
         public async Task<Leader> CreateAsync(Leader leader)
         {
+            EnsureAdmin();
             leader.CreatedDate = DateTime.UtcNow;
-            leader.UpdatedDate = DateTime.UtcNow;  // Ajuste aqui
+            leader.UpdatedDate = DateTime.UtcNow;
             await _unitOfWork.Leaders.Add(leader);
             await _unitOfWork.SaveAsync();
             return leader;
@@ -36,6 +49,7 @@ namespace Services
 
         public async Task<Leader?> UpdateAsync(int id, Leader updatedLeader)
         {
+            EnsureAdmin();
             var leader = await _unitOfWork.Leaders.GetByIdAsync(id);
             if (leader == null) return null;
 
@@ -54,6 +68,7 @@ namespace Services
 
         public async Task<bool> DeleteAsync(int id)
         {
+            EnsureAdmin();
             var leader = await _unitOfWork.Leaders.GetByIdAsync(id);
             if (leader == null) return false;
 

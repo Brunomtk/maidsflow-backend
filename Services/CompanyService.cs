@@ -1,60 +1,127 @@
-﻿using Core.DTO;
 using Core.DTO.Company;
 using Core.Models;
 using Infrastructure.Repositories;
 using Infrastructure.ServiceExtension;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Core.Exceptions;
+using Services.Security;
 
 namespace Services
 {
     public class CompanyService : ICompanyService
     {
-        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly ICurrentUser _currentUser;
+        private readonly IScopeGuard _scope;
 
-        public CompanyService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
+        public CompanyService(IUnitOfWork unitOfWork, ICurrentUser currentUser, IScopeGuard scope)
         {
             _unitOfWork = unitOfWork;
-        }
-
-        public async Task<bool> CreateCompany(Company company)
-        {
-            if (company == null) return false;
-
-            await _unitOfWork.Companies.Add(company);
-            var result = await _unitOfWork.SaveAsync();
-            return result > 0;
+            _currentUser = currentUser;
+            _scope = scope;
         }
 
         public async Task<IEnumerable<Company>> GetAllCompanies()
         {
-            return await _unitOfWork.Companies.GetAll();
+            if (_currentUser.IsAdmin)
+                return await _unitOfWork.Companies.GetAll();
+
+            var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+            if (!scopedCompanyId.HasValue)
+                return Enumerable.Empty<Company>();
+
+            var company = await _unitOfWork.Companies.GetByIdAsync(scopedCompanyId.Value);
+            return company == null ? Enumerable.Empty<Company>() : new[] { company };
         }
 
         public async Task<Company?> GetCompanyById(int companyId)
         {
-            if (companyId <= 0) return null;
+            if (!_currentUser.IsAdmin)
+                await _scope.EnsureCompanyAccessAsync(companyId);
+
             return await _unitOfWork.Companies.GetByIdAsync(companyId);
         }
 
         public async Task<Company?> GetCompanyByCnpj(string cnpj)
         {
             if (string.IsNullOrWhiteSpace(cnpj)) return null;
+
+            if (!_currentUser.IsAdmin)
+                throw new ForbiddenException("Somente admin pode buscar company por CNPJ.");
+
             return await _unitOfWork.Companies.GetByCnpj(cnpj);
         }
 
         public async Task<PagedResult<Company>> GetCompaniesPagedFilteredAsync(CompanyFiltersDTO filters)
         {
-            return await _unitOfWork.Companies.GetCompaniesPagedFilteredAsync(filters);
+            if (_currentUser.IsAdmin)
+                return await _unitOfWork.Companies.GetCompaniesPagedFilteredAsync(filters);
+
+            // Company / Professional: retorna apenas a própria company como "paged"
+            var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+            if (!scopedCompanyId.HasValue)
+            {
+                return new PagedResult<Company>
+                {
+                    CurrentPage = filters.Page,
+                    PageSize = filters.PageSize,
+                    PageCount = 0,
+                    TotalItems = 0,
+                    Results = new List<Company>()
+                };
+            }
+
+            var company = await _unitOfWork.Companies.GetByIdAsync(scopedCompanyId.Value);
+            if (company == null)
+            {
+                return new PagedResult<Company>
+                {
+                    CurrentPage = filters.Page,
+                    PageSize = filters.PageSize,
+                    PageCount = 0,
+                    TotalItems = 0,
+                    Results = new List<Company>()
+                };
+            }
+
+            return new PagedResult<Company>
+            {
+                CurrentPage = 1,
+                PageSize = filters.PageSize,
+                PageCount = 1,
+                TotalItems = 1,
+                Results = new List<Company> { company }
+            };
         }
 
         public async Task<int?> GetPlanIdByCompanyId(int companyId)
         {
+            if (!_currentUser.IsAdmin)
+                await _scope.EnsureCompanyAccessAsync(companyId);
+
             return await _unitOfWork.Companies.GetPlanIdByCompanyId(companyId);
+        }
+
+        public async Task<bool> CreateCompany(Company company)
+        {
+            if (!_currentUser.IsAdmin)
+                throw new ForbiddenException("Somente admin pode criar companies.");
+
+            await _unitOfWork.Companies.Add(company);
+            var result = await _unitOfWork.SaveAsync();
+            return result > 0;
         }
 
         public async Task<bool> UpdateCompany(CreateCompanyRequest request, int companyId)
         {
+            if (!_currentUser.IsAdmin && !_currentUser.IsCompany)
+                throw new ForbiddenException("Você não tem permissão para atualizar company.");
+
+            if (!_currentUser.IsAdmin)
+                await _scope.EnsureCompanyAccessAsync(companyId);
+
             var company = await _unitOfWork.Companies.GetByIdAsync(companyId);
             if (company == null) return false;
 
@@ -63,11 +130,7 @@ namespace Services
             company.Responsible = request.Responsible;
             company.Email = request.Email;
             company.Phone = request.Phone;
-            // PlanId agora é opcional.
-            // Para evitar limpar o plano sem querer (quando o front não envia PlanId),
-            // só atualizamos se vier um valor.
-            if (request.PlanId.HasValue)
-                company.PlanId = request.PlanId;
+            if (request.PlanId.HasValue) company.PlanId = request.PlanId;
             company.Status = request.Status;
 
             _unitOfWork.Companies.Update(company);
@@ -77,6 +140,9 @@ namespace Services
 
         public async Task<bool> DeleteCompany(int companyId)
         {
+            if (!_currentUser.IsAdmin)
+                throw new ForbiddenException("Somente admin pode deletar companies.");
+
             var company = await _unitOfWork.Companies.GetByIdAsync(companyId);
             if (company == null) return false;
 
@@ -88,12 +154,12 @@ namespace Services
 
     public interface ICompanyService
     {
-        Task<bool> CreateCompany(Company company);
         Task<IEnumerable<Company>> GetAllCompanies();
         Task<Company?> GetCompanyById(int companyId);
         Task<Company?> GetCompanyByCnpj(string cnpj);
         Task<PagedResult<Company>> GetCompaniesPagedFilteredAsync(CompanyFiltersDTO filters);
         Task<int?> GetPlanIdByCompanyId(int companyId);
+        Task<bool> CreateCompany(Company company);
         Task<bool> UpdateCompany(CreateCompanyRequest request, int companyId);
         Task<bool> DeleteCompany(int companyId);
     }

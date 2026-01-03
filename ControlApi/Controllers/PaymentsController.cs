@@ -1,5 +1,6 @@
 ﻿// ControlApi/Controllers/PaymentsController.cs
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System.Threading.Tasks;
 using Services;
 using Core.DTO.Payments;
@@ -9,6 +10,7 @@ using Core.Models;
 namespace ControlApi.Controllers
 {
     [ApiController]
+[Authorize]
     [Route("api/[controller]")]
     public class PaymentsController : ControllerBase
     {

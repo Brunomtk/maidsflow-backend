@@ -1,9 +1,11 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Core.DTO.Recurrences;
 using Core.Models;
 using Infrastructure.Repositories;
 using Infrastructure.ServiceExtension;
+using Core.Exceptions;
+using Services.Security;
 
 namespace Services
 {
@@ -18,25 +20,58 @@ namespace Services
 
     public class RecurrenceService : IRecurrenceService
     {
-        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly ICurrentUser _currentUser;
+        private readonly IScopeGuard _scope;
 
-        public RecurrenceService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
+        public RecurrenceService(IUnitOfWork unitOfWork, ICurrentUser currentUser, IScopeGuard scope)
         {
             _unitOfWork = unitOfWork;
+            _currentUser = currentUser;
+            _scope = scope;
         }
 
         public async Task<PagedResult<Recurrence>> GetPagedAsync(RecurrenceFiltersDTO filters)
         {
+            if (!_currentUser.IsAdmin)
+            {
+                var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+                if (!scopedCompanyId.HasValue)
+                    throw new ForbiddenException("Escopo de company inválido.");
+                filters.CompanyId = scopedCompanyId.Value;
+            }
+
             return await _unitOfWork.Recurrences.GetPagedRecurrencesAsync(filters);
         }
 
         public async Task<Recurrence?> GetByIdAsync(int id)
         {
-            return await _unitOfWork.Recurrences.GetById(id);
+            var rec = await _unitOfWork.Recurrences.GetById(id);
+            if (rec == null) return null;
+
+            await _scope.EnsureCompanyAccessAsync(rec.CompanyId);
+            return rec;
         }
 
         public async Task<Recurrence> CreateAsync(CreateRecurrenceDTO dto)
         {
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode criar recorrências.");
+
+            if (!_currentUser.IsAdmin)
+            {
+                var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+                if (!scopedCompanyId.HasValue)
+                    throw new ForbiddenException("Escopo de company inválido.");
+                dto.CompanyId = scopedCompanyId.Value;
+            }
+
+            if (dto.TeamId.HasValue)
+                await _scope.EnsureTeamInCompanyAsync(dto.TeamId.Value);
+
+            // CreateRecurrenceDTO.CustomerId é obrigatório (int)
+            await _scope.EnsureCustomerInCompanyAsync(dto.CustomerId);
+
             var now = DateTime.UtcNow;
             var recurrence = new Recurrence
             {
@@ -65,8 +100,16 @@ namespace Services
 
         public async Task<Recurrence?> UpdateAsync(int id, UpdateRecurrenceDTO dto)
         {
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode editar recorrências.");
+
             var recurrence = await _unitOfWork.Recurrences.GetById(id);
             if (recurrence == null) return null;
+
+            await _scope.EnsureCompanyAccessAsync(recurrence.CompanyId);
+
+            if (dto.TeamId.HasValue)
+                await _scope.EnsureTeamInCompanyAsync(dto.TeamId.Value);
 
             recurrence.Title = dto.Title ?? recurrence.Title;
             recurrence.Address = dto.Address ?? recurrence.Address;
@@ -89,8 +132,13 @@ namespace Services
 
         public async Task<bool> DeleteAsync(int id)
         {
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode remover recorrências.");
+
             var recurrence = await _unitOfWork.Recurrences.GetById(id);
             if (recurrence == null) return false;
+
+            await _scope.EnsureCompanyAccessAsync(recurrence.CompanyId);
 
             _unitOfWork.Recurrences.Delete(recurrence);
             await _unitOfWork.SaveAsync();

@@ -5,6 +5,8 @@ using Core.Enums.GpsTracking;
 using Core.Models;
 using Infrastructure.Repositories;
 using Infrastructure.ServiceExtension;
+using Services.Security;
+using Core.Exceptions;
 
 namespace Services
 {
@@ -20,24 +22,73 @@ namespace Services
     public class GpsTrackingService : IGpsTrackingService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ICurrentUser _currentUser;
+        private readonly IScopeGuard _scope;
 
-        public GpsTrackingService(IUnitOfWork unitOfWork)
+        public GpsTrackingService(IUnitOfWork unitOfWork, ICurrentUser currentUser, IScopeGuard scope)
         {
             _unitOfWork = unitOfWork;
+            _currentUser = currentUser;
+            _scope = scope;
         }
 
-        public Task<PagedResult<GpsTracking>> GetPagedAsync(GpsTrackingFiltersDTO filters)
-        {
-            return _unitOfWork.GpsTrackings.GetPagedAsync(filters);
-        }
+        public async Task<PagedResult<GpsTracking>> GetPagedAsync(GpsTrackingFiltersDTO filters)
+{
+    if (!_currentUser.IsAdmin)
+    {
+        var companyId = await _scope.GetScopedCompanyIdAsync();
+        if (companyId.HasValue) filters.CompanyId = companyId.Value;
 
-        public Task<GpsTracking?> GetByIdAsync(int id)
+        if (_currentUser.IsProfessional)
         {
-            return _unitOfWork.GpsTrackings.GetByIdAsync(id);
+            var pid = await _scope.GetScopedProfessionalIdAsync();
+            if (pid.HasValue) filters.ProfessionalId = pid.Value;
         }
+    }
+
+    return await _unitOfWork.GpsTrackings.GetPagedAsync(filters);
+}
+
+
+        public async Task<GpsTracking?> GetByIdAsync(int id)
+{
+    var model = await _unitOfWork.GpsTrackings.GetByIdAsync(id);
+    if (model == null) return null;
+
+    if (!_currentUser.IsAdmin)
+    {
+        await _scope.EnsureCompanyAccessAsync(model.CompanyId);
+
+        if (_currentUser.IsProfessional)
+        {
+            var pid = await _scope.GetScopedProfessionalIdAsync();
+            if (!pid.HasValue || pid.Value != model.ProfessionalId)
+                throw new ForbiddenException("Você não tem permissão para acessar este GPS Tracking.");
+        }
+    }
+
+    return model;
+}
+
 
         public async Task<GpsTracking> CreateAsync(CreateGpsTrackingDTO dto)
+{
+    if (!_currentUser.IsAdmin)
+    {
+        var companyId = await _scope.GetScopedCompanyIdAsync();
+        if (companyId.HasValue) dto.CompanyId = companyId.Value;
+
+        if (_currentUser.IsProfessional)
         {
+            var pid = await _scope.GetScopedProfessionalIdAsync();
+            if (!pid.HasValue) throw new ForbiddenException("Escopo de profissional inválido.");
+            dto.ProfessionalId = pid.Value;
+        }
+
+        // garante que profissional pertence à company
+        await _scope.EnsureProfessionalInCompanyAsync(dto.ProfessionalId);
+    }
+
             var model = new GpsTracking
             {
                 ProfessionalId = dto.ProfessionalId,
@@ -72,13 +123,26 @@ namespace Services
             var model = await _unitOfWork.GpsTrackings.GetByIdAsync(id);
             if (model == null) return null;
 
-            if (dto.ProfessionalId.HasValue)
+            if (!_currentUser.IsAdmin)
+            {
+                await _scope.EnsureCompanyAccessAsync(model.CompanyId);
+
+                if (_currentUser.IsProfessional)
+                {
+                    var pid = await _scope.GetScopedProfessionalIdAsync();
+                    if (!pid.HasValue || pid.Value != model.ProfessionalId)
+                        throw new ForbiddenException("Você não tem permissão para editar este GPS Tracking.");
+                }
+            }
+
+            // ProfessionalId/CompanyId não alteráveis aqui (só admin)
+            if (_currentUser.IsAdmin && dto.ProfessionalId.HasValue)
                 model.ProfessionalId = dto.ProfessionalId.Value;
 
             if (!string.IsNullOrWhiteSpace(dto.ProfessionalName))
                 model.ProfessionalName = dto.ProfessionalName;
 
-            if (dto.CompanyId.HasValue)
+            if (_currentUser.IsAdmin && dto.CompanyId.HasValue)
                 model.CompanyId = dto.CompanyId.Value;
 
             if (!string.IsNullOrWhiteSpace(dto.CompanyName))
@@ -125,6 +189,18 @@ namespace Services
         {
             var model = await _unitOfWork.GpsTrackings.GetByIdAsync(id);
             if (model == null) return false;
+
+            if (!_currentUser.IsAdmin)
+            {
+                await _scope.EnsureCompanyAccessAsync(model.CompanyId);
+
+                if (_currentUser.IsProfessional)
+                {
+                    var pid = await _scope.GetScopedProfessionalIdAsync();
+                    if (!pid.HasValue || pid.Value != model.ProfessionalId)
+                        throw new ForbiddenException("Você não tem permissão para excluir este GPS Tracking.");
+                }
+            }
 
             _unitOfWork.GpsTrackings.Delete(model);
             await _unitOfWork.SaveAsync();

@@ -1,9 +1,12 @@
-﻿using System;
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Core.DTO.Review;
 using Core.Models;
+using Core.Exceptions;
 using Infrastructure.Repositories;
 using Infrastructure.ServiceExtension;
+using Services.Security;
 
 namespace Services
 {
@@ -23,21 +26,72 @@ namespace Services
 
     public class ReviewService : IReviewService
     {
-        private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly ICurrentUser _currentUser;
+        private readonly IScopeGuard _scope;
 
-        public ReviewService(Infrastructure.Repositories.IUnitOfWork unitOfWork)
+        public ReviewService(IUnitOfWork unitOfWork, ICurrentUser currentUser, IScopeGuard scope)
         {
             _unitOfWork = unitOfWork;
+            _currentUser = currentUser;
+            _scope = scope;
         }
 
-        public Task<PagedResult<Review>> GetPagedAsync(ReviewFiltersDTO filters)
-            => _unitOfWork.Reviews.GetPagedAsync(filters);
+        public async Task<PagedResult<Review>> GetPagedAsync(ReviewFiltersDTO filters)
+        {
+            if (!_currentUser.IsAdmin)
+            {
+                var companyId = await _scope.GetScopedCompanyIdAsync();
+                if (companyId.HasValue) filters.CompanyId = companyId.Value;
 
-        public Task<Review?> GetByIdAsync(int id)
-            => _unitOfWork.Reviews.GetByIdAsync(id);
+                if (_currentUser.IsProfessional)
+                {
+                    var pid = await _scope.GetScopedProfessionalIdAsync();
+                    if (pid.HasValue) filters.ProfessionalId = pid.Value;
+                }
+            }
+
+            return await _unitOfWork.Reviews.GetPagedAsync(filters);
+        }
+
+        public async Task<Review?> GetByIdAsync(int id)
+        {
+            var review = await _unitOfWork.Reviews.GetByIdAsync(id);
+            if (review == null) return null;
+
+            if (!_currentUser.IsAdmin)
+            {
+                await _scope.EnsureCompanyAccessAsync(review.CompanyId);
+
+                if (_currentUser.IsProfessional)
+                {
+                    var pid = await _scope.GetScopedProfessionalIdAsync();
+                    if (!pid.HasValue || pid.Value != review.ProfessionalId)
+                        throw new ForbiddenException("Você não tem permissão para acessar este review.");
+                }
+            }
+
+            return review;
+        }
 
         public async Task<Review> CreateAsync(CreateReviewDTO dto)
         {
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode criar review.");
+
+            if (!_currentUser.IsAdmin)
+            {
+                var companyId = await _scope.GetScopedCompanyIdAsync();
+                if (companyId.HasValue) dto.CompanyId = companyId.Value;
+            }
+
+            // garantir que o appointment pertence à company
+            if (!_currentUser.IsAdmin)
+            {
+                var appt = await _unitOfWork.Appointments.GetById(dto.AppointmentId);
+                if (appt != null) await _scope.EnsureCompanyAccessAsync(appt.CompanyId);
+            }
+
             var review = new Review
             {
                 CustomerId = dto.CustomerId,
@@ -68,8 +122,14 @@ namespace Services
 
         public async Task<Review?> UpdateAsync(int id, UpdateReviewDTO dto)
         {
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode editar review.");
+
             var review = await _unitOfWork.Reviews.GetByIdAsync(id);
             if (review == null) return null;
+
+            if (!_currentUser.IsAdmin)
+                await _scope.EnsureCompanyAccessAsync(review.CompanyId);
 
             if (dto.CustomerId.HasValue) review.CustomerId = dto.CustomerId.Value;
             if (!string.IsNullOrEmpty(dto.CustomerName)) review.CustomerName = dto.CustomerName;
@@ -77,7 +137,7 @@ namespace Services
             if (!string.IsNullOrEmpty(dto.ProfessionalName)) review.ProfessionalName = dto.ProfessionalName;
             if (dto.TeamId.HasValue) review.TeamId = dto.TeamId;
             if (!string.IsNullOrEmpty(dto.TeamName)) review.TeamName = dto.TeamName;
-            if (dto.CompanyId.HasValue) review.CompanyId = dto.CompanyId.Value;
+            if (_currentUser.IsAdmin && dto.CompanyId.HasValue) review.CompanyId = dto.CompanyId.Value;
             if (!string.IsNullOrEmpty(dto.CompanyName)) review.CompanyName = dto.CompanyName;
             if (dto.AppointmentId.HasValue) review.AppointmentId = dto.AppointmentId.Value;
             if (dto.Rating.HasValue) review.Rating = dto.Rating.Value;
@@ -93,6 +153,50 @@ namespace Services
             await _unitOfWork.SaveAsync();
             return review;
         }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode excluir review.");
+
+            var review = await _unitOfWork.Reviews.GetByIdAsync(id);
+            if (review == null) return false;
+
+            if (!_currentUser.IsAdmin)
+                await _scope.EnsureCompanyAccessAsync(review.CompanyId);
+
+            _unitOfWork.Reviews.Delete(review);
+            await _unitOfWork.SaveAsync();
+            return true;
+        }
+
+        public async Task<Review?> RespondAsync(int id, string response)
+        {
+            var review = await _unitOfWork.Reviews.GetByIdAsync(id);
+            if (review == null) return null;
+
+            if (!_currentUser.IsAdmin)
+            {
+                await _scope.EnsureCompanyAccessAsync(review.CompanyId);
+
+                if (_currentUser.IsProfessional)
+                {
+                    var pid = await _scope.GetScopedProfessionalIdAsync();
+                    if (!pid.HasValue || pid.Value != review.ProfessionalId)
+                        throw new ForbiddenException("Você não tem permissão para responder este review.");
+                }
+            }
+
+            review.Response = response;
+            review.ResponseDate = DateTime.UtcNow;
+            review.UpdatedDate = DateTime.UtcNow;
+
+            _unitOfWork.Reviews.Update(review);
+            await _unitOfWork.SaveAsync();
+            return review;
+        }
+
+        // ===== Public (AllowAnonymous no Controller) =====
 
         public async Task<ReviewLinkDTO> GetOrCreateLinkForAppointmentAsync(int appointmentId, string? publicFormBaseUrl = null)
         {
@@ -207,30 +311,6 @@ namespace Services
             review.Status = Core.Enums.ReviewStatus.Published;
             review.SubmittedAt = DateTime.UtcNow;
             review.UpdatedDate = DateTime.UtcNow;
-            _unitOfWork.Reviews.Update(review);
-            await _unitOfWork.SaveAsync();
-            return review;
-        }
-
-        public async Task<bool> DeleteAsync(int id)
-        {
-            var review = await _unitOfWork.Reviews.GetByIdAsync(id);
-            if (review == null) return false;
-
-            _unitOfWork.Reviews.Delete(review);
-            await _unitOfWork.SaveAsync();
-            return true;
-        }
-
-        public async Task<Review?> RespondAsync(int id, string response)
-        {
-            var review = await _unitOfWork.Reviews.GetByIdAsync(id);
-            if (review == null) return null;
-
-            review.Response = response;
-            review.ResponseDate = DateTime.UtcNow;
-            review.UpdatedDate = DateTime.UtcNow;
-
             _unitOfWork.Reviews.Update(review);
             await _unitOfWork.SaveAsync();
             return review;
