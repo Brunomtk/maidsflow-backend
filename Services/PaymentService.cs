@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 using Core.DTO.Payments;
 using Core.Models;
 using Infrastructure.Repositories;
@@ -69,13 +70,43 @@ namespace Services
 
         public async Task<Payment> CreateAsync(CreatePaymentDto dto)
         {
-            if (_currentUser.IsProfessional)
-                throw new ForbiddenException("Profissional não tem permissão para criar pagamentos.");
-
+            // Company scope: non-admin users are always restricted to their own company.
             if (!_currentUser.IsAdmin)
             {
                 var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
                 if (scopedCompanyId.HasValue) dto.CompanyId = scopedCompanyId.Value;
+            }
+
+            // Professionals ARE allowed to create payments, but only for appointments they can access.
+            // This is used by the Professional check-out flow.
+            if (_currentUser.IsProfessional)
+            {
+                var appointmentId = TryExtractAppointmentId(dto.Reference);
+                if (!appointmentId.HasValue)
+                    throw new ForbiddenException("Para criar pagamento como profissional, a referência deve conter o id do agendamento (ex.: 'Appointment #123').");
+
+                // Validates: same company + professional is assigned (directly or via team membership)
+                await _scope.EnsureAppointmentAccessAsync(appointmentId.Value);
+
+                // If customerId is missing (some UIs don't send it), infer from the appointment.
+                if (!dto.CustomerId.HasValue)
+                {
+                    var appt = await _unitOfWork.Appointments.GetById(appointmentId.Value);
+                    if (appt == null)
+                        throw new InvalidOperationException("Agendamento não encontrado para vincular o pagamento.");
+
+                    dto.CustomerId = appt.CustomerId;
+                }
+            }
+
+            // Validate customer belongs to the scoped company (for non-admins).
+            if (!_currentUser.IsAdmin && dto.CustomerId.HasValue)
+            {
+                var customer = await _unitOfWork.Customers.GetByIdAsync(dto.CustomerId.Value);
+                if (customer == null)
+                    throw new InvalidOperationException("Cliente não encontrado para vincular o pagamento.");
+
+                await _scope.EnsureCompanyAccessAsync(customer.CompanyId);
             }
 
             var entity = new Payment
@@ -96,6 +127,23 @@ namespace Services
             _unitOfWork.Payments.Add(entity);
             await _unitOfWork.SaveAsync();
             return entity;
+        }
+
+        private static int? TryExtractAppointmentId(string reference)
+        {
+            if (string.IsNullOrWhiteSpace(reference)) return null;
+
+            // Expected formats from the frontend:
+            // - "Appointment #2255"
+            // - "Appointment #2255 - Customer Name"
+            // Be forgiving with spaces/case.
+            var match = Regex.Match(reference, @"appointment\s*#\s*(\d+)", RegexOptions.IgnoreCase);
+            if (!match.Success) return null;
+
+            if (int.TryParse(match.Groups[1].Value, out var id))
+                return id;
+
+            return null;
         }
 
         public async Task<Payment?> UpdateAsync(int id, UpdatePaymentDto dto)
