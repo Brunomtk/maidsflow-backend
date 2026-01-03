@@ -1469,6 +1469,47 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "ControlApi.Controllers.GpsTrackingController",
+    "Method": "GetRoutesByProfessional",
+    "RelativePath": "api/GpsTracking/professional/{professionalId}/routes",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "professionalId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dateFrom",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "dateTo",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "timeZoneId",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "includePoints",
+        "Type": "System.Boolean",
+        "IsRequired": false
+      },
+      {
+        "Name": "includeStops",
+        "Type": "System.Boolean",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "ControlApi.Controllers.InternalFeedbackController",
     "Method": "Create",
     "RelativePath": "api/InternalFeedback",

@@ -2,6 +2,8 @@ using Core.DTO.GpsTracking;
 using Core.Models;
 using Infrastructure.ServiceExtension;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -11,6 +13,11 @@ namespace Infrastructure.Repositories
     {
         Task<GpsTracking?> GetByIdAsync(int id);
         Task<PagedResult<GpsTracking>> GetPagedAsync(GpsTrackingFiltersDTO filters);
+
+        /// <summary>
+        /// Lista pontos de GPS de um profissional dentro de um intervalo (UTC), ordenados por Timestamp ASC.
+        /// </summary>
+        Task<List<GpsTracking>> GetByProfessionalAndRangeAsync(int professionalId, DateTime utcFromInclusive, DateTime utcToExclusive, int? companyId = null);
     }
 
     public class GpsTrackingRepository : GenericRepository<GpsTracking>, IGpsTrackingRepository
@@ -64,6 +71,21 @@ namespace Infrastructure.Repositories
             return await q
                 .OrderByDescending(x => x.Timestamp)
                 .GetPagedAsync(filters.PageNumber, filters.PageSize);
+        }
+
+        public async Task<List<GpsTracking>> GetByProfessionalAndRangeAsync(int professionalId, DateTime utcFromInclusive, DateTime utcToExclusive, int? companyId = null)
+        {
+            var q = _context.GpsTrackings
+                .AsNoTracking()
+                .Where(x => x.ProfessionalId == professionalId)
+                .Where(x => x.Timestamp >= utcFromInclusive && x.Timestamp < utcToExclusive);
+
+            if (companyId.HasValue)
+                q = q.Where(x => x.CompanyId == companyId.Value);
+
+            return await q
+                .OrderBy(x => x.Timestamp)
+                .ToListAsync();
         }
     }
 }

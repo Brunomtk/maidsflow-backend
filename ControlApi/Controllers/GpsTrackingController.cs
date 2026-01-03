@@ -1,5 +1,7 @@
 ﻿// ControlApi/Controllers/GpsTrackingController.cs
 using System.Threading.Tasks;
+using System;
+using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Core.DTO.GpsTracking;
@@ -71,6 +73,47 @@ namespace ControlApi.Controllers
             return deleted
                 ? Ok(true)
                 : NotFound("GPS tracking record not found");
+        }
+
+        /// <summary>
+        /// Mostra as rotas de um profissional (agrupadas por dia). Por padrão, retorna o dia atual.
+        /// Datas são interpretadas no fuso informado (default: America/Sao_Paulo) e o resultado devolve timestamps em UTC.
+        /// </summary>
+        [HttpGet("professional/{professionalId:int}/routes")]
+        public async Task<IActionResult> GetRoutesByProfessional(
+            int professionalId,
+            [FromQuery] string? dateFrom,
+            [FromQuery] string? dateTo,
+            [FromQuery] string? timeZoneId,
+            [FromQuery] bool includePoints = true,
+            [FromQuery] bool includeStops = true)
+        {
+            DateOnly? from = ParseDateOnly(dateFrom);
+            DateOnly? to = ParseDateOnly(dateTo);
+
+            var routes = await _gpsTrackingService.GetProfessionalRoutesAsync(
+                professionalId,
+                from,
+                to,
+                timeZoneId,
+                includePoints,
+                includeStops);
+
+            return Ok(routes);
+        }
+
+        private static DateOnly? ParseDateOnly(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+
+            // Aceita YYYY-MM-DD (recomendado) e também formatos comuns.
+            if (DateOnly.TryParseExact(value.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d))
+                return d;
+
+            if (DateOnly.TryParse(value.Trim(), CultureInfo.InvariantCulture, DateTimeStyles.None, out d))
+                return d;
+
+            return null;
         }
     }
 }
