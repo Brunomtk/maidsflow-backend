@@ -141,6 +141,21 @@ namespace Api.Controllers
         }
 
         /// <summary>
+        /// Ativa um plano em modo teste por 15 dias para uma Company.
+        /// A assinatura criada sempre terÃ¡ AutoRenew=false e EndDate=StartDate+15 dias.
+        /// Se existir uma assinatura ativa para essa Company, ela serÃ¡ marcada como Inactive e encerrada imediatamente.
+        /// </summary>
+        [HttpPost("{id}/activate-trial-15-days")]
+        public async Task<IActionResult> ActivatePlanTrial15Days([FromRoute] int id, [FromBody] ActivatePlanDTO dto)
+        {
+            if (id <= 0) return BadRequest("ID do plano invÃ¡lido.");
+            if (dto.CompanyId <= 0) return BadRequest("CompanyId invÃ¡lido.");
+
+            var subscription = await _subscriptionService.ActivateTrial15DaysAsync(id, dto.CompanyId);
+            return Ok(subscription);
+        }
+
+        /// <summary>
         /// Lista as Companies assinantes de um plano (com status e datas).
         /// </summary>
         [HttpGet("{id}/companies")]

@@ -112,6 +112,59 @@ namespace Services
             return subscription;
         }
 
+        public async Task<PlanSubscription> ActivateTrial15DaysAsync(int planId, int companyId)
+        {
+            // Company can activate only for itself; Professional can't.
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode alterar o plano.");
+
+            if (!_currentUser.IsAdmin)
+            {
+                var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+                if (!scopedCompanyId.HasValue)
+                    throw new ForbiddenException("Escopo de company inválido.");
+                companyId = scopedCompanyId.Value;
+            }
+
+            var plan = await _unitOfWork.Plans.GetById(planId);
+            if (plan == null) throw new InvalidOperationException("Plano não encontrado.");
+            if (plan.Status != Core.Enums.StatusEnum.Active)
+                throw new InvalidOperationException("Plano está inativo.");
+
+            var company = await _unitOfWork.Companies.GetById(companyId);
+            if (company == null) throw new InvalidOperationException("Company não encontrada.");
+
+            await RefreshExpiredSubscriptionsAsync();
+
+            // desativa assinatura ativa anterior
+            var currentActive = await _unitOfWork.PlanSubscriptions.GetActiveByCompanyAsync(companyId);
+            if (currentActive != null)
+            {
+                currentActive.Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Inactive;
+                // encerra imediatamente para evitar sobreposição
+                currentActive.EndDate = DateTime.UtcNow;
+                _unitOfWork.PlanSubscriptions.Update(currentActive);
+            }
+
+            var start = DateTime.UtcNow;
+            var end = start.AddDays(15);
+
+            var subscription = new PlanSubscription
+            {
+                PlanId = planId,
+                CompanyId = companyId,
+                StartDate = start,
+                EndDate = end,
+                Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Active,
+                AutoRenew = false
+            };
+
+            await _unitOfWork.PlanSubscriptions.Add(subscription);
+            _unitOfWork.Save();
+
+            return subscription;
+        }
+
         public async Task<bool> CancelAsync(int subscriptionId)
         {
             if (_currentUser.IsProfessional)
@@ -150,6 +203,7 @@ namespace Services
         Task<PlanSubscription?> GetActiveByCompanyAsync(int companyId);
         Task<List<PlanSubscription>> GetByCompanyAsync(int companyId);
         Task<PlanSubscription> ActivateAsync(int planId, int companyId, bool autoRenew);
+        Task<PlanSubscription> ActivateTrial15DaysAsync(int planId, int companyId);
         Task<bool> CancelAsync(int subscriptionId);
         Task<int> RefreshExpiredSubscriptionsAsync();
     }
