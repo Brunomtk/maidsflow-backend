@@ -106,11 +106,17 @@ namespace Services
 
         public async Task<bool> CreateCompany(Company company)
         {
-            // Signup creates the company before authentication. Allow anonymous creation,
-            // but keep this protected for authenticated non-admin roles.
-            // Anonymous requests have no NameIdentifier/Role claims -> UserId == 0.
-            if (!_currentUser.IsAdmin && _currentUser.UserId != 0)
-                throw new ForbiddenException("Somente admin pode criar companies.");
+            // Allow creating a company only in these cases:
+            // 1) Admin user.
+            // 2) Anonymous signup (no NameIdentifier/Role claims -> UserId == 0).
+            // 3) Company role user that is not yet scoped to any Company (CompanyId == null).
+            //    This covers flows where the user is authenticated but still completing onboarding.
+            // Any other authenticated non-admin (company already scoped / professional) is forbidden.
+            var isAnonymous = _currentUser.UserId == 0;
+            var isCompanyWithoutScope = _currentUser.IsCompany && !_currentUser.CompanyId.HasValue;
+
+            if (!_currentUser.IsAdmin && !isAnonymous && !isCompanyWithoutScope)
+                throw new ForbiddenException("Somente admin ou signup podem criar companies.");
 
             await _unitOfWork.Companies.Add(company);
             var result = await _unitOfWork.SaveAsync();
