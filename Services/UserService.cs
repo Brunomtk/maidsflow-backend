@@ -53,6 +53,40 @@ namespace Services
         {
             if (user == null) return false;
 
+            // --------------------
+            // Anonymous signup support
+            // --------------------
+            // During public signup the caller is not authenticated, so CurrentUser.UserId == 0.
+            // In that flow we only allow creating the *first* company owner user (role=company)
+            // for an already created CompanyId. Any other kind of user creation remains protected.
+            if (_currentUser.UserId == 0)
+            {
+                // Only company owner can be created anonymously
+                if (string.IsNullOrWhiteSpace(user.Role) ||
+                    !user.Role.Equals("company", StringComparison.OrdinalIgnoreCase))
+                    throw new ForbiddenException("Você não tem permissão para criar usuários.");
+
+                // Must target a valid company
+                if (!user.CompanyId.HasValue || user.CompanyId.Value <= 0)
+                    throw new ForbiddenException("CompanyId inválido.");
+
+                var companyExists = await _unitOfWork.Companies.GetById(user.CompanyId.Value);
+                if (companyExists == null)
+                    throw new ForbiddenException("CompanyId inválido.");
+
+                // Anonymous signup cannot assign permissions nor link a professional
+                if (user.ProfessionalId.HasValue)
+                    throw new ForbiddenException("ProfessionalId não é permitido no signup.");
+
+                if (user.Permissions != null && user.Permissions.Any())
+                    throw new ForbiddenException("Permissões não são permitidas no signup.");
+
+                user.Password = Encrypt.EncryptPassword(user.Password);
+                await _unitOfWork.Users.Add(user);
+                var createdRows = _unitOfWork.Save();
+                return createdRows > 0;
+            }
+
             if (!_currentUser.IsAdmin && !_currentUser.IsCompany)
                 throw new ForbiddenException("Você não tem permissão para criar usuários.");
 
