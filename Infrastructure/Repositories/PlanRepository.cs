@@ -29,7 +29,12 @@ namespace Infrastructure.Repositories
 
         public async Task<PagedResult<Plan>> GetPlansPaged(FiltersDTO filtersDTO)
         {
-            var query = _dbContext.Set<Plan>().AsQueryable();
+            // Admin plans screen needs subscription counts; include subscriptions in the paged listing.
+            // Use split query to avoid cartesian explosion.
+            var query = _dbContext.Set<Plan>()
+                .Include(p => p.Subscriptions!)
+                .AsSplitQuery()
+                .AsQueryable();
 
             if (!string.IsNullOrEmpty(filtersDTO.Name))
             {

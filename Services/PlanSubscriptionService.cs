@@ -92,9 +92,11 @@ namespace Services
                 _unitOfWork.PlanSubscriptions.Update(currentActive);
             }
 
+            // Duration in this project is treated as DAYS (e.g. 15 days trial / 30 days monthly).
+            // Older comment in Plan.cs mentioned months, but production usage is days.
             var start = DateTime.UtcNow;
-            var durationMonths = plan.Duration <= 0 ? 1 : plan.Duration;
-            var end = start.AddMonths(durationMonths);
+            var durationDays = plan.Duration <= 0 ? 1 : plan.Duration;
+            var end = start.AddDays(durationDays);
 
             var subscription = new PlanSubscription
             {
