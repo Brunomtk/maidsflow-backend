@@ -62,6 +62,8 @@ namespace ControlApi.Controllers
 
         // POST api/Companies
         [HttpPost]
+        // Signup flow creates the Company before authentication, so this endpoint must be public.
+        [AllowAnonymous]
         public async Task<IActionResult> CreateCompany([FromBody] CreateCompanyRequest request)
         {
             var company = new Company
