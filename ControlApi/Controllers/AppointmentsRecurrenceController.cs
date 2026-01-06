@@ -284,7 +284,14 @@ public async Task<IActionResult> GetCalendar(
     foreach (var a in normals)
     {
         var customerMini = a.Customer != null
-            ? new CalendarCustomerMiniDTO { Id = a.Customer.Id, Name = a.Customer.Name }
+            ? new CalendarCustomerMiniDTO
+            {
+                Id = a.Customer.Id,
+                Name = a.Customer.Name,
+                Email = a.Customer.Email,
+                Phone = a.Customer.Phone,
+                Address = a.Customer.Address,
+            }
             : null;
         var teamMini = a.Team != null
             ? new CalendarTeamMiniDTO { Id = a.Team.Id, Name = a.Team.Name }
@@ -307,6 +314,10 @@ public async Task<IActionResult> GetCalendar(
             Address = a.Address,
             Notes = a.Notes,
 
+            CustomerEmail = a.Customer?.Email,
+            CustomerPhone = a.Customer?.Phone,
+            CustomerAddress = a.Customer?.Address,
+
             CompanyId = a.CompanyId,
             CustomerId = a.CustomerId,
             TeamId = a.TeamId,
@@ -323,7 +334,14 @@ public async Task<IActionResult> GetCalendar(
     foreach (var anchor in anchors)
     {
         var customerMini = anchor.Customer != null
-            ? new CalendarCustomerMiniDTO { Id = anchor.Customer.Id, Name = anchor.Customer.Name }
+            ? new CalendarCustomerMiniDTO
+            {
+                Id = anchor.Customer.Id,
+                Name = anchor.Customer.Name,
+                Email = anchor.Customer.Email,
+                Phone = anchor.Customer.Phone,
+                Address = anchor.Customer.Address,
+            }
             : null;
         var teamMini = anchor.Team != null
             ? new CalendarTeamMiniDTO { Id = anchor.Team.Id, Name = anchor.Team.Name }
@@ -394,6 +412,10 @@ public async Task<IActionResult> GetCalendar(
                     Address = ex.OverrideAddress ?? anchor.Address,
                     Notes = ex.OverrideNotes ?? anchor.Notes,
 
+                    CustomerEmail = anchor.Customer?.Email,
+                    CustomerPhone = anchor.Customer?.Phone,
+                    CustomerAddress = anchor.Customer?.Address,
+
                     CompanyId = anchor.CompanyId,
                     CustomerId = anchor.CustomerId,
                     TeamId = anchor.TeamId,
@@ -440,6 +462,10 @@ public async Task<IActionResult> GetCalendar(
                 Title = baseTitle,
                 Address = anchor.Address,
                 Notes = anchor.Notes,
+
+                CustomerEmail = anchor.Customer?.Email,
+                CustomerPhone = anchor.Customer?.Phone,
+                CustomerAddress = anchor.Customer?.Address,
 
                 CompanyId = anchor.CompanyId,
                 CustomerId = anchor.CustomerId,

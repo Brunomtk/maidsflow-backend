@@ -32,6 +32,12 @@ namespace Core.DTO.Appointment
         public string? Address { get; set; }
         public string? Notes { get; set; }
 
+        // Conveniência: alguns consumidores (n8n/notificações) preferem campos no nível raiz.
+        // Também permanecem disponíveis dentro de Customer.
+        public string? CustomerEmail { get; set; }
+        public string? CustomerPhone { get; set; }
+        public string? CustomerAddress { get; set; }
+
         // Alguns bancos/instâncias legadas podem ter estes campos como nullable.
         // Para o calendário, é melhor preservar null do que forçar 0.
         public int? CompanyId { get; set; }

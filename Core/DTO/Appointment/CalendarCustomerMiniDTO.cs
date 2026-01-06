@@ -7,5 +7,10 @@ namespace Core.DTO.Appointment
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
+
+        // Campos úteis para notificações (e-mail/SMS) e telas de detalhe.
+        public string? Email { get; set; }
+        public string? Phone { get; set; }
+        public string? Address { get; set; }
     }
 }
