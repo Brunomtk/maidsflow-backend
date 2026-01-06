@@ -80,10 +80,12 @@ namespace ControlApi.Controllers
             var ok = await _companyService.CreateCompany(company);
             if (!ok) return BadRequest("Unable to create company.");
 
-            // Recarrega para trazer navegações (Plan) e garantir DTO completo
-            var created = await _companyService.GetCompanyById(company.Id) ?? company;
-
-            return CreatedAtAction(nameof(GetCompanyById), new { id = created.Id }, ToDto(created));
+            // IMPORTANT:
+            // This endpoint is called anonymously during signup. At this point there is no scope
+            // (companyId claim) available, so calling GetCompanyById() would trigger ScopeGuard and
+            // return 403. We can safely return the newly created entity.
+            // (Plan navigation may not be loaded here; that's OK for signup, which mainly needs the Id.)
+            return CreatedAtAction(nameof(GetCompanyById), new { id = company.Id }, ToDto(company));
         }
 
         // PUT api/Companies/{id}
