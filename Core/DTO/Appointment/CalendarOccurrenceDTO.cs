@@ -38,6 +38,9 @@ namespace Core.DTO.Appointment
         public string? CustomerPhone { get; set; }
         public string? CustomerAddress { get; set; }
 
+        // Conveniência: nome da empresa responsável pelo agendamento (útil para templates de e-mail/n8n).
+        public string? CompanyName { get; set; }
+
         // Alguns bancos/instâncias legadas podem ter estes campos como nullable.
         // Para o calendário, é melhor preservar null do que forçar 0.
         public int? CompanyId { get; set; }

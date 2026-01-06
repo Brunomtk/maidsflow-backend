@@ -214,6 +214,7 @@ public async Task<IActionResult> GetCalendar(
 
     // 1) Eventos não recorrentes (normais)
     var normalQuery = _db.Set<Appointment>().AsNoTracking()
+        .Include(a => a.Company)
         .Include(a => a.Customer)
         .Include(a => a.Team)
         .Where(a => !a.IsRecurring && a.Start < rangeEnd && a.End > rangeStart);
@@ -236,6 +237,7 @@ public async Task<IActionResult> GetCalendar(
 
     // 2) Âncoras recorrentes
     var anchorsQuery = _db.Set<Appointment>().AsNoTracking()
+        .Include(a => a.Company)
         .Include(a => a.Customer)
         .Include(a => a.Team)
         .Where(a => a.IsRecurring
@@ -317,6 +319,8 @@ public async Task<IActionResult> GetCalendar(
             CustomerEmail = a.Customer?.Email,
             CustomerPhone = a.Customer?.Phone,
             CustomerAddress = a.Customer?.Address,
+
+            CompanyName = a.Company?.Name,
 
             CompanyId = a.CompanyId,
             CustomerId = a.CustomerId,
@@ -416,6 +420,8 @@ public async Task<IActionResult> GetCalendar(
                     CustomerPhone = anchor.Customer?.Phone,
                     CustomerAddress = anchor.Customer?.Address,
 
+                    CompanyName = anchor.Company?.Name,
+
                     CompanyId = anchor.CompanyId,
                     CustomerId = anchor.CustomerId,
                     TeamId = anchor.TeamId,
@@ -466,6 +472,8 @@ public async Task<IActionResult> GetCalendar(
                 CustomerEmail = anchor.Customer?.Email,
                 CustomerPhone = anchor.Customer?.Phone,
                 CustomerAddress = anchor.Customer?.Address,
+
+                CompanyName = anchor.Company?.Name,
 
                 CompanyId = anchor.CompanyId,
                 CustomerId = anchor.CustomerId,
