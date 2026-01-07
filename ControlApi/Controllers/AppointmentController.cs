@@ -99,7 +99,11 @@ namespace ControlApi.Controllers
         /// Company/Professional só podem enviar se tiverem acesso ao appointment (ScopeGuard).
         /// </summary>
         [HttpPost("{id}/on-my-way-sms")]
-        public async Task<IActionResult> SendOnMyWaySms(int id, CancellationToken ct)
+        public async Task<IActionResult> SendOnMyWaySms(
+            int id,
+            [FromQuery] int? etaMinutes,
+            [FromBody] OnMyWaySmsRequestDTO? request,
+            CancellationToken ct)
         {
             // Segurança multi-tenant
             await _scope.EnsureAppointmentAccessAsync(id);
@@ -123,13 +127,21 @@ namespace ControlApi.Controllers
                 ? appt.Address
                 : (appt.Customer?.Address ?? string.Empty);
 
-            // En-US date/time format (igual exemplo do Twilio)
-            var when = appt.Start.ToString("dddd, MMMM d 'at' hh:mm tt", CultureInfo.GetCultureInfo("en-US"));
+            var eta = request?.EtaMinutes ?? etaMinutes ?? 15;
+
+            if (eta < 1 || eta > 240)
+                return BadRequest("etaMinutes deve estar entre 1 e 240 minutos.");
+
+            if (string.IsNullOrWhiteSpace(address))
+                address = appt.Customer?.Address ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(address))
+                return BadRequest("Não foi possível determinar o endereço do agendamento.");
 
             var body =
-                $"Hi {customerName}, this is {companyName}. Reminder: I'm on my way for your cleaning appointment scheduled for {when} at {address}. Reply HELP for help or STOP to unsubscribe.";
+                $"Hi {customerName}, this is {companyName}. Reminder: our team is on the way and will arrive at your location in approximately {eta} minutes at {address}. Reply HELP for help or STOP to unsubscribe.";
 
-            var (sid, raw) = await _sms.SendSmsAsync(to, body, ct);
+var (sid, raw) = await _sms.SendSmsAsync(to, body, ct);
 
             return Ok(new
             {

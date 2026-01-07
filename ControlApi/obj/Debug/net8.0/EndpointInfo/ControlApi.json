@@ -231,8 +231,35 @@
               "type": "integer",
               "format": "int32"
             }
+          },
+          {
+            "name": "etaMinutes",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnMyWaySmsRequestDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnMyWaySmsRequestDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnMyWaySmsRequestDTO"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Success"
@@ -546,8 +573,35 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "etaMinutes",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnMyWaySmsRequestDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnMyWaySmsRequestDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnMyWaySmsRequestDTO"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Success"
@@ -7308,6 +7362,17 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "OnMyWaySmsRequestDTO": {
+        "type": "object",
+        "properties": {
+          "etaMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "Payment": {
         "type": "object",
