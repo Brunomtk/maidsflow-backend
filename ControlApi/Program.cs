@@ -11,6 +11,7 @@ using Serilog.Events;
 using Serilog.Exceptions;
 using Services;
 using Services.Storage;
+using Services.Integrations.Twilio;
 using Core.Options;
 using System.Text.Json.Serialization;
 using System.Net;
@@ -62,6 +63,12 @@ namespace ControlApi
             // -----------------------------
             builder.Services.Configure<S3Options>(builder.Configuration.GetSection("S3"));
             builder.Services.AddSingleton<IS3StorageService, S3StorageService>();
+
+            // -----------------------------
+            // Twilio (SMS)
+            // -----------------------------
+            builder.Services.Configure<TwilioOptions>(builder.Configuration.GetSection("Twilio"));
+            builder.Services.AddHttpClient<ITwilioSmsSender, TwilioSmsSender>();
 
             // -----------------------------
             // Background Jobs

@@ -2,12 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Threading;
 using Core.DTO.Appointment;
 using Core.Models;
 using Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+
+using Services.Integrations.Twilio;
+using Services.Security;
+using System.Globalization;
 
 namespace ControlApi.Controllers
 {
@@ -17,13 +22,17 @@ namespace ControlApi.Controllers
     public class AppointmentsRecurrenceController : ControllerBase
     {
         private readonly DbContextClass _db;
+        private readonly ITwilioSmsSender _sms;
+        private readonly ICurrentUser _currentUser;
 
-        public AppointmentsRecurrenceController(DbContextClass db)
+        public AppointmentsRecurrenceController(DbContextClass db, ITwilioSmsSender sms, ICurrentUser currentUser)
         {
             _db = db;
+            _sms = sms;
+            _currentUser = currentUser;
         }
 
-        // CREATE (single or recurring)
+// CREATE (single or recurring)
                 [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateAppointmentDTO dto)
         {
@@ -514,6 +523,92 @@ public async Task<IActionResult> UpdateInstance(string instanceId, [FromBody] Up
     // Reaproveita a lógica de Update por ID
     return await Update(anchor.Id, dto);
 }
+
+        /// <summary>
+        /// Envia SMS "On my way" para uma OCORRÊNCIA recorrente (virtual) usando o InstanceId do calendário.
+        /// Aplica exceções (override/cancel) e valida acesso considerando ProfessionalIds finais.
+        /// </summary>
+        [HttpPost("instance/{instanceId}/on-my-way-sms")]
+        public async Task<IActionResult> SendOnMyWaySmsInstance(string instanceId, CancellationToken ct)
+        {
+            if (!TryDecodeInstanceId(instanceId, out var seriesId, out var occStart))
+                return BadRequest("InstanceId inválido.");
+
+            // Carrega âncora com Company + Customer para montar a mensagem
+            var anchor = await _db.Set<Appointment>()
+                .Include(a => a.Company)
+                .Include(a => a.Customer)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.IsRecurring && a.SeriesId == seriesId, ct);
+
+            if (anchor == null)
+                return NotFound("Série recorrente não encontrada.");
+
+            // Busca a exceção (se existir) para essa ocorrência
+            var ex = await _db.Set<AppointmentRecurrenceException>()
+                .AsNoTracking()
+                .Where(e => e.SeriesId == seriesId && e.OccurrenceStart == occStart)
+                .OrderByDescending(e => e.UpdatedDate)
+                .FirstOrDefaultAsync(ct);
+
+            if (ex?.IsCancelled == true)
+                return BadRequest("Esta ocorrência foi cancelada.");
+
+            // Aplica overrides (se existirem)
+            var startFinal = ex?.OverrideStart ?? occStart;
+
+            var addressFinal =
+                !string.IsNullOrWhiteSpace(ex?.OverrideAddress) ? ex!.OverrideAddress :
+                (!string.IsNullOrWhiteSpace(anchor.Address) ? anchor.Address :
+                 (anchor.Customer?.Address ?? string.Empty));
+
+            var finalProfessionalIds = (ex?.OverrideProfessionalIds != null && ex.OverrideProfessionalIds.Any())
+                ? ex.OverrideProfessionalIds.Distinct().ToList()
+                : (anchor.ProfessionalIds?.Distinct().ToList() ?? new List<int>());
+
+            // Validação de acesso (considera override de profissionais)
+            if (!_currentUser.IsAdmin)
+            {
+                if (_currentUser.IsCompany)
+                {
+                    if (!_currentUser.CompanyId.HasValue || anchor.CompanyId != _currentUser.CompanyId.Value)
+                        return Forbid();
+                }
+                else if (_currentUser.IsProfessional)
+                {
+                    if (!_currentUser.ProfessionalId.HasValue || !finalProfessionalIds.Contains(_currentUser.ProfessionalId.Value))
+                        return Forbid();
+                }
+                else
+                {
+                    return Forbid();
+                }
+            }
+
+            var companyName = anchor.Company?.Name ?? "Our Team";
+            var customerName = anchor.Customer?.Name ?? "there";
+            var to = anchor.Customer?.Phone ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(to))
+                return BadRequest("Customer não possui telefone para envio de SMS.");
+
+            var when = startFinal.ToString("dddd, MMMM d 'at' hh:mm tt", CultureInfo.GetCultureInfo("en-US"));
+
+            var body =
+                $"Hi {customerName}, this is {companyName}. Reminder: I'm on my way for your cleaning appointment scheduled for {when} at {addressFinal}. Reply HELP for help or STOP to unsubscribe.";
+
+            var (sid, raw) = await _sms.SendSmsAsync(to, body, ct);
+
+            return Ok(new
+            {
+                instanceId,
+                appointmentId = anchor.Id,
+                to,
+                messageSid = sid,
+                body
+            });
+        }
+
 
 /// <summary>
 /// Deleta uma ocorrência recorrente por InstanceId (sem o front precisar calcular OccurrenceStart).
