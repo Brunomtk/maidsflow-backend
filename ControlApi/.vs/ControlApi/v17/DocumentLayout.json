@@ -1,9 +1,9 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_scopes_v5_sendgrid_credentials_email_buildfix2_notfoundfix\\maidsflow-backend_scopes_v5_fix_errors\\ControlApi\\",
+  "WorkspaceRootPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_scopes_v5_sendgrid_password_changed_notice\\maidsflow-backend_scopes_v5_fix_errors\\ControlApi\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{71A6AF3F-6B94-48DA-AAED-D1A5D36C8E02}|ControlApi.csproj|e:\\projetos b7\\maidsflow\\dev\\maidsflow-backend_scopes_v5_sendgrid_credentials_email_buildfix2_notfoundfix\\maidsflow-backend_scopes_v5_fix_errors\\controlapi\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "AbsoluteMoniker": "D:0:0:{71A6AF3F-6B94-48DA-AAED-D1A5D36C8E02}|ControlApi.csproj|e:\\projetos b7\\maidsflow\\dev\\maidsflow-backend_scopes_v5_sendgrid_password_changed_notice\\maidsflow-backend_scopes_v5_fix_errors\\controlapi\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
       "RelativeMoniker": "D:0:0:{71A6AF3F-6B94-48DA-AAED-D1A5D36C8E02}|ControlApi.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     }
   ],
@@ -20,13 +20,13 @@
               "$type": "Document",
               "DocumentIndex": 0,
               "Title": "appsettings.json",
-              "DocumentMoniker": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_scopes_v5_sendgrid_credentials_email_buildfix2_notfoundfix\\maidsflow-backend_scopes_v5_fix_errors\\ControlApi\\appsettings.json",
+              "DocumentMoniker": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_scopes_v5_sendgrid_password_changed_notice\\maidsflow-backend_scopes_v5_fix_errors\\ControlApi\\appsettings.json",
               "RelativeDocumentMoniker": "appsettings.json",
-              "ToolTip": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_scopes_v5_sendgrid_credentials_email_buildfix2_notfoundfix\\maidsflow-backend_scopes_v5_fix_errors\\ControlApi\\appsettings.json",
+              "ToolTip": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_scopes_v5_sendgrid_password_changed_notice\\maidsflow-backend_scopes_v5_fix_errors\\ControlApi\\appsettings.json",
               "RelativeToolTip": "appsettings.json",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAAEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-01-08T18:09:40.32Z",
+              "WhenOpened": "2026-01-08T23:46:40.825Z",
               "EditorCaption": ""
             }
           ]

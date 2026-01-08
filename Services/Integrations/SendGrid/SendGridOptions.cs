@@ -22,4 +22,7 @@ public class SendGridOptions
 
     /// <summary>Default subject used for credentials emails.</summary>
     public string CredentialsSubject { get; set; } = "Your MaidsFlow access credentials";
+
+    /// <summary>Default subject used for password changed notice emails.</summary>
+    public string PasswordChangedSubject { get; set; } = "Your MaidsFlow password was changed";
 }

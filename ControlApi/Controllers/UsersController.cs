@@ -292,5 +292,25 @@ namespace ControlApi.Controllers
                 ProviderResponse = result.ProviderResponse
             });
         }
+
+        [HttpPost("{id:int}/send-password-changed-notice")]
+        public async Task<IActionResult> SendPasswordChangedNotice(int id, [FromBody] SendPasswordChangedNoticeRequest request)
+        {
+            request ??= new SendPasswordChangedNoticeRequest();
+
+            var result = await _credentialsEmail.SendPasswordChangedNoticeAsync(
+                userId: id,
+                loginUrl: request.LoginUrl,
+                ct: HttpContext.RequestAborted);
+
+            return Ok(new SendPasswordChangedNoticeResponse
+            {
+                UserId = result.UserId,
+                ToEmail = result.ToEmail,
+                EmailSent = result.EmailSent,
+                ProviderStatusCode = result.ProviderStatusCode,
+                ProviderResponse = result.ProviderResponse
+            });
+        }
     }
 }

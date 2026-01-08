@@ -131,6 +131,69 @@ public class CredentialsEmailService : ICredentialsEmailService
         );
     }
 
+    public async Task<SendPasswordChangedNoticeResult> SendPasswordChangedNoticeAsync(
+        int userId,
+        string? loginUrl,
+        CancellationToken ct = default)
+    {
+        // Allowed:
+        // - Admin
+        // - Company (within scope, not admin user)
+        // - The user themselves (any role)
+        var isSelf = _currentUser.UserId == userId;
+
+        if (!isSelf && !_currentUser.IsAdmin && !_currentUser.IsCompany)
+            throw new ForbiddenException("Você não tem permissão para enviar esse e-mail.");
+
+        var user = await _uow.Users.GetByIdWithPermissions(userId);
+        if (user == null)
+            throw new KeyNotFoundException("Usuário não encontrado.");
+
+        if (!isSelf && !_currentUser.IsAdmin)
+        {
+            if (!user.CompanyId.HasValue)
+                throw new ForbiddenException("Usuário sem company.");
+
+            await _scope.EnsureCompanyAccessAsync(user.CompanyId.Value);
+
+            if (!string.IsNullOrWhiteSpace(user.Role) && user.Role.Equals("admin", StringComparison.OrdinalIgnoreCase))
+                throw new ForbiddenException("Company não pode enviar e-mail para usuário admin.");
+        }
+
+        var companyName = await ResolveCompanyNameAsync(user);
+        var url = string.IsNullOrWhiteSpace(loginUrl) ? _options.SupportUrl : loginUrl;
+        var subject = string.IsNullOrWhiteSpace(_options.PasswordChangedSubject)
+            ? "Your MaidsFlow password was changed"
+            : _options.PasswordChangedSubject;
+
+        var rendered = PasswordChangedEmailTemplate.Render(
+            new PasswordChangedEmailTemplate.Payload(
+                CompanyName: companyName,
+                UserName: user.Name ?? string.Empty,
+                Email: user.Email ?? string.Empty,
+                LoginUrl: url,
+                ChangedAtUtc: DateTime.UtcNow
+            ),
+            subject
+        );
+
+        var send = await _emailSender.SendAsync(new SendGridEmailMessage(
+            ToEmail: user.Email ?? string.Empty,
+            Subject: rendered.Subject,
+            PlainText: rendered.PlainText,
+            Html: rendered.Html,
+            ToName: user.Name
+        ), ct);
+
+        return new SendPasswordChangedNoticeResult(
+            UserId: user.Id,
+            ToEmail: user.Email ?? string.Empty,
+            EmailSent: send.Ok,
+            ProviderStatusCode: send.StatusCode == 0 ? null : send.StatusCode,
+            ProviderResponse: send.ResponseBody ?? send.Error
+        );
+    }
+
     private async Task<string> ResolveCompanyNameAsync(Core.Models.User user)
     {
         if (user.CompanyId.HasValue)
