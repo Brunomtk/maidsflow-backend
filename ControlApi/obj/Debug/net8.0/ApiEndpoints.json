@@ -3338,6 +3338,27 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "ControlApi.Controllers.UsersController",
+    "Method": "SendCredentialsEmail",
+    "RelativePath": "api/Users/{id}/send-credentials",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "Core.DTO.User.SendCredentialsEmailRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "ControlApi.Controllers.UserAvatarsController",
     "Method": "Get",
     "RelativePath": "api/Users/{userId}/avatar",

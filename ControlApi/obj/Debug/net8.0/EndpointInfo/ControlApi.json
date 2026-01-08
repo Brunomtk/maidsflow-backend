@@ -5694,6 +5694,48 @@
           }
         }
       }
+    },
+    "/api/Users/{id}/send-credentials": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendCredentialsEmailRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendCredentialsEmailRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendCredentialsEmailRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7961,6 +8003,19 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "SendCredentialsEmailRequest": {
+        "type": "object",
+        "properties": {
+          "generateNewPassword": {
+            "type": "boolean"
+          },
+          "loginUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "StatusEnum": {
         "enum": [

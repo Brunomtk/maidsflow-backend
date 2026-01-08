@@ -12,6 +12,8 @@ using Serilog.Exceptions;
 using Services;
 using Services.Storage;
 using Services.Integrations.Twilio;
+using Services.Integrations.SendGrid;
+using Services.Email;
 using Core.Options;
 using System.Text.Json.Serialization;
 using System.Net;
@@ -69,6 +71,13 @@ namespace ControlApi
             // -----------------------------
             builder.Services.Configure<TwilioOptions>(builder.Configuration.GetSection("Twilio"));
             builder.Services.AddHttpClient<ITwilioSmsSender, TwilioSmsSender>();
+
+            // -----------------------------
+            // SendGrid (Email)
+            // -----------------------------
+            builder.Services.Configure<SendGridOptions>(builder.Configuration.GetSection("SendGrid"));
+            builder.Services.AddHttpClient<ISendGridEmailSender, SendGridEmailSender>();
+            builder.Services.AddScoped<ICredentialsEmailService, CredentialsEmailService>();
 
             // -----------------------------
             // Background Jobs

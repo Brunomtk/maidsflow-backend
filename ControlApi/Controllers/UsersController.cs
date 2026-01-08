@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Services;
+using Services.Email;
 using Services.Storage;
 
 namespace ControlApi.Controllers
@@ -24,13 +25,15 @@ namespace ControlApi.Controllers
         private readonly IUserService _userService;
         private readonly IConfiguration _configuration;
         private readonly IS3StorageService _s3;
+        private readonly ICredentialsEmailService _credentialsEmail;
 
-        public UsersController(IJWTManager jwtManager, IUserService userService, IConfiguration configuration, IS3StorageService s3)
+        public UsersController(IJWTManager jwtManager, IUserService userService, IConfiguration configuration, IS3StorageService s3, ICredentialsEmailService credentialsEmail)
         {
             _jwtManager = jwtManager;
             _userService = userService;
             _configuration = configuration;
             _s3 = s3;
+            _credentialsEmail = credentialsEmail;
         }
 
         // ===== AUTENTICAÇÃO =====
@@ -263,6 +266,31 @@ namespace ControlApi.Controllers
                 return NotFound();
 
             return NoContent();
+        }
+
+        // ===== CREDENTIALS EMAIL (SendGrid) =====
+
+        [HttpPost("{id:int}/send-credentials")]
+        public async Task<IActionResult> SendCredentialsEmail(int id, [FromBody] SendCredentialsEmailRequest request)
+        {
+            request ??= new SendCredentialsEmailRequest();
+
+            var result = await _credentialsEmail.SendUserCredentialsAsync(
+                userId: id,
+                generateNewPassword: request.GenerateNewPassword,
+                loginUrl: request.LoginUrl,
+                ct: HttpContext.RequestAborted);
+
+            return Ok(new SendCredentialsEmailResponse
+            {
+                UserId = result.UserId,
+                ToEmail = result.ToEmail,
+                PasswordRegenerated = result.PasswordRegenerated,
+                GeneratedPassword = result.GeneratedPassword,
+                EmailSent = result.EmailSent,
+                ProviderStatusCode = result.ProviderStatusCode,
+                ProviderResponse = result.ProviderResponse
+            });
         }
     }
 }
