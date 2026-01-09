@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Core.DTO.Notifications;
 using Core.Enums.Appointment;
 using Core.Enums.Notifications;
+using Core.Enums.User;
 using Core.Models;
 using Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -61,7 +62,12 @@ namespace ControlApi.BackgroundJobs
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<DbContextClass>();
-            var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+            // IMPORTANT:
+            // Background jobs do NOT run under an authenticated HttpContext.
+            // Therefore, services that depend on ICurrentUser/ScopeGuard (like NotificationService)
+            // may throw "Escopo de company inválido".
+            // We create Notification entities directly and then trigger WebPush via IPushNotificationSender.
+            var pushSender = scope.ServiceProvider.GetRequiredService<IPushNotificationSender>();
 
             var nowUtc = DateTime.UtcNow;
 
@@ -93,16 +99,12 @@ namespace ControlApi.BackgroundJobs
             foreach (var a in nonRecurringCandidates)
             {
                 var tz = ResolveTimeZoneSafe(a.TimeZoneId);
-                DateTime startUtc;
-                if (string.IsNullOrWhiteSpace(a.TimeZoneId))
-                {
-                    // Se não temos fuso, assumimos que Start já está em UTC
-                    startUtc = DateTime.SpecifyKind(a.Start, DateTimeKind.Utc);
-                }
-                else
-                {
-                    startUtc = LocalToUtc(a.Start, tz);
-                }
+                // EF costuma materializar DateTime como Unspecified.
+                // Se vier UTC, não convertemos.
+                // Caso contrário, tratamos como horário local do appointment (TimeZoneId ou fallback TimeZoneInfo.Local).
+                var startUtc = a.Start.Kind == DateTimeKind.Utc
+                    ? a.Start
+                    : LocalToUtc(a.Start, tz);
 
                 if (startUtc < windowStartUtc || startUtc >= windowEndUtc)
                     continue;
@@ -113,7 +115,7 @@ namespace ControlApi.BackgroundJobs
 
                 await SendReminderForOccurrenceAsync(
                     db,
-                    notificationService,
+                    pushSender,
                     appointmentAnchor: a,
                     seriesId: null,
                     occurrenceStartLocal: a.Start,
@@ -187,7 +189,7 @@ namespace ControlApi.BackgroundJobs
 
                         await SendReminderForOccurrenceAsync(
                             db,
-                            notificationService,
+                            pushSender,
                             appointmentAnchor: anchor,
                             seriesId: seriesId,
                             occurrenceStartLocal: effectiveStart,
@@ -205,7 +207,7 @@ namespace ControlApi.BackgroundJobs
 
                     await SendReminderForOccurrenceAsync(
                         db,
-                        notificationService,
+                        pushSender,
                         appointmentAnchor: anchor,
                         seriesId: seriesId,
                         occurrenceStartLocal: occ.startLocal,
@@ -218,7 +220,7 @@ namespace ControlApi.BackgroundJobs
 
         private async Task SendReminderForOccurrenceAsync(
             DbContextClass db,
-            INotificationService notificationService,
+            IPushNotificationSender pushSender,
             Appointment appointmentAnchor,
             Guid? seriesId,
             DateTime occurrenceStartLocal,
@@ -315,16 +317,14 @@ namespace ControlApi.BackgroundJobs
 
             if (ptUsers.Count > 0)
             {
-                await notificationService.CreateAsync(new CreateNotificationDTO
-                {
-                    Title = "Agendamento em 30 minutos",
-                    Message = BuildMessagePt(appointmentAnchor, occurrenceStartLocal),
-                    Type = "Info",
-                    RecipientRole = "Professional",
-                    IsBroadcast = false,
-                    UserIds = ptUsers,
-                    CompanyId = appointmentAnchor.CompanyId
-                });
+                await CreateAndSendAsync(
+                    db,
+                    pushSender,
+                    title: "Agendamento em 30 minutos",
+                    message: BuildMessagePt(appointmentAnchor, occurrenceStartLocal),
+                    recipientRole: "Professional",
+                    userIds: ptUsers,
+                    companyId: appointmentAnchor.CompanyId);
 
                 _logger.LogInformation(
                     "[Reminders] Created PT notifications appointmentId={Id} users=[{Users}]",
@@ -333,16 +333,14 @@ namespace ControlApi.BackgroundJobs
 
             if (enUsers.Count > 0)
             {
-                await notificationService.CreateAsync(new CreateNotificationDTO
-                {
-                    Title = "Appointment in 30 minutes",
-                    Message = BuildMessageEn(appointmentAnchor, occurrenceStartLocal),
-                    Type = "Info",
-                    RecipientRole = "Professional",
-                    IsBroadcast = false,
-                    UserIds = enUsers,
-                    CompanyId = appointmentAnchor.CompanyId
-                });
+                await CreateAndSendAsync(
+                    db,
+                    pushSender,
+                    title: "Appointment in 30 minutes",
+                    message: BuildMessageEn(appointmentAnchor, occurrenceStartLocal),
+                    recipientRole: "Professional",
+                    userIds: enUsers,
+                    companyId: appointmentAnchor.CompanyId);
 
                 _logger.LogInformation(
                     "[Reminders] Created EN notifications appointmentId={Id} users=[{Users}]",
@@ -381,9 +379,10 @@ namespace ControlApi.BackgroundJobs
 
         private static TimeZoneInfo ResolveTimeZoneSafe(string? timeZoneId)
         {
-            // Não fixamos em um fuso específico: se vier TimeZoneId válido, usamos; caso contrário, UTC.
+            // Se vier TimeZoneId válido, usamos.
+            // Caso contrário, usamos TimeZoneInfo.Local (importantíssimo em servidores onde o banco armazena Start em horário local).
             if (string.IsNullOrWhiteSpace(timeZoneId))
-                return TimeZoneInfo.Utc;
+                return TimeZoneInfo.Local;
 
             try
             {
@@ -391,7 +390,7 @@ namespace ControlApi.BackgroundJobs
             }
             catch
             {
-                return TimeZoneInfo.Utc;
+                return TimeZoneInfo.Local;
             }
         }
 
@@ -400,6 +399,52 @@ namespace ControlApi.BackgroundJobs
             // Treat local as Unspecified to avoid accidental double conversion.
             var unspecified = DateTime.SpecifyKind(local, DateTimeKind.Unspecified);
             return TimeZoneInfo.ConvertTimeToUtc(unspecified, tz);
+        }
+
+        private async Task CreateAndSendAsync(
+            DbContextClass db,
+            IPushNotificationSender pushSender,
+            string title,
+            string message,
+            string recipientRole,
+            List<int> userIds,
+            int? companyId)
+        {
+            // Persist notifications first (so the app can show them even if push is not configured)
+            var created = new List<Notification>();
+            var nowUtc = DateTime.UtcNow;
+
+            foreach (var uid in userIds.Distinct())
+            {
+                created.Add(new Notification
+                {
+                    Title = title,
+                    Message = message,
+                    Type = NotificationType.Info,
+                    RecipientId = uid,
+                    RecipientRole = UserRole.Professional,
+                    CompanyId = companyId,
+                    Status = NotificationStatus.Unread,
+                    SentAt = nowUtc
+                });
+            }
+
+            if (created.Count == 0) return;
+
+            db.Notifications.AddRange(created);
+            await db.SaveChangesAsync();
+
+            // Trigger WebPush for the created notifications (best-effort)
+            await pushSender.TrySendForCreatedNotificationsAsync(created, new CreateNotificationDTO
+            {
+                Title = title,
+                Message = message,
+                Type = "Info",
+                RecipientRole = recipientRole,
+                IsBroadcast = false,
+                UserIds = userIds,
+                CompanyId = companyId
+            });
         }
     }
 

@@ -27,6 +27,7 @@ namespace ControlApi.BackgroundJobs
         private const int DefaultRunMinute = 0;
         private const int DefaultReminderRetentionDays = 7;
         private const int DefaultDispatchRetentionDays = 30;
+        private const int DefaultReadRetentionDays = 1; // após marcar como lida, manter por 1 dia
 
         private static readonly string[] ReminderTitles =
         {
@@ -46,6 +47,37 @@ namespace ControlApi.BackgroundJobs
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            // Opções de agendamento:
+            // - Por intervalo (AutoNotifications:Cleanup:RunIntervalMinutes)
+            // - Diário (RunAtLocalHour/RunAtLocalMinute)
+
+            var intervalMinutes = _config.GetValue<int?>("AutoNotifications:Cleanup:RunIntervalMinutes");
+            if (intervalMinutes.HasValue && intervalMinutes.Value > 0)
+            {
+                var interval = TimeSpan.FromMinutes(Math.Max(1, intervalMinutes.Value));
+                _logger.LogInformation("[AutoNotifications] Limpeza por intervalo habilitada: a cada {IntervalMinutes} minuto(s).", intervalMinutes.Value);
+
+                while (!stoppingToken.IsCancellationRequested)
+                {
+                    try
+                    {
+                        await RunCleanupAsync(stoppingToken);
+                        await Task.Delay(interval, stoppingToken);
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[AutoNotifications] Erro na limpeza por intervalo. Tentando novamente em 5 minutos.");
+                        try { await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken); } catch { /* ignore */ }
+                    }
+                }
+
+                return;
+            }
+
             // Loop diário: espera até o próximo horário configurado e roda a limpeza.
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -95,10 +127,12 @@ namespace ControlApi.BackgroundJobs
 
             var reminderRetentionDays = _config.GetValue("AutoNotifications:Cleanup:ReminderNotificationsRetentionDays", DefaultReminderRetentionDays);
             var dispatchRetentionDays = _config.GetValue("AutoNotifications:Cleanup:DispatchRetentionDays", DefaultDispatchRetentionDays);
+            var readRetentionDays = _config.GetValue("AutoNotifications:Cleanup:ReadNotificationsRetentionDays", DefaultReadRetentionDays);
 
             var nowUtc = DateTime.UtcNow;
             var notifCutoffUtc = nowUtc.AddDays(-Math.Max(1, reminderRetentionDays));
             var dispatchCutoffUtc = nowUtc.AddDays(-Math.Max(1, dispatchRetentionDays));
+            var readCutoffUtc = nowUtc.AddDays(-Math.Max(1, readRetentionDays));
 
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<DbContextClass>();
@@ -139,6 +173,26 @@ namespace ControlApi.BackgroundJobs
             else
             {
                 _logger.LogInformation("[AutoNotifications] Nenhuma notificação de lembrete antiga para remover (cutoff {CutoffUtc}).", notifCutoffUtc);
+            }
+
+            // 3) Limpar notificações já lidas (ReadAt != null) após X dias para não lotar o banco.
+            // Regra: ao clicar em "lida", ela permanece por 1 dia (padrão) e depois é removida.
+            var readToDelete = await db.Notifications
+                .Where(n => n.ReadAt.HasValue && n.ReadAt.Value < readCutoffUtc)
+                .Select(n => n.Id)
+                .ToListAsync(ct);
+
+            if (readToDelete.Count > 0)
+            {
+                db.Notifications.RemoveRange(
+                    db.Notifications.Where(n => readToDelete.Contains(n.Id))
+                );
+                await db.SaveChangesAsync(ct);
+                _logger.LogInformation("[AutoNotifications] Removidas {Count} notificações lidas antigas (cutoff {CutoffUtc}).", readToDelete.Count, readCutoffUtc);
+            }
+            else
+            {
+                _logger.LogInformation("[AutoNotifications] Nenhuma notificação lida antiga para remover (cutoff {CutoffUtc}).", readCutoffUtc);
             }
         }
 
