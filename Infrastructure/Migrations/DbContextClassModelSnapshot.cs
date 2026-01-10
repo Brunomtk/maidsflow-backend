@@ -1259,6 +1259,9 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
 
+                    b.Property<int>("Role")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsLeader")
                         .HasColumnType("boolean");
 

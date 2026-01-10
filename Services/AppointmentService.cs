@@ -17,12 +17,14 @@ namespace Services
         private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
         private readonly ICurrentUser _currentUser;
         private readonly IScopeGuard _scope;
+        private readonly IAppointmentCompletionService _completion;
 
-        public AppointmentService(Infrastructure.Repositories.IUnitOfWork unitOfWork, ICurrentUser currentUser, IScopeGuard scope)
+        public AppointmentService(Infrastructure.Repositories.IUnitOfWork unitOfWork, ICurrentUser currentUser, IScopeGuard scope, IAppointmentCompletionService completion)
         {
             _unitOfWork = unitOfWork;
             _currentUser = currentUser;
             _scope = scope;
+            _completion = completion;
         }
 
         public async Task<PagedResult<Appointment>> GetPagedAppointments(AppointmentFiltersDTO filters)
@@ -168,6 +170,10 @@ namespace Services
             // O horário enviado no DTO (start/end) é salvo exatamente como veio,
             // para que o banco sempre reflita o horário local informado pelo usuário.
 
+            var category = dto.Category;
+            if (string.IsNullOrWhiteSpace(category) && dto.Type.HasValue)
+                category = dto.Type.Value.ToString();
+
             var appointment = new Appointment
             {
                 Title = dto.Title,
@@ -177,6 +183,8 @@ namespace Services
                 Notes = dto.Notes,
                 Status = dto.Status ?? AppointmentStatus.Scheduled,
                 Type = dto.Type ?? AppointmentType.Regular,
+                Category = category,
+                ServiceTypeId = dto.ServiceTypeId,
                 CompanyId = dto.CompanyId,
                 CustomerId = dto.CustomerId,
                 TeamId = dto.TeamId,
@@ -193,6 +201,8 @@ namespace Services
                 appointment.ProfessionalIds = dto.ProfessionalIds.Distinct().ToList();
             }
 
+            await ValidateServiceTypeForCompanyAsync(appointment.CompanyId, appointment.ServiceTypeId);
+
             await _unitOfWork.Appointments.Add(appointment);
             return await _unitOfWork.SaveAsync() > 0;
         }
@@ -201,6 +211,8 @@ namespace Services
         {
             var appointment = await _unitOfWork.Appointments.GetById(id);
             if (appointment == null) return false;
+
+            var oldStatus = appointment.Status;
 
             // Admin bypass; demais perfis ficam restritos ao escopo
             if (!_currentUser.IsAdmin)
@@ -219,6 +231,11 @@ namespace Services
 
                 if (dto.Notes != null)
                     appointment.Notes = dto.Notes;
+
+                if (oldStatus != AppointmentStatus.Completed && appointment.Status == AppointmentStatus.Completed)
+                {
+                    await _completion.RecordCompletionAsync(appointment, appointment.Start, appointment.End);
+                }
 
                 _unitOfWork.Appointments.Update(appointment);
                 return await _unitOfWork.SaveAsync() > 0;
@@ -243,6 +260,9 @@ namespace Services
             appointment.Notes = dto.Notes ?? appointment.Notes;
             appointment.Status = dto.Status ?? appointment.Status;
             appointment.Type = dto.Type ?? appointment.Type;
+            // Category/ServiceType (Payroll)
+            if (dto.Category != null) appointment.Category = dto.Category;
+            if (dto.ServiceTypeId.HasValue) appointment.ServiceTypeId = dto.ServiceTypeId;
             _ = dto.CompanyId; // CompanyId não é alterável aqui
             appointment.CompanyId = appointment.CompanyId;
             appointment.CustomerId = dto.CustomerId ?? appointment.CustomerId;
@@ -264,6 +284,19 @@ namespace Services
 
             _unitOfWork.Appointments.Update(appointment);
             return await _unitOfWork.SaveAsync() > 0;
+        }
+
+
+        private async Task ValidateServiceTypeForCompanyAsync(int companyId, int? serviceTypeId)
+        {
+            if (!serviceTypeId.HasValue) return;
+
+            var st = await _unitOfWork.ServiceTypes.GetById(serviceTypeId.Value);
+            if (st == null)
+                throw new BadRequestException("ServiceTypeId inválido.");
+
+            if (st.CompanyId != companyId)
+                throw new ForbiddenException("ServiceType não pertence a esta company.");
         }
 
         private static void EnsureProfessionalUpdateIsSafe(Appointment appointment, UpdateAppointmentDTO dto)
@@ -302,6 +335,12 @@ namespace Services
             if (dto.Type.HasValue && dto.Type.Value != appointment.Type)
                 throw new ForbiddenException("Profissional não tem permissão para alterar tipo do agendamento.");
 
+            if (dto.Category != null && dto.Category != appointment.Category)
+                throw new ForbiddenException("Profissional não tem permissão para alterar category do agendamento.");
+
+            if (dto.ServiceTypeId.HasValue && dto.ServiceTypeId.Value != appointment.ServiceTypeId)
+                throw new ForbiddenException("Profissional não tem permissão para alterar service type do agendamento.");
+
             if (!string.IsNullOrWhiteSpace(dto.TimeZoneId) && dto.TimeZoneId != appointment.TimeZoneId)
                 throw new ForbiddenException("Profissional não tem permissão para alterar fuso do agendamento.");
 
@@ -335,6 +374,8 @@ namespace Services
 
             var appointment = await _unitOfWork.Appointments.GetById(id);
             if (appointment == null) return false;
+
+            var oldStatus = appointment.Status;
 
             if (!_currentUser.IsAdmin)
                 await _scope.EnsureCompanyAccessAsync(appointment.CompanyId);

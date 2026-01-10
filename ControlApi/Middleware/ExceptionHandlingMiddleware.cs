@@ -62,7 +62,9 @@ namespace ControlApi.Middleware
             {
                 ForbiddenException => ((int)HttpStatusCode.Forbidden, "Forbidden"),
                 UnauthorizedAccessException => ((int)HttpStatusCode.Unauthorized, "Unauthorized"),
+                BadRequestException => ((int)HttpStatusCode.BadRequest, "Bad Request"),
                 ArgumentException => ((int)HttpStatusCode.BadRequest, "Bad Request"),
+                NotFoundException => ((int)HttpStatusCode.NotFound, "Not Found"),
                 KeyNotFoundException => ((int)HttpStatusCode.NotFound, "Not Found"),
                 _ => ((int)HttpStatusCode.InternalServerError, "Internal Server Error")
             };

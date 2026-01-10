@@ -20,6 +20,7 @@ namespace Infrastructure.Repositories
                 .Include(a => a.Company)
                 .Include(a => a.Customer)
                 .Include(a => a.Team)
+                .Include(a => a.ServiceType)
                 .AsQueryable();
 
             // Filtros dinâmicos
@@ -54,6 +55,12 @@ namespace Infrastructure.Repositories
             if (filters.Type.HasValue)
                 query = query.Where(a => a.Type == filters.Type.Value);
 
+            if (!string.IsNullOrWhiteSpace(filters.Category))
+                query = query.Where(a => a.Category != null && a.Category == filters.Category);
+
+            if (filters.ServiceTypeId.HasValue)
+                query = query.Where(a => a.ServiceTypeId == filters.ServiceTypeId.Value);
+
             if (!string.IsNullOrWhiteSpace(filters.Search))
             {
                 var searchLower = filters.Search.ToLower();
@@ -78,6 +85,7 @@ namespace Infrastructure.Repositories
             return await _dbContext.Set<Appointment>()
                 .Include(a => a.Customer)
                 .Include(a => a.Team)
+                .Include(a => a.ServiceType)
                 .Where(a => a.CompanyId == companyId)
                 .ToListAsync();
         }
@@ -103,6 +111,7 @@ namespace Infrastructure.Repositories
                 .Include(a => a.Company)
                 .Include(a => a.Customer)
                 .Include(a => a.Team)
+                .Include(a => a.ServiceType)
                 .Where(a => a.ProfessionalIdsData != null &&
                             (a.ProfessionalIdsData == exact ||
                              a.ProfessionalIdsData.StartsWith(atStart) ||
@@ -116,6 +125,7 @@ namespace Infrastructure.Repositories
             return await _dbContext.Set<Appointment>()
                 .Include(a => a.Company)
                 .Include(a => a.Team)
+                .Include(a => a.ServiceType)
                 .Where(a => a.CustomerId == customerId)
                 .ToListAsync();
         }
@@ -126,6 +136,7 @@ namespace Infrastructure.Repositories
                 .Include(a => a.Company)
                 .Include(a => a.Customer)
                 .Include(a => a.Team)
+                .Include(a => a.ServiceType)
                 .Where(a => a.Start >= start && a.End <= end);
 
             if (companyId.HasValue)

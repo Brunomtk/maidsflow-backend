@@ -1,6 +1,7 @@
 using Core.DTO.Teams;
 using Core.Models;
 using Core.Enums;
+using Core.Enums.Team;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services;
@@ -63,7 +64,7 @@ namespace ControlApi.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            if (dto.Members != null && dto.Members.Count(m => m.IsLeader) > 1)
+            if (dto.Members != null && dto.Members.Count(m => (m.Role == TeamMemberRole.Leader) || m.IsLeader) > 1)
             {
                 ModelState.AddModelError("Members", "Somente um membro pode ser líder da equipe.");
                 return BadRequest(ModelState);
@@ -82,12 +83,15 @@ namespace ControlApi.Controllers
             {
                 foreach (var memberDto in dto.Members)
                 {
+                    var role = memberDto.IsLeader ? TeamMemberRole.Leader : memberDto.Role;
+
                     team.Members.Add(new TeamMember
                     {
                         ProfessionalId = memberDto.ProfessionalId,
                         UserId = memberDto.UserId,
                         Description = memberDto.Description,
-                        IsLeader = memberDto.IsLeader
+                        Role = role,
+                        IsLeader = role == TeamMemberRole.Leader
                     });
                 }
             }
@@ -108,7 +112,7 @@ namespace ControlApi.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            if (dto.Members != null && dto.Members.Count(m => m.IsLeader) > 1)
+            if (dto.Members != null && dto.Members.Count(m => (m.Role == TeamMemberRole.Leader) || m.IsLeader) > 1)
             {
                 ModelState.AddModelError("Members", "Somente um membro pode ser líder da equipe.");
                 return BadRequest(ModelState);
@@ -131,12 +135,15 @@ namespace ControlApi.Controllers
             {
                 foreach (var memberDto in dto.Members)
                 {
+                    var role = memberDto.IsLeader ? TeamMemberRole.Leader : memberDto.Role;
+
                     team.Members.Add(new TeamMember
                     {
                         ProfessionalId = memberDto.ProfessionalId,
                         UserId = memberDto.UserId,
                         Description = memberDto.Description,
-                        IsLeader = memberDto.IsLeader
+                        Role = role,
+                        IsLeader = role == TeamMemberRole.Leader
                     });
                 }
             }

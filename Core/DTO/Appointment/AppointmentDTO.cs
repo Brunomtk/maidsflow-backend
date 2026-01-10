@@ -14,7 +14,11 @@ namespace Core.DTO.Appointment
         public DateTime End { get; set; }
 
         public string Status { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty; // legado
+
+        public string? Category { get; set; }
+        public int? ServiceTypeId { get; set; }
+        public string? ServiceTypeName { get; set; }
 
         public string? Notes { get; set; }
 

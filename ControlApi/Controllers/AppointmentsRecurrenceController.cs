@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Core.DTO.Appointment;
+using Core.Exceptions;
 using Core.Models;
 using Infrastructure;
 using Microsoft.AspNetCore.Authorization;
@@ -223,6 +224,7 @@ public async Task<IActionResult> GetCalendar(
         .Include(a => a.Company)
         .Include(a => a.Customer)
         .Include(a => a.Team)
+        .Include(a => a.ServiceType)
         .Where(a => !a.IsRecurring && a.Start < rangeEnd && a.End > rangeStart);
 
     if (companyId.HasValue) normalQuery = normalQuery.Where(a => a.CompanyId == companyId.Value);
@@ -246,6 +248,7 @@ public async Task<IActionResult> GetCalendar(
         .Include(a => a.Company)
         .Include(a => a.Customer)
         .Include(a => a.Team)
+        .Include(a => a.ServiceType)
         .Where(a => a.IsRecurring
                  && a.SeriesId != null
                  && !string.IsNullOrWhiteSpace(a.RecurrenceRule)
@@ -340,6 +343,9 @@ public async Task<IActionResult> GetCalendar(
             TeamId = a.TeamId,
             Status = a.Status,
             Type = a.Type,
+            Category = a.Category ?? a.Type.ToString(),
+            ServiceTypeId = a.ServiceTypeId,
+            ServiceTypeName = a.ServiceType?.Name,
             Customer = customerMini,
             Team = teamMini,
             ProfessionalIds = a.ProfessionalIds?.ToList() ?? new List<int>(),
@@ -447,6 +453,9 @@ public async Task<IActionResult> GetCalendar(
                     TeamId = anchor.TeamId,
                     Status = ex.OverrideStatus ?? anchor.Status,
                     Type = ex.OverrideType ?? anchor.Type,
+                    Category = (ex.OverrideType ?? anchor.Type).ToString(),
+                    ServiceTypeId = anchor.ServiceTypeId,
+                    ServiceTypeName = anchor.ServiceType?.Name,
 
                     Customer = customerMini,
                     Team = teamMini,
@@ -505,6 +514,9 @@ public async Task<IActionResult> GetCalendar(
                 TeamId = anchor.TeamId,
                 Status = anchor.Status,
                 Type = anchor.Type,
+                Category = anchor.Category ?? anchor.Type.ToString(),
+                ServiceTypeId = anchor.ServiceTypeId,
+                ServiceTypeName = anchor.ServiceType?.Name,
 
                 Customer = customerMini,
                 Team = teamMini,
@@ -1074,6 +1086,8 @@ public async Task<IActionResult> DeleteInstance(
                 TeamId = anchor.TeamId,
                 Status = anchor.Status,
                 Type = anchor.Type,
+                Category = anchor.Category ?? anchor.Type.ToString(),
+                ServiceTypeId = anchor.ServiceTypeId,
                 ProfessionalIdsData = anchor.ProfessionalIdsData,
 
                 IsRecurring = true,
@@ -1163,5 +1177,69 @@ private static bool TryDecodeInstanceId(string instanceId, out Guid seriesId, ou
 }
 
 
+
+private async Task RecordCompletionSnapshotIfNeededAsync(Appointment anchor, DateTime occurrenceStart, DateTime occurrenceEnd, List<int>? professionalIdsOverride)
+{
+    var effectiveProfessionalIds = (professionalIdsOverride ?? new List<int>())
+        .Where(id => id > 0)
+        .Distinct()
+        .ToList();
+
+    if (effectiveProfessionalIds.Count == 0 && anchor.ProfessionalIds != null && anchor.ProfessionalIds.Count > 0)
+        effectiveProfessionalIds = anchor.ProfessionalIds.Distinct().ToList();
+
+    if (effectiveProfessionalIds.Count == 0 && anchor.TeamId.HasValue)
+    {
+        var teamMembers = await _db.Set<TeamMember>()
+            .AsNoTracking()
+            .Where(m => m.TeamId == anchor.TeamId.Value)
+            .Select(m => m.ProfessionalId)
+            .ToListAsync();
+
+        effectiveProfessionalIds = teamMembers.Distinct().ToList();
+    }
+
+    // Basic scope check (defensive)
+    if (!_currentUser.IsAdmin)
+    {
+        if (_currentUser.IsCompany && _currentUser.CompanyId != anchor.CompanyId)
+            throw new ForbiddenException("Você não tem acesso a esta empresa.");
+
+        if (_currentUser.IsProfessional && (_currentUser.ProfessionalId == null || !effectiveProfessionalIds.Contains(_currentUser.ProfessionalId.Value)))
+            throw new ForbiddenException("Você não tem acesso a este agendamento.");
+    }
+
+    var exists = await _db.AppointmentCompletions
+        .AsNoTracking()
+        .AnyAsync(x => x.AppointmentId == anchor.Id && x.OccurrenceStart == occurrenceStart);
+
+    if (exists) return;
+
+    decimal sourceAmount = 0m;
+    if (anchor.CustomerId.HasValue)
+    {
+        var customer = await _db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.Id == anchor.CustomerId.Value);
+        if (customer != null)
+            sourceAmount = customer.Ticket ?? 0m;
+    }
+
+    var completion = new AppointmentCompletion
+    {
+        CompanyId = anchor.CompanyId,
+        AppointmentId = anchor.Id,
+        SeriesId = anchor.SeriesId,
+        OccurrenceStart = occurrenceStart,
+        OccurrenceEnd = occurrenceEnd,
+        CompletedAt = DateTime.UtcNow,
+        CustomerIdSnapshot = anchor.CustomerId,
+        TeamIdSnapshot = anchor.TeamId,
+        CategorySnapshot = anchor.Category ?? anchor.Type.ToString(),
+        ServiceTypeIdSnapshot = anchor.ServiceTypeId,
+        SourceAmountSnapshot = sourceAmount,
+        ProfessionalIdsSnapshot = effectiveProfessionalIds
+    };
+
+    _db.AppointmentCompletions.Add(completion);
+}
     }
 }
