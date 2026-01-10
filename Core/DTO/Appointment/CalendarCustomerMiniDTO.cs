@@ -12,5 +12,9 @@ namespace Core.DTO.Appointment
         public string? Email { get; set; }
         public string? Phone { get; set; }
         public string? Address { get; set; }
+
+        // Notification preferences (default: enabled)
+        public bool ReceiveSms { get; set; } = true;
+        public bool ReceiveEmail { get; set; } = true;
     }
 }

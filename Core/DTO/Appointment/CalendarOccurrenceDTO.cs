@@ -41,6 +41,12 @@ namespace Core.DTO.Appointment
         // Conveniência: nome da empresa responsável pelo agendamento (útil para templates de e-mail/n8n).
         public string? CompanyName { get; set; }
 
+        // Preferências de notificação (para o front decidir mostrar preview / enviar lembretes etc.)
+        public bool? CompanyReceiveSms { get; set; }
+        public bool? CompanyReceiveEmail { get; set; }
+        public bool? CustomerReceiveSms { get; set; }
+        public bool? CustomerReceiveEmail { get; set; }
+
         // Alguns bancos/instâncias legadas podem ter estes campos como nullable.
         // Para o calendário, é melhor preservar null do que forçar 0.
         public int? CompanyId { get; set; }

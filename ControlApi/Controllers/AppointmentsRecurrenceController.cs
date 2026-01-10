@@ -299,6 +299,8 @@ public async Task<IActionResult> GetCalendar(
                 Email = a.Customer.Email,
                 Phone = a.Customer.Phone,
                 Address = a.Customer.Address,
+                ReceiveSms = a.Customer.ReceiveSms,
+                ReceiveEmail = a.Customer.ReceiveEmail,
             }
             : null;
         var teamMini = a.Team != null
@@ -328,6 +330,11 @@ public async Task<IActionResult> GetCalendar(
 
             CompanyName = a.Company?.Name,
 
+            CompanyReceiveSms = a.Company?.ReceiveSms,
+            CompanyReceiveEmail = a.Company?.ReceiveEmail,
+            CustomerReceiveSms = a.Customer?.ReceiveSms,
+            CustomerReceiveEmail = a.Customer?.ReceiveEmail,
+
             CompanyId = a.CompanyId,
             CustomerId = a.CustomerId,
             TeamId = a.TeamId,
@@ -351,6 +358,8 @@ public async Task<IActionResult> GetCalendar(
                 Email = anchor.Customer.Email,
                 Phone = anchor.Customer.Phone,
                 Address = anchor.Customer.Address,
+                ReceiveSms = anchor.Customer.ReceiveSms,
+                ReceiveEmail = anchor.Customer.ReceiveEmail,
             }
             : null;
         var teamMini = anchor.Team != null
@@ -428,6 +437,11 @@ public async Task<IActionResult> GetCalendar(
 
                     CompanyName = anchor.Company?.Name,
 
+                    CompanyReceiveSms = anchor.Company?.ReceiveSms,
+                    CompanyReceiveEmail = anchor.Company?.ReceiveEmail,
+                    CustomerReceiveSms = anchor.Customer?.ReceiveSms,
+                    CustomerReceiveEmail = anchor.Customer?.ReceiveEmail,
+
                     CompanyId = anchor.CompanyId,
                     CustomerId = anchor.CustomerId,
                     TeamId = anchor.TeamId,
@@ -480,6 +494,11 @@ public async Task<IActionResult> GetCalendar(
                 CustomerAddress = anchor.Customer?.Address,
 
                 CompanyName = anchor.Company?.Name,
+
+                CompanyReceiveSms = anchor.Company?.ReceiveSms,
+                CompanyReceiveEmail = anchor.Company?.ReceiveEmail,
+                CustomerReceiveSms = anchor.Customer?.ReceiveSms,
+                CustomerReceiveEmail = anchor.Customer?.ReceiveEmail,
 
                 CompanyId = anchor.CompanyId,
                 CustomerId = anchor.CustomerId,
