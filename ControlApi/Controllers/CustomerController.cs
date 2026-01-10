@@ -113,6 +113,8 @@ namespace ControlApi.Controllers
                 Ticket = dto.Ticket,
                 Frequency = dto.Frequency,
                 PaymentMethod = dto.PaymentMethod,
+                ReceiveSms = dto.ReceiveSms,
+                ReceiveEmail = dto.ReceiveEmail,
                 CompanyId = dto.CompanyId
             };
 
@@ -136,6 +138,9 @@ namespace ControlApi.Controllers
             existing.Ssn = dto.Ssn ?? existing.Ssn;
             existing.Email = dto.Email ?? existing.Email;
             existing.Phone = dto.Phone ?? existing.Phone;
+
+            if (dto.ReceiveSms.HasValue) existing.ReceiveSms = dto.ReceiveSms.Value;
+            if (dto.ReceiveEmail.HasValue) existing.ReceiveEmail = dto.ReceiveEmail.Value;
             existing.Address = dto.Address ?? existing.Address;
             existing.ZipCode = dto.ZipCode ?? existing.ZipCode;
             existing.City = dto.City ?? existing.City;

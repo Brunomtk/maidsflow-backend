@@ -12,6 +12,9 @@ namespace Core.DTO.Company
         public string Email { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
 
+        public bool ReceiveSms { get; set; }
+        public bool ReceiveEmail { get; set; }
+
         public int? PlanId { get; set; }           // ID do plano associado (opcional)
         public string? PlanName { get; set; }      // Nome do plano, opcional
 

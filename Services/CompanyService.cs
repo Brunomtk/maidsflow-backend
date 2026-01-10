@@ -139,6 +139,8 @@ namespace Services
             company.Responsible = request.Responsible;
             company.Email = request.Email;
             company.Phone = request.Phone;
+            company.ReceiveSms = request.ReceiveSms;
+            company.ReceiveEmail = request.ReceiveEmail;
             if (request.PlanId.HasValue) company.PlanId = request.PlanId;
             company.Status = request.Status;
 

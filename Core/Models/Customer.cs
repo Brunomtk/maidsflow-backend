@@ -21,6 +21,10 @@ namespace Core.Models
         public string State { get; set; } = string.Empty;
         public string? Observations { get; set; }
 
+        // Notification preferences (default: enabled)
+        public bool ReceiveSms { get; set; } = true;
+        public bool ReceiveEmail { get; set; } = true;
+
         [MaxLength(11)]
         public string? Ssn { get; set; }
 

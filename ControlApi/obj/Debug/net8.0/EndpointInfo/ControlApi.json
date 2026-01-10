@@ -6290,6 +6290,12 @@
             "type": "string",
             "nullable": true
           },
+          "receiveSms": {
+            "type": "boolean"
+          },
+          "receiveEmail": {
+            "type": "boolean"
+          },
           "avatarKey": {
             "type": "string",
             "nullable": true
@@ -6554,6 +6560,12 @@
             "type": "string",
             "nullable": true
           },
+          "receiveSms": {
+            "type": "boolean"
+          },
+          "receiveEmail": {
+            "type": "boolean"
+          },
           "planId": {
             "type": "integer",
             "format": "int32",
@@ -6645,6 +6657,12 @@
             "maxLength": 50,
             "type": "string",
             "nullable": true
+          },
+          "receiveSms": {
+            "type": "boolean"
+          },
+          "receiveEmail": {
+            "type": "boolean"
           },
           "companyId": {
             "type": "integer",
@@ -7239,6 +7257,12 @@
           "observations": {
             "type": "string",
             "nullable": true
+          },
+          "receiveSms": {
+            "type": "boolean"
+          },
+          "receiveEmail": {
+            "type": "boolean"
           },
           "ssn": {
             "maxLength": 11,
@@ -8569,6 +8593,14 @@
           },
           "phone": {
             "type": "string",
+            "nullable": true
+          },
+          "receiveSms": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "receiveEmail": {
+            "type": "boolean",
             "nullable": true
           },
           "address": {

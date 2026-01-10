@@ -33,6 +33,10 @@ namespace Core.DTO.Customer
         [MaxLength(50)]
         public string? PaymentMethod { get; set; }
 
+        // Notification preferences (default: enabled)
+        public bool ReceiveSms { get; set; } = true;
+        public bool ReceiveEmail { get; set; } = true;
+
         [Required]
         public int CompanyId { get; set; }
 

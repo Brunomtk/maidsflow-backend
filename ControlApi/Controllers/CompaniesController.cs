@@ -33,6 +33,8 @@ namespace ControlApi.Controllers
                 Responsible = c.Responsible,
                 Email = c.Email,
                 Phone = c.Phone,
+                ReceiveSms = c.ReceiveSms,
+                ReceiveEmail = c.ReceiveEmail,
                 PlanId = c.PlanId,
                 PlanName = c.Plan?.Name,
                 AvatarKey = c.AvatarKey,
@@ -73,6 +75,8 @@ namespace ControlApi.Controllers
                 Responsible = request.Responsible,
                 Email = request.Email,
                 Phone = request.Phone,
+                ReceiveSms = request.ReceiveSms,
+                ReceiveEmail = request.ReceiveEmail,
                 PlanId = request.PlanId,
                 Status = request.Status
             };

@@ -13,6 +13,9 @@ namespace Core.DTO.Customer
         public string? Email { get; set; }
         public string? Phone { get; set; }
 
+        public bool? ReceiveSms { get; set; }
+        public bool? ReceiveEmail { get; set; }
+
         public string? Address { get; set; }
         public string? ZipCode { get; set; }
         public string? City { get; set; }
