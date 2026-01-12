@@ -34,11 +34,7 @@ namespace Infrastructure
         public DbSet<Leader> Leaders { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<ServiceType> ServiceTypes { get; set; }
-        public DbSet<PayrollRule> PayrollRules { get; set; }
-        public DbSet<PayrollRun> PayrollRuns { get; set; }
-        public DbSet<PayrollItem> PayrollItems { get; set; }
         public DbSet<AppointmentRecurrenceException> AppointmentRecurrenceExceptions { get; set; }
-        public DbSet<AppointmentCompletion> AppointmentCompletions { get; set; }
         public DbSet<Customer> Customers { get; set; }
         public DbSet<CheckRecord> CheckRecords { get; set; }
         public DbSet<Recurrence> Recurrences { get; set; }
@@ -266,147 +262,6 @@ namespace Infrastructure
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
-
-            // ServiceTypes (Payroll)
-            modelBuilder.Entity<ServiceType>(entity =>
-            {
-                entity.ToTable("ServiceTypes");
-                entity.HasKey(st => st.Id);
-                entity.Property(st => st.Name).IsRequired().HasMaxLength(120);
-                entity.Property(st => st.IsActive).HasDefaultValue(true);
-                entity.Property(st => st.Description).HasMaxLength(500);
-                entity.Property(st => st.CreatedDate).HasDefaultValueSql("now()");
-                entity.Property(st => st.UpdatedDate).HasDefaultValueSql("now()");
-
-                entity.HasOne(st => st.Company)
-                      .WithMany()
-                      .HasForeignKey(st => st.CompanyId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasIndex(st => new { st.CompanyId, st.Name }).IsUnique();
-            });
-
-            // Payroll rules
-            modelBuilder.Entity<PayrollRule>(entity =>
-            {
-                entity.ToTable("PayrollRules");
-                entity.HasKey(r => r.Id);
-                entity.Property(r => r.TeamRole).HasConversion<int>();
-                entity.Property(r => r.RateType).HasConversion<int>();
-                entity.Property(r => r.RateValue).HasPrecision(18, 2);
-                entity.Property(r => r.Priority).HasDefaultValue(0);
-                entity.Property(r => r.IsActive).HasDefaultValue(true);
-                entity.Property(r => r.CreatedDate).HasDefaultValueSql("now()");
-                entity.Property(r => r.UpdatedDate).HasDefaultValueSql("now()");
-
-                entity.HasOne(r => r.Company)
-                      .WithMany()
-                      .HasForeignKey(r => r.CompanyId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(r => r.ServiceType)
-                      .WithMany()
-                      .HasForeignKey(r => r.ServiceTypeId)
-                      .OnDelete(DeleteBehavior.SetNull);
-
-                entity.HasIndex(r => new { r.CompanyId, r.ServiceTypeId, r.TeamRole, r.Priority });
-            });
-
-
-            // Payroll runs
-            modelBuilder.Entity<PayrollRun>(entity =>
-            {
-                entity.ToTable("PayrollRuns");
-                entity.HasKey(r => r.Id);
-                entity.Property(r => r.Status).HasConversion<int>();
-                entity.Property(r => r.Notes).HasMaxLength(1000);
-                entity.Property(r => r.CreatedDate).HasDefaultValueSql("now()");
-                entity.Property(r => r.UpdatedDate).HasDefaultValueSql("now()");
-
-                entity.HasOne(r => r.Company)
-                      .WithMany()
-                      .HasForeignKey(r => r.CompanyId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasIndex(r => new { r.CompanyId, r.PeriodStart, r.PeriodEnd });
-            });
-
-            // Payroll items
-            modelBuilder.Entity<PayrollItem>(entity =>
-            {
-                entity.ToTable("PayrollItems");
-                entity.HasKey(i => i.Id);
-                entity.Property(i => i.TeamRole).HasConversion<int>();
-                entity.Property(i => i.RateType).HasConversion<int>();
-                entity.Property(i => i.RateValue).HasPrecision(18, 2);
-                entity.Property(i => i.SourceAmount).HasPrecision(18, 2);
-                entity.Property(i => i.CalculatedAmount).HasPrecision(18, 2);
-                entity.Property(i => i.CreatedDate).HasDefaultValueSql("now()");
-
-                entity.HasOne(i => i.PayrollRun)
-                      .WithMany(r => r.Items)
-                      .HasForeignKey(i => i.PayrollRunId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(i => i.Professional)
-                      .WithMany()
-                      .HasForeignKey(i => i.ProfessionalId)
-                      .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasOne(i => i.Appointment)
-                      .WithMany()
-                      .HasForeignKey(i => i.AppointmentId)
-                      .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasOne(i => i.ServiceType)
-                      .WithMany()
-                      .HasForeignKey(i => i.ServiceTypeId)
-                      .OnDelete(DeleteBehavior.SetNull);
-
-                entity.HasOne(i => i.PayrollRule)
-                      .WithMany()
-                      .HasForeignKey(i => i.PayrollRuleId)
-                      .OnDelete(DeleteBehavior.SetNull);
-
-                entity.Property(i => i.OccurrenceStart).HasColumnType("timestamp without time zone");
-
-                entity.Property(i => i.OccurrenceEnd).HasColumnType("timestamp without time zone");
-
-                entity.HasOne(i => i.AppointmentCompletion)
-                      .WithMany()
-                      .HasForeignKey(i => i.AppointmentCompletionId)
-                      .OnDelete(DeleteBehavior.SetNull);
-
-                entity.HasIndex(i => new { i.PayrollRunId, i.ProfessionalId, i.AppointmentId, i.OccurrenceStart }).IsUnique();
-            });
-
-
-// Appointment completions (snapshot per occurrence)
-modelBuilder.Entity<AppointmentCompletion>(entity =>
-{
-    entity.ToTable("AppointmentCompletions");
-    entity.HasKey(x => x.Id);
-
-    entity.Property(x => x.OccurrenceStart).HasColumnType("timestamp without time zone");
-    entity.Property(x => x.OccurrenceEnd).HasColumnType("timestamp without time zone");
-    entity.Property(x => x.CompletedAt).HasColumnType("timestamp with time zone");
-
-    entity.Property(x => x.SourceAmountSnapshot).HasPrecision(18, 2);
-
-    entity.HasOne(x => x.Company)
-          .WithMany()
-          .HasForeignKey(x => x.CompanyId)
-          .OnDelete(DeleteBehavior.Cascade);
-
-    entity.HasOne(x => x.Appointment)
-          .WithMany()
-          .HasForeignKey(x => x.AppointmentId)
-          .OnDelete(DeleteBehavior.Restrict);
-
-    entity.HasIndex(x => new { x.CompanyId, x.AppointmentId, x.OccurrenceStart }).IsUnique();
-    entity.HasIndex(x => new { x.CompanyId, x.SeriesId, x.OccurrenceStart });
-});
-
             // Appointments
             modelBuilder.Entity<Appointment>(entity =>
             {
@@ -419,9 +274,9 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                 entity.Property(a => a.Status).HasConversion<string>().IsRequired();
                 entity.Property(a => a.Type).HasConversion<string>().IsRequired();
                 entity.Property(a => a.Category);
-                entity.Property(a => a.ServiceTypeId);
                 entity.Property(a => a.Notes);
                 entity.Property(a => a.ProfessionalIdsData);
+                entity.Property(a => a.ServiceTypeId);
                 entity.Property(a => a.CreatedDate).HasDefaultValueSql("now()");
                 entity.Property(a => a.UpdatedDate).HasDefaultValueSql("now()");
                 entity.HasOne(a => a.Company)
@@ -440,7 +295,22 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                 entity.HasOne(a => a.ServiceType)
                       .WithMany()
                       .HasForeignKey(a => a.ServiceTypeId)
-                      .OnDelete(DeleteBehavior.SetNull);
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ServiceTypes (por Company)
+            modelBuilder.Entity<ServiceType>(entity =>
+            {
+                entity.ToTable("ServiceTypes");
+                entity.HasKey(s => s.Id);
+                entity.Property(s => s.Name).IsRequired();
+                entity.Property(s => s.IsActive).HasDefaultValue(true);
+                entity.Property(s => s.CreatedDate).HasDefaultValueSql("now()");
+                entity.Property(s => s.UpdatedDate).HasDefaultValueSql("now()");
+                entity.HasOne(s => s.Company)
+                      .WithMany()
+                      .HasForeignKey(s => s.CompanyId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
                         // User permissions

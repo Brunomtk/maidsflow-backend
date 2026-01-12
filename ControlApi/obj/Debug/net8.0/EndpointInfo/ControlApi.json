@@ -74,21 +74,6 @@
             }
           },
           {
-            "name": "Category",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "ServiceTypeId",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
             "name": "Search",
             "in": "query",
             "schema": {
@@ -3615,340 +3600,6 @@
         }
       }
     },
-    "/api/Payroll/preview/company/{companyId}": {
-      "get": {
-        "tags": [
-          "Payroll"
-        ],
-        "parameters": [
-          {
-            "name": "companyId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "from",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/PayrollPreviewResponseDTO"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PayrollPreviewResponseDTO"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PayrollPreviewResponseDTO"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/PayrollRules/company/{companyId}": {
-      "get": {
-        "tags": [
-          "PayrollRules"
-        ],
-        "parameters": [
-          {
-            "name": "companyId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "includeInactive",
-            "in": "query",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      }
-    },
-    "/api/PayrollRules/{id}": {
-      "get": {
-        "tags": [
-          "PayrollRules"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "PayrollRules"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePayrollRuleDTO"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePayrollRuleDTO"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePayrollRuleDTO"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "PayrollRules"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      }
-    },
-    "/api/PayrollRules": {
-      "post": {
-        "tags": [
-          "PayrollRules"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePayrollRuleDTO"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePayrollRuleDTO"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePayrollRuleDTO"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      }
-    },
-    "/api/PayrollRuns/company/{companyId}": {
-      "get": {
-        "tags": [
-          "PayrollRuns"
-        ],
-        "parameters": [
-          {
-            "name": "companyId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "PayrollRuns"
-        ],
-        "parameters": [
-          {
-            "name": "companyId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePayrollRunRequestDTO"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePayrollRunRequestDTO"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePayrollRunRequestDTO"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      }
-    },
-    "/api/PayrollRuns/{id}": {
-      "get": {
-        "tags": [
-          "PayrollRuns"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      }
-    },
-    "/api/PayrollRuns/{id}/close": {
-      "post": {
-        "tags": [
-          "PayrollRuns"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      }
-    },
-    "/api/PayrollRuns/{id}/mark-paid": {
-      "post": {
-        "tags": [
-          "PayrollRuns"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      }
-    },
     "/api/Plan": {
       "get": {
         "tags": [
@@ -5364,7 +5015,7 @@
         }
       }
     },
-    "/api/ServiceTypes/company/{companyId}": {
+    "/api/ServiceTypes": {
       "get": {
         "tags": [
           "ServiceTypes"
@@ -5372,22 +5023,42 @@
         "parameters": [
           {
             "name": "companyId",
-            "in": "path",
-            "required": true,
+            "in": "query",
             "schema": {
               "type": "integer",
               "format": "int32"
             }
-          },
-          {
-            "name": "includeInactive",
-            "in": "query",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ServiceTypes"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceTypeDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceTypeDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceTypeDTO"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Success"
@@ -5472,37 +5143,6 @@
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      }
-    },
-    "/api/ServiceTypes": {
-      "post": {
-        "tags": [
-          "ServiceTypes"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateServiceTypeDTO"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateServiceTypeDTO"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateServiceTypeDTO"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Success"
@@ -6477,19 +6117,6 @@
             "type": "string",
             "nullable": true
           },
-          "category": {
-            "type": "string",
-            "nullable": true
-          },
-          "serviceTypeId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "serviceTypeName": {
-            "type": "string",
-            "nullable": true
-          },
           "notes": {
             "type": "string",
             "nullable": true
@@ -7453,61 +7080,6 @@
         },
         "additionalProperties": false
       },
-      "CreatePayrollRuleDTO": {
-        "type": "object",
-        "properties": {
-          "companyId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "serviceTypeId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "teamRole": {
-            "$ref": "#/components/schemas/TeamMemberRole"
-          },
-          "rateType": {
-            "$ref": "#/components/schemas/RateType"
-          },
-          "rateValue": {
-            "type": "number",
-            "format": "double"
-          },
-          "priority": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "isActive": {
-            "type": "boolean",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreatePayrollRunRequestDTO": {
-        "type": "object",
-        "properties": {
-          "periodStart": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "periodEnd": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "allowMissingRules": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
       "CreatePlanRequest": {
         "type": "object",
         "properties": {
@@ -7708,22 +7280,16 @@
       "CreateServiceTypeDTO": {
         "type": "object",
         "properties": {
-          "companyId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
           "name": {
             "type": "string",
             "nullable": true
           },
-          "isActive": {
-            "type": "boolean",
-            "nullable": true
+          "companyId": {
+            "type": "integer",
+            "format": "int32"
           },
-          "description": {
-            "type": "string",
-            "nullable": true
+          "isActive": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -8214,177 +7780,6 @@
         "type": "integer",
         "format": "int32"
       },
-      "PayrollPreviewItemDTO": {
-        "type": "object",
-        "properties": {
-          "appointmentId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "occurrenceStart": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "occurrenceEnd": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "appointmentStart": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "appointmentEnd": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "companyId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "customerId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "customerName": {
-            "type": "string",
-            "nullable": true
-          },
-          "teamId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "teamName": {
-            "type": "string",
-            "nullable": true
-          },
-          "serviceTypeId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "serviceTypeName": {
-            "type": "string",
-            "nullable": true
-          },
-          "category": {
-            "type": "string",
-            "nullable": true
-          },
-          "professionalId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "professionalName": {
-            "type": "string",
-            "nullable": true
-          },
-          "teamRole": {
-            "$ref": "#/components/schemas/TeamMemberRole"
-          },
-          "payrollRuleId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "payrollRulePriority": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "rateType": {
-            "$ref": "#/components/schemas/RateType"
-          },
-          "rateValue": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "sourceAmount": {
-            "type": "number",
-            "format": "double"
-          },
-          "calculatedAmount": {
-            "type": "number",
-            "format": "double"
-          },
-          "missingRule": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "PayrollPreviewProfessionalSummaryDTO": {
-        "type": "object",
-        "properties": {
-          "professionalId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "professionalName": {
-            "type": "string",
-            "nullable": true
-          },
-          "appointmentsCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalAmount": {
-            "type": "number",
-            "format": "double"
-          },
-          "missingRulesCount": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false
-      },
-      "PayrollPreviewResponseDTO": {
-        "type": "object",
-        "properties": {
-          "companyId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "periodStart": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "periodEnd": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PayrollPreviewItemDTO"
-            },
-            "nullable": true
-          },
-          "summaries": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PayrollPreviewProfessionalSummaryDTO"
-            },
-            "nullable": true
-          },
-          "totalAmount": {
-            "type": "number",
-            "format": "double"
-          },
-          "totalItems": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalMissingRules": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false
-      },
       "Plan": {
         "type": "object",
         "properties": {
@@ -8789,14 +8184,6 @@
         },
         "additionalProperties": false
       },
-      "RateType": {
-        "enum": [
-          0,
-          1
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
       "RecurrenceScope": {
         "enum": [
           0,
@@ -8880,9 +8267,6 @@
         "additionalProperties": false
       },
       "ServiceType": {
-        "required": [
-          "name"
-        ],
         "type": "object",
         "properties": {
           "id": {
@@ -8897,6 +8281,10 @@
             "type": "string",
             "format": "date-time"
           },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
           "companyId": {
             "type": "integer",
             "format": "int32"
@@ -8904,18 +8292,8 @@
           "company": {
             "$ref": "#/components/schemas/Company"
           },
-          "name": {
-            "maxLength": 120,
-            "minLength": 1,
-            "type": "string"
-          },
           "isActive": {
             "type": "boolean"
-          },
-          "description": {
-            "maxLength": 500,
-            "type": "string",
-            "nullable": true
           }
         },
         "additionalProperties": false
@@ -9024,9 +8402,6 @@
             "type": "string",
             "nullable": true
           },
-          "role": {
-            "$ref": "#/components/schemas/TeamMemberRole"
-          },
           "isLeader": {
             "type": "boolean"
           }
@@ -9049,22 +8424,11 @@
             "type": "string",
             "nullable": true
           },
-          "role": {
-            "$ref": "#/components/schemas/TeamMemberRole"
-          },
           "isLeader": {
             "type": "boolean"
           }
         },
         "additionalProperties": false
-      },
-      "TeamMemberRole": {
-        "enum": [
-          0,
-          1
-        ],
-        "type": "integer",
-        "format": "int32"
       },
       "TimeSpan": {
         "type": "object",
@@ -9708,37 +9072,6 @@
         },
         "additionalProperties": false
       },
-      "UpdatePayrollRuleDTO": {
-        "type": "object",
-        "properties": {
-          "serviceTypeId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "teamRole": {
-            "$ref": "#/components/schemas/TeamMemberRole"
-          },
-          "rateType": {
-            "$ref": "#/components/schemas/RateType"
-          },
-          "rateValue": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "priority": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "isActive": {
-            "type": "boolean",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
       "UpdatePlanRequest": {
         "type": "object",
         "properties": {
@@ -9979,10 +9312,6 @@
           },
           "isActive": {
             "type": "boolean",
-            "nullable": true
-          },
-          "description": {
-            "type": "string",
             "nullable": true
           }
         },

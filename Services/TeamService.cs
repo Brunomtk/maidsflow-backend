@@ -140,8 +140,7 @@ namespace Services
                         ProfessionalId = member.ProfessionalId,
                         UserId = member.UserId,
                         Description = member.Description,
-                        Role = member.Role,
-                        IsLeader = member.Role == Core.Enums.Team.TeamMemberRole.Leader || member.IsLeader
+                        IsLeader = member.IsLeader
                     });
                 }
             }

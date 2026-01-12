@@ -8,11 +8,6 @@ namespace Infrastructure.Repositories
     public interface IUnitOfWork : IDisposable
     {
         IAppointmentRepository Appointments { get; }
-        IAppointmentCompletionRepository AppointmentCompletions { get; }
-        IServiceTypeRepository ServiceTypes { get; }
-        IPayrollRuleRepository PayrollRules { get; }
-        IPayrollRunRepository PayrollRuns { get; }
-        IPayrollItemRepository PayrollItems { get; }
         ICancellationRepository Cancellations { get; }
         ICheckRecordRepository CheckRecords { get; }
         ICompanyRepository Companies { get; }
@@ -48,11 +43,6 @@ namespace Infrastructure.Repositories
         public UnitOfWork(
             DbContextClass dbContext,
             IAppointmentRepository appointmentRepository,
-            IAppointmentCompletionRepository appointmentCompletionRepository,
-            IServiceTypeRepository serviceTypeRepository,
-            IPayrollRuleRepository payrollRuleRepository,
-            IPayrollRunRepository payrollRunRepository,
-            IPayrollItemRepository payrollItemRepository,
             ICancellationRepository cancellationRepository,
             ICheckRecordRepository checkRecordRepository,
             ICompanyRepository companyRepository,
@@ -80,11 +70,6 @@ namespace Infrastructure.Repositories
             _dbContext = dbContext;
 
             Appointments = appointmentRepository;
-            AppointmentCompletions = appointmentCompletionRepository;
-            ServiceTypes = serviceTypeRepository;
-            PayrollRules = payrollRuleRepository;
-            PayrollRuns = payrollRunRepository;
-            PayrollItems = payrollItemRepository;
             Cancellations = cancellationRepository;
             CheckRecords = checkRecordRepository;
             Companies = companyRepository;
@@ -111,11 +96,6 @@ namespace Infrastructure.Repositories
         }
 
         public IAppointmentRepository Appointments { get; }
-        public IAppointmentCompletionRepository AppointmentCompletions { get; }
-        public IServiceTypeRepository ServiceTypes { get; }
-        public IPayrollRuleRepository PayrollRules { get; }
-        public IPayrollRunRepository PayrollRuns { get; }
-        public IPayrollItemRepository PayrollItems { get; }
         public ICancellationRepository Cancellations { get; }
         public ICheckRecordRepository CheckRecords { get; }
         public ICompanyRepository Companies { get; }

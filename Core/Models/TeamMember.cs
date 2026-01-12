@@ -1,5 +1,3 @@
-using Core.Enums.Team;
-
 namespace Core.Models
 {
     /// <summary>
@@ -21,12 +19,6 @@ namespace Core.Models
         /// Optional description for this member inside the team (e.g., role, notes).
         /// </summary>
         public string? Description { get; set; }
-
-        /// <summary>
-        /// Role of this member inside the team (Leader / Member).
-        /// This is the preferred field for payroll logic.
-        /// </summary>
-        public TeamMemberRole Role { get; set; } = TeamMemberRole.Member;
 
         /// <summary>
         /// Indicates if this member is the leader of the team. Only one leader is allowed per team.

@@ -9224,11 +9224,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_payroll_phase6_occurrence_completions_fixed2\\maidsflow-backend_scopes_v5_fix_errors\\Core\\Core.csproj",
+      "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fixed_json_all_20260112_compilerfix\\Core\\Core.csproj",
       "projectName": "Core",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_payroll_phase6_occurrence_completions_fixed2\\maidsflow-backend_scopes_v5_fix_errors\\Core\\Core.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fixed_json_all_20260112_compilerfix\\Core\\Core.csproj",
       "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-      "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_payroll_phase6_occurrence_completions_fixed2\\maidsflow-backend_scopes_v5_fix_errors\\Core\\obj\\",
+      "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_fixed_json_all_20260112_compilerfix\\Core\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

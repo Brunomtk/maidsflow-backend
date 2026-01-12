@@ -24,11 +24,6 @@ namespace Infrastructure.ServiceExtension
             services.AddScoped<ITeamRepository, TeamRepository>();
             services.AddScoped<ILeaderRepository, LeaderRepository>();
             services.AddScoped<IAppointmentRepository, AppointmentRepository>();
-            services.AddScoped<IAppointmentCompletionRepository, AppointmentCompletionRepository>();
-            services.AddScoped<IServiceTypeRepository, ServiceTypeRepository>();
-            services.AddScoped<IPayrollRuleRepository, PayrollRuleRepository>();
-            services.AddScoped<IPayrollRunRepository, PayrollRunRepository>();
-            services.AddScoped<IPayrollItemRepository, PayrollItemRepository>();
             services.AddScoped<ICustomerRepository, CustomerRepository>();
             services.AddScoped<ICheckRecordRepository, CheckRecordRepository>();
             services.AddScoped<IRecurrenceRepository, RecurrenceRepository>();

@@ -71,8 +71,7 @@ namespace Core.Models
         public AppointmentStatus Status { get; set; }
         public AppointmentType Type { get; set; }
 
-        // Payroll / classificação
-        // Category substitui (gradualmente) o antigo "Type" no front — por enquanto mantemos ambos para compatibilidade.
+        // Categoria livre (front) + vínculo com ServiceTypes
         public string? Category { get; set; }
 
         public int? ServiceTypeId { get; set; }

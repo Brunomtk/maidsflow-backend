@@ -13,10 +13,7 @@ namespace Core.DTO.Appointment
         public int? ProfessionalId { get; set; }
 
         public AppointmentStatus? Status { get; set; }
-        public AppointmentType? Type { get; set; } // legado
-
-        public string? Category { get; set; }
-        public int? ServiceTypeId { get; set; }
+        public AppointmentType? Type { get; set; }
 
         public string? Search { get; set; }
 
