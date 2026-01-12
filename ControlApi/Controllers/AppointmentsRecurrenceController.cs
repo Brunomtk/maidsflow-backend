@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Core.DTO.Appointment;
+using Core.Exceptions;
 using Core.Models;
 using Infrastructure;
 using Microsoft.AspNetCore.Authorization;
@@ -129,10 +130,9 @@ namespace ControlApi.Controllers
             // Non-recurring: classic delete
             if (!current.IsRecurring || current.SeriesId == null)
             {
-                // Se esse agendamento já gerou itens de payroll (ex.: status=Completed),
-                // precisamos limpar os PayrollItems antes de remover o Appointment para não
-                // violar o FK (FK_PayrollItems_Appointments_AppointmentId).
-				await _db.Database.ExecuteSqlInterpolatedAsync($@"DELETE FROM ""PayrollItems"" WHERE ""AppointmentId"" = {current.Id}");
+                // Se o agendamento já foi marcado como completed, podem existir PayrollItems/Completions
+                // apontando para ele (FK Restrict). Precisamos limpar antes de remover o Appointment.
+                await CleanupAppointmentReferencesAsync(current.Id);
                 _db.Set<Appointment>().Remove(current);
                 await _db.SaveChangesAsync();
                 return NoContent();
@@ -148,8 +148,8 @@ namespace ControlApi.Controllers
 
                 _db.Set<AppointmentRecurrenceException>().RemoveRange(exAll);
 
-                // Remove payroll items do anchor (e evita erro de FK ao deletar o Appointment)
-				await _db.Database.ExecuteSqlInterpolatedAsync($@"DELETE FROM ""PayrollItems"" WHERE ""AppointmentId"" = {current.Id}");
+                // Limpa referências (PayrollItems/Completions) da âncora antes de apagar.
+                await CleanupAppointmentReferencesAsync(current.Id);
                 _db.Set<Appointment>().Remove(current);
 
                 await _db.SaveChangesAsync();
@@ -230,6 +230,7 @@ public async Task<IActionResult> GetCalendar(
         .Include(a => a.Company)
         .Include(a => a.Customer)
         .Include(a => a.Team)
+        .Include(a => a.ServiceType)
         .Where(a => !a.IsRecurring && a.Start < rangeEnd && a.End > rangeStart);
 
     if (companyId.HasValue) normalQuery = normalQuery.Where(a => a.CompanyId == companyId.Value);
@@ -253,6 +254,7 @@ public async Task<IActionResult> GetCalendar(
         .Include(a => a.Company)
         .Include(a => a.Customer)
         .Include(a => a.Team)
+        .Include(a => a.ServiceType)
         .Where(a => a.IsRecurring
                  && a.SeriesId != null
                  && !string.IsNullOrWhiteSpace(a.RecurrenceRule)
@@ -347,6 +349,9 @@ public async Task<IActionResult> GetCalendar(
             TeamId = a.TeamId,
             Status = a.Status,
             Type = a.Type,
+            Category = a.Category ?? a.Type.ToString(),
+            ServiceTypeId = a.ServiceTypeId,
+            ServiceTypeName = a.ServiceType?.Name,
             Customer = customerMini,
             Team = teamMini,
             ProfessionalIds = a.ProfessionalIds?.ToList() ?? new List<int>(),
@@ -454,6 +459,9 @@ public async Task<IActionResult> GetCalendar(
                     TeamId = anchor.TeamId,
                     Status = ex.OverrideStatus ?? anchor.Status,
                     Type = ex.OverrideType ?? anchor.Type,
+                    Category = (ex.OverrideType ?? anchor.Type).ToString(),
+                    ServiceTypeId = anchor.ServiceTypeId,
+                    ServiceTypeName = anchor.ServiceType?.Name,
 
                     Customer = customerMini,
                     Team = teamMini,
@@ -512,6 +520,9 @@ public async Task<IActionResult> GetCalendar(
                 TeamId = anchor.TeamId,
                 Status = anchor.Status,
                 Type = anchor.Type,
+                Category = anchor.Category ?? anchor.Type.ToString(),
+                ServiceTypeId = anchor.ServiceTypeId,
+                ServiceTypeName = anchor.ServiceType?.Name,
 
                 Customer = customerMini,
                 Team = teamMini,
@@ -785,12 +796,15 @@ public async Task<IActionResult> DeleteInstance(
         private Appointment MapAppointment(
             CreateAppointmentDTO dto, DateTime start, DateTime end, TimeZoneInfo tz, bool isRecurring, Guid? seriesId)
         {
+            // Mantém compatibilidade: Category é o campo novo no front; se não vier, usa o Type legado.
+            var category = dto.Category;
+            if (string.IsNullOrWhiteSpace(category) && dto.Type.HasValue)
+                category = dto.Type.Value.ToString();
+
             var appointment = new Appointment
             {
                 Title = dto.Title,
                 Address = dto.Address,
-                Category = dto.Category,
-                ServiceTypeId = dto.ServiceTypeId,
                 Notes = dto.Notes,
                 Start = start,
                 End = end,
@@ -800,6 +814,8 @@ public async Task<IActionResult> DeleteInstance(
                 TeamId = dto.TeamId,
                 Status = dto.Status ?? Core.Enums.Appointment.AppointmentStatus.Scheduled,
                 Type   = dto.Type   ?? Core.Enums.Appointment.AppointmentType.Regular,
+                Category = category,
+                ServiceTypeId = dto.ServiceTypeId,
                 IsRecurring = isRecurring,
                 RecurrenceRule = dto.RecurrenceRule,
                 SeriesId = seriesId,
@@ -815,6 +831,32 @@ public async Task<IActionResult> DeleteInstance(
             }
 
             return appointment;
+        }
+
+        /// <summary>
+        /// Limpa registros dependentes de Appointment quando o relacionamento está configurado com DeleteBehavior.Restrict
+        /// (ex.: PayrollItems e AppointmentCompletions).
+        ///
+        /// Isso evita o erro:
+        /// 23503: update or delete on table "Appointments" violates foreign key constraint ...
+        /// </summary>
+        private async Task CleanupAppointmentReferencesAsync(int appointmentId)
+        {
+            // PayrollItems (FK Restrict)
+            var payrollItems = await _db.Set<PayrollItem>()
+                .Where(i => i.AppointmentId == appointmentId)
+                .ToListAsync();
+
+            if (payrollItems.Count > 0)
+                _db.Set<PayrollItem>().RemoveRange(payrollItems);
+
+            // Completion snapshots (FK Restrict)
+            var completions = await _db.Set<AppointmentCompletion>()
+                .Where(c => c.AppointmentId == appointmentId)
+                .ToListAsync();
+
+            if (completions.Count > 0)
+                _db.Set<AppointmentCompletion>().RemoveRange(completions);
         }
 
         // Simple RRULE expansion supporting DAILY and WEEKLY with INTERVAL, BYDAY, COUNT, UNTIL
@@ -1030,14 +1072,7 @@ public async Task<IActionResult> DeleteInstance(
 
             if (dto.Title != null) current.Title = dto.Title;
             if (dto.Address != null) current.Address = dto.Address;
-            if (dto.Category != null) current.Category = dto.Category;
-            if (dto.ServiceTypeId.HasValue) current.ServiceTypeId = dto.ServiceTypeId.Value;
             if (dto.Notes != null) current.Notes = dto.Notes;
-            if (dto.Status.HasValue) current.Status = dto.Status.Value;
-            if (dto.Type.HasValue) current.Type = dto.Type.Value;
-            if (dto.CustomerId.HasValue) current.CustomerId = dto.CustomerId.Value;
-            if (dto.TeamId.HasValue) current.TeamId = dto.TeamId.Value;
-            if (dto.ProfessionalIds != null) current.ProfessionalIds = dto.ProfessionalIds.Distinct().ToList();
             if (dto.TimeZoneId != null) current.TimeZoneId = tz.Id;
             if (dto.Start.HasValue && dto.End.HasValue)
             {
@@ -1090,6 +1125,8 @@ public async Task<IActionResult> DeleteInstance(
                 TeamId = anchor.TeamId,
                 Status = anchor.Status,
                 Type = anchor.Type,
+                Category = anchor.Category ?? anchor.Type.ToString(),
+                ServiceTypeId = anchor.ServiceTypeId,
                 ProfessionalIdsData = anchor.ProfessionalIdsData,
 
                 IsRecurring = true,
@@ -1134,14 +1171,7 @@ private async Task UpdateAllAsync(Appointment anchor, UpdateAppointmentDTO dto, 
                 if (a.IsException) continue;
                 if (dto.Title != null) a.Title = dto.Title;
                 if (dto.Address != null) a.Address = dto.Address;
-                if (dto.Category != null) a.Category = dto.Category;
-                if (dto.ServiceTypeId.HasValue) a.ServiceTypeId = dto.ServiceTypeId.Value;
                 if (dto.Notes != null) a.Notes = dto.Notes;
-                if (dto.Status.HasValue) a.Status = dto.Status.Value;
-                if (dto.Type.HasValue) a.Type = dto.Type.Value;
-                if (dto.CustomerId.HasValue) a.CustomerId = dto.CustomerId.Value;
-                if (dto.TeamId.HasValue) a.TeamId = dto.TeamId.Value;
-                if (dto.ProfessionalIds != null) a.ProfessionalIds = dto.ProfessionalIds.Distinct().ToList();
                 if (dto.TimeZoneId != null) a.TimeZoneId = tz.Id;
                 if (dto.Start.HasValue && dto.End.HasValue)
                 {
@@ -1186,5 +1216,69 @@ private static bool TryDecodeInstanceId(string instanceId, out Guid seriesId, ou
 }
 
 
+
+private async Task RecordCompletionSnapshotIfNeededAsync(Appointment anchor, DateTime occurrenceStart, DateTime occurrenceEnd, List<int>? professionalIdsOverride)
+{
+    var effectiveProfessionalIds = (professionalIdsOverride ?? new List<int>())
+        .Where(id => id > 0)
+        .Distinct()
+        .ToList();
+
+    if (effectiveProfessionalIds.Count == 0 && anchor.ProfessionalIds != null && anchor.ProfessionalIds.Count > 0)
+        effectiveProfessionalIds = anchor.ProfessionalIds.Distinct().ToList();
+
+    if (effectiveProfessionalIds.Count == 0 && anchor.TeamId.HasValue)
+    {
+        var teamMembers = await _db.Set<TeamMember>()
+            .AsNoTracking()
+            .Where(m => m.TeamId == anchor.TeamId.Value)
+            .Select(m => m.ProfessionalId)
+            .ToListAsync();
+
+        effectiveProfessionalIds = teamMembers.Distinct().ToList();
+    }
+
+    // Basic scope check (defensive)
+    if (!_currentUser.IsAdmin)
+    {
+        if (_currentUser.IsCompany && _currentUser.CompanyId != anchor.CompanyId)
+            throw new ForbiddenException("Você não tem acesso a esta empresa.");
+
+        if (_currentUser.IsProfessional && (_currentUser.ProfessionalId == null || !effectiveProfessionalIds.Contains(_currentUser.ProfessionalId.Value)))
+            throw new ForbiddenException("Você não tem acesso a este agendamento.");
+    }
+
+    var exists = await _db.AppointmentCompletions
+        .AsNoTracking()
+        .AnyAsync(x => x.AppointmentId == anchor.Id && x.OccurrenceStart == occurrenceStart);
+
+    if (exists) return;
+
+    decimal sourceAmount = 0m;
+    if (anchor.CustomerId.HasValue)
+    {
+        var customer = await _db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.Id == anchor.CustomerId.Value);
+        if (customer != null)
+            sourceAmount = customer.Ticket ?? 0m;
+    }
+
+    var completion = new AppointmentCompletion
+    {
+        CompanyId = anchor.CompanyId,
+        AppointmentId = anchor.Id,
+        SeriesId = anchor.SeriesId,
+        OccurrenceStart = occurrenceStart,
+        OccurrenceEnd = occurrenceEnd,
+        CompletedAt = DateTime.UtcNow,
+        CustomerIdSnapshot = anchor.CustomerId,
+        TeamIdSnapshot = anchor.TeamId,
+        CategorySnapshot = anchor.Category ?? anchor.Type.ToString(),
+        ServiceTypeIdSnapshot = anchor.ServiceTypeId,
+        SourceAmountSnapshot = sourceAmount,
+        ProfessionalIdsSnapshot = effectiveProfessionalIds
+    };
+
+    _db.AppointmentCompletions.Add(completion);
+}
     }
 }

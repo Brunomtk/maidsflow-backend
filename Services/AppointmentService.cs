@@ -3,30 +3,37 @@ using Core.Enums.Appointment;
 using Core.Models;
 using Infrastructure.Repositories;
 using Infrastructure.ServiceExtension;
+using Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using Services.Security;
 using Core.Exceptions;
-using Microsoft.EntityFrameworkCore;
-using Infrastructure;
 
 namespace Services
 {
     public class AppointmentService : IAppointmentService
     {
         private readonly Infrastructure.Repositories.IUnitOfWork _unitOfWork;
-        private readonly DbContextClass _dbContext;
+        private readonly DbContextClass _db;
         private readonly ICurrentUser _currentUser;
         private readonly IScopeGuard _scope;
+        private readonly IAppointmentCompletionService _completion;
 
-        public AppointmentService(Infrastructure.Repositories.IUnitOfWork unitOfWork, DbContextClass dbContext, ICurrentUser currentUser, IScopeGuard scope)
+        public AppointmentService(
+            Infrastructure.Repositories.IUnitOfWork unitOfWork,
+            DbContextClass db,
+            ICurrentUser currentUser,
+            IScopeGuard scope,
+            IAppointmentCompletionService completion)
         {
             _unitOfWork = unitOfWork;
-            _dbContext = dbContext;
+            _db = db;
             _currentUser = currentUser;
             _scope = scope;
+            _completion = completion;
         }
 
         public async Task<PagedResult<Appointment>> GetPagedAppointments(AppointmentFiltersDTO filters)
@@ -172,6 +179,10 @@ namespace Services
             // O horário enviado no DTO (start/end) é salvo exatamente como veio,
             // para que o banco sempre reflita o horário local informado pelo usuário.
 
+            var category = dto.Category;
+            if (string.IsNullOrWhiteSpace(category) && dto.Type.HasValue)
+                category = dto.Type.Value.ToString();
+
             var appointment = new Appointment
             {
                 Title = dto.Title,
@@ -181,7 +192,7 @@ namespace Services
                 Notes = dto.Notes,
                 Status = dto.Status ?? AppointmentStatus.Scheduled,
                 Type = dto.Type ?? AppointmentType.Regular,
-                Category = dto.Category,
+                Category = category,
                 ServiceTypeId = dto.ServiceTypeId,
                 CompanyId = dto.CompanyId,
                 CustomerId = dto.CustomerId,
@@ -199,6 +210,8 @@ namespace Services
                 appointment.ProfessionalIds = dto.ProfessionalIds.Distinct().ToList();
             }
 
+            await ValidateServiceTypeForCompanyAsync(appointment.CompanyId, appointment.ServiceTypeId);
+
             await _unitOfWork.Appointments.Add(appointment);
             return await _unitOfWork.SaveAsync() > 0;
         }
@@ -207,6 +220,8 @@ namespace Services
         {
             var appointment = await _unitOfWork.Appointments.GetById(id);
             if (appointment == null) return false;
+
+            var oldStatus = appointment.Status;
 
             // Admin bypass; demais perfis ficam restritos ao escopo
             if (!_currentUser.IsAdmin)
@@ -225,6 +240,11 @@ namespace Services
 
                 if (dto.Notes != null)
                     appointment.Notes = dto.Notes;
+
+                if (oldStatus != AppointmentStatus.Completed && appointment.Status == AppointmentStatus.Completed)
+                {
+                    await _completion.RecordCompletionAsync(appointment, appointment.Start, appointment.End);
+                }
 
                 _unitOfWork.Appointments.Update(appointment);
                 return await _unitOfWork.SaveAsync() > 0;
@@ -249,8 +269,9 @@ namespace Services
             appointment.Notes = dto.Notes ?? appointment.Notes;
             appointment.Status = dto.Status ?? appointment.Status;
             appointment.Type = dto.Type ?? appointment.Type;
-            appointment.Category = dto.Category ?? appointment.Category;
-            if (dto.ServiceTypeId.HasValue) appointment.ServiceTypeId = dto.ServiceTypeId.Value;
+            // Category/ServiceType (Payroll)
+            if (dto.Category != null) appointment.Category = dto.Category;
+            if (dto.ServiceTypeId.HasValue) appointment.ServiceTypeId = dto.ServiceTypeId;
             _ = dto.CompanyId; // CompanyId não é alterável aqui
             appointment.CompanyId = appointment.CompanyId;
             appointment.CustomerId = dto.CustomerId ?? appointment.CustomerId;
@@ -272,6 +293,19 @@ namespace Services
 
             _unitOfWork.Appointments.Update(appointment);
             return await _unitOfWork.SaveAsync() > 0;
+        }
+
+
+        private async Task ValidateServiceTypeForCompanyAsync(int companyId, int? serviceTypeId)
+        {
+            if (!serviceTypeId.HasValue) return;
+
+            var st = await _unitOfWork.ServiceTypes.GetById(serviceTypeId.Value);
+            if (st == null)
+                throw new BadRequestException("ServiceTypeId inválido.");
+
+            if (st.CompanyId != companyId)
+                throw new ForbiddenException("ServiceType não pertence a esta company.");
         }
 
         private static void EnsureProfessionalUpdateIsSafe(Appointment appointment, UpdateAppointmentDTO dto)
@@ -311,7 +345,7 @@ namespace Services
                 throw new ForbiddenException("Profissional não tem permissão para alterar tipo do agendamento.");
 
             if (dto.Category != null && dto.Category != appointment.Category)
-                throw new ForbiddenException("Profissional não tem permissão para alterar categoria do agendamento.");
+                throw new ForbiddenException("Profissional não tem permissão para alterar category do agendamento.");
 
             if (dto.ServiceTypeId.HasValue && dto.ServiceTypeId.Value != appointment.ServiceTypeId)
                 throw new ForbiddenException("Profissional não tem permissão para alterar service type do agendamento.");
@@ -350,15 +384,25 @@ namespace Services
             var appointment = await _unitOfWork.Appointments.GetById(id);
             if (appointment == null) return false;
 
+            var oldStatus = appointment.Status;
+
             if (!_currentUser.IsAdmin)
                 await _scope.EnsureCompanyAccessAsync(appointment.CompanyId);
 
-            // Se o agendamento já foi marcado como Completed, ele pode ter gerado itens de payroll.
-            // Como o FK padrão está RESTRICT, precisamos limpar os itens antes de excluir o Appointment.
-            // (Evita o erro: FK_PayrollItems_Appointments_AppointmentId)
-	            // C# verbatim string ( @"..." ) não usa escape com \".
-	            // Para aspas duplas dentro de string verbatim, use "".
-	            await _dbContext.Database.ExecuteSqlInterpolatedAsync($@"DELETE FROM ""PayrollItems"" WHERE ""AppointmentId"" = {id}");
+            // Limpa registros dependentes antes de apagar o Appointment.
+            // Motivação: FK PayrollItems.AppointmentId e AppointmentCompletions.AppointmentId estão com DeleteBehavior.Restrict
+            // e estouram erro 23503 quando o appointment já foi marcado como completed.
+            var payrollItems = await _db.PayrollItems
+                .Where(i => i.AppointmentId == id)
+                .ToListAsync();
+            if (payrollItems.Count > 0)
+                _db.PayrollItems.RemoveRange(payrollItems);
+
+            var completions = await _db.AppointmentCompletions
+                .Where(c => c.AppointmentId == id)
+                .ToListAsync();
+            if (completions.Count > 0)
+                _db.AppointmentCompletions.RemoveRange(completions);
 
             _unitOfWork.Appointments.Delete(appointment);
             return await _unitOfWork.SaveAsync() > 0;

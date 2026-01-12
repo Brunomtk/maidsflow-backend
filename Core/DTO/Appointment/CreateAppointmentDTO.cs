@@ -18,16 +18,9 @@ namespace Core.DTO.Appointment
         public List<int>? ProfessionalIds { get; set; }
 
         public AppointmentStatus? Status { get; set; }
-        public AppointmentType? Type { get; set; }
+        public AppointmentType? Type { get; set; } // legado
 
-        /// <summary>
-        /// Categoria livre usada pelo front (ex.: "Residential", "Commercial").
-        /// </summary>
         public string? Category { get; set; }
-
-        /// <summary>
-        /// FK para ServiceTypes (quando o agendamento estiver vinculado a um tipo de serviço).
-        /// </summary>
         public int? ServiceTypeId { get; set; }
 
         public string? Notes { get; set; }

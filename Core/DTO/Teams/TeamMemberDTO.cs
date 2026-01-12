@@ -1,3 +1,5 @@
+using Core.Enums.Team;
+
 namespace Core.DTO.Teams
 {
     public class TeamMemberDTO
@@ -17,6 +19,13 @@ namespace Core.DTO.Teams
         /// Optional description for this professional inside the team (role, notes, etc.).
         /// </summary>
         public string? Description { get; set; }
+
+        /// <summary>
+        /// Role of this member in the team.
+        /// 0 = Member (General Member)
+        /// 1 = Leader (Team Leader)
+        /// </summary>
+        public TeamMemberRole Role { get; set; } = TeamMemberRole.Member;
 
         /// <summary>
         /// Indicates if this member is the leader of the team. Only one leader is allowed per team.

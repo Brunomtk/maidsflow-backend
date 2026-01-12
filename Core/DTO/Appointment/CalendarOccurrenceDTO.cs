@@ -54,7 +54,11 @@ namespace Core.DTO.Appointment
         public int? TeamId { get; set; }
 
         public AppointmentStatus Status { get; set; }
-        public AppointmentType Type { get; set; }
+        public AppointmentType Type { get; set; } // legado
+
+        public string? Category { get; set; }
+        public int? ServiceTypeId { get; set; }
+        public string? ServiceTypeName { get; set; }
 
         // Front geralmente espera estes objetos (mesmo que simplificados) para exibir nome.
         public CalendarCustomerMiniDTO? Customer { get; set; }
