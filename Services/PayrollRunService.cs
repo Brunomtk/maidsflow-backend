@@ -18,6 +18,8 @@ namespace Services
         Task<PayrollRunDetailsDTO> CreateRunAsync(int companyId, CreatePayrollRunRequestDTO dto);
         Task<PayrollRunDTO> CloseAsync(int payrollRunId);
         Task<PayrollRunDTO> MarkPaidAsync(int payrollRunId);
+        Task<PayrollRunDetailsDTO> UpdateAsync(int payrollRunId, UpdatePayrollRunRequestDTO dto);
+        Task DeleteAsync(int payrollRunId);
     }
 
     public class PayrollRunService : IPayrollRunService
@@ -189,6 +191,106 @@ namespace Services
 
             var items = await _uow.PayrollItems.GetByRunIdAsync(payrollRunId);
             return MapRun(run, items);
+        }
+
+        public async Task<PayrollRunDetailsDTO> UpdateAsync(int payrollRunId, UpdatePayrollRunRequestDTO dto)
+        {
+            var run = await _uow.PayrollRuns.GetById(payrollRunId);
+            if (run == null)
+                throw new NotFoundException("PayrollRun não encontrado.");
+
+            await _scope.EnsureCompanyAccessAsync(run.CompanyId);
+
+            // Notes pode ser alterado em qualquer status
+            if (dto.Notes != null)
+                run.Notes = dto.Notes;
+
+            var wantsPeriodChange = dto.PeriodStart.HasValue || dto.PeriodEnd.HasValue;
+
+            if (wantsPeriodChange)
+            {
+                if (!dto.PeriodStart.HasValue || !dto.PeriodEnd.HasValue)
+                    throw new BadRequestException("Para editar o período, envie PeriodStart e PeriodEnd.");
+
+                if (run.Status != PayrollRunStatus.Draft)
+                    throw new BadRequestException("Somente PayrollRun em Draft pode ter o período/edit recalculado.");
+
+                if (dto.PeriodEnd.Value < dto.PeriodStart.Value)
+                    throw new BadRequestException("PeriodEnd deve ser maior ou igual ao PeriodStart.");
+
+                run.PeriodStart = dto.PeriodStart.Value;
+                run.PeriodEnd = dto.PeriodEnd.Value;
+
+                // Recalcula itens (padrão) ou quando explicitamente solicitado
+                var shouldRecalculate = dto.RecalculateItems ?? true;
+                if (shouldRecalculate)
+                {
+                    // Remove itens existentes
+                    var existingItems = await _uow.PayrollItems.GetByRunIdAsync(run.Id);
+                    foreach (var it in existingItems)
+                        _uow.PayrollItems.Delete(it);
+                    await _uow.SaveAsync();
+
+                    // Regera via preview
+                    var preview = await _preview.PreviewCompanyAsync(run.CompanyId, run.PeriodStart, run.PeriodEnd);
+
+                    if (!dto.AllowMissingRules && preview.TotalMissingRules > 0)
+                        throw new BadRequestException($"Existem {preview.TotalMissingRules} itens sem regra. Cadastre regras em PayrollRules ou envie AllowMissingRules=true.");
+
+                    foreach (var it in preview.Items)
+                    {
+                        var item = new PayrollItem
+                        {
+                            PayrollRunId = run.Id,
+                            CompanyId = run.CompanyId,
+                            ProfessionalId = it.ProfessionalId,
+                            AppointmentId = it.AppointmentId,
+                            OccurrenceStart = it.OccurrenceStart,
+                            OccurrenceEnd = it.OccurrenceEnd,
+                            ServiceTypeId = it.ServiceTypeId,
+                            Category = it.Category,
+                            TeamRole = it.TeamRole,
+                            PayrollRuleId = it.PayrollRuleId,
+                            PayrollRulePriority = it.PayrollRulePriority,
+                            RateType = it.RateType,
+                            RateValue = it.RateValue,
+                            SourceAmount = it.SourceAmount,
+                            CalculatedAmount = it.CalculatedAmount,
+                            MissingRule = it.MissingRule,
+                            CreatedDate = DateTime.UtcNow
+                        };
+                        _uow.PayrollItems.Add(item);
+                    }
+                }
+            }
+
+            run.UpdatedDate = DateTime.UtcNow;
+            _uow.PayrollRuns.Update(run);
+            await _uow.SaveAsync();
+
+            return await GetDetailsAsync(run.Id);
+        }
+
+        public async Task DeleteAsync(int payrollRunId)
+        {
+            var run = await _uow.PayrollRuns.GetById(payrollRunId);
+            if (run == null)
+                throw new NotFoundException("PayrollRun não encontrado.");
+
+            await _scope.EnsureCompanyAccessAsync(run.CompanyId);
+
+            if (run.Status == PayrollRunStatus.Paid)
+                throw new BadRequestException("Não é possível excluir um PayrollRun que já está Paid.");
+
+            // Primeiro remove PayrollItems por FK
+            var items = await _uow.PayrollItems.GetByRunIdAsync(run.Id);
+            foreach (var it in items)
+                _uow.PayrollItems.Delete(it);
+
+            await _uow.SaveAsync();
+
+            _uow.PayrollRuns.Delete(run);
+            await _uow.SaveAsync();
         }
 
         private static PayrollRunDTO MapRun(PayrollRun run, List<PayrollItem> items)

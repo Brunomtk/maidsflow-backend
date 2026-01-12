@@ -56,5 +56,19 @@ namespace ControlApi.Controllers
             var result = await _service.MarkPaidAsync(id);
             return Ok(result);
         }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult> Update(int id, [FromBody] UpdatePayrollRunRequestDTO dto)
+        {
+            var result = await _service.UpdateAsync(id, dto);
+            return Ok(result);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> Delete(int id)
+        {
+            await _service.DeleteAsync(id);
+            return Ok(new { id });
+        }
     }
 }

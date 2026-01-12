@@ -2359,6 +2359,43 @@
   },
   {
     "ContainingType": "ControlApi.Controllers.PayrollRunsController",
+    "Method": "Update",
+    "RelativePath": "api/PayrollRuns/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "Core.DTO.Payroll.UpdatePayrollRunRequestDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.PayrollRunsController",
+    "Method": "Delete",
+    "RelativePath": "api/PayrollRuns/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.PayrollRunsController",
     "Method": "Close",
     "RelativePath": "api/PayrollRuns/{id}/close",
     "HttpMethod": "POST",
