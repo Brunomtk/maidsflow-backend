@@ -225,11 +225,8 @@ namespace Services
                 var shouldRecalculate = dto.RecalculateItems ?? true;
                 if (shouldRecalculate)
                 {
-                    // Remove itens existentes
-                    var existingItems = await _uow.PayrollItems.GetByRunIdAsync(run.Id);
-                    foreach (var it in existingItems)
-                        _uow.PayrollItems.Delete(it);
-                    await _uow.SaveAsync();
+                    // Remove itens existentes (bulk delete para evitar tracking duplicado de Appointment)
+                    await _uow.PayrollItems.DeleteByRunIdAsync(run.Id);
 
                     // Regera via preview
                     var preview = await _preview.PreviewCompanyAsync(run.CompanyId, run.PeriodStart, run.PeriodEnd);
@@ -282,12 +279,8 @@ namespace Services
             if (run.Status == PayrollRunStatus.Paid)
                 throw new BadRequestException("Não é possível excluir um PayrollRun que já está Paid.");
 
-            // Primeiro remove PayrollItems por FK
-            var items = await _uow.PayrollItems.GetByRunIdAsync(run.Id);
-            foreach (var it in items)
-                _uow.PayrollItems.Delete(it);
-
-            await _uow.SaveAsync();
+            // Primeiro remove PayrollItems por FK (bulk delete para evitar tracking duplicado de Appointment)
+            await _uow.PayrollItems.DeleteByRunIdAsync(run.Id);
 
             _uow.PayrollRuns.Delete(run);
             await _uow.SaveAsync();

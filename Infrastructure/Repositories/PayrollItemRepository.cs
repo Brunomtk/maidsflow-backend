@@ -9,6 +9,7 @@ namespace Infrastructure.Repositories
     public interface IPayrollItemRepository : IGenericRepository<PayrollItem>
     {
         Task<List<PayrollItem>> GetByRunIdAsync(int payrollRunId);
+        Task DeleteByRunIdAsync(int payrollRunId);
         Task<int> CountMissingRulesAsync(int payrollRunId);
         Task<decimal> SumCalculatedAmountAsync(int payrollRunId);
     }
@@ -28,6 +29,19 @@ namespace Infrastructure.Repositories
                 .OrderBy(i => i.OccurrenceStart)
                 .ThenBy(i => i.ProfessionalId)
                 .ToListAsync();
+        }
+
+        public async Task DeleteByRunIdAsync(int payrollRunId)
+        {
+            // IMPORTANT:
+            // Do NOT load PayrollItems with Includes and then Remove() them one by one.
+            // Items may reference the same Appointment; AsNoTracking doesn't do identity resolution by default,
+            // so you'd end up attaching multiple Appointment instances with the same key and EF will throw:
+            // "The instance of entity type 'Appointment' cannot be tracked because another instance with the same key value is already being tracked"
+            // Bulk delete avoids tracking the graph entirely.
+            await _dbContext.Set<PayrollItem>()
+                .Where(i => i.PayrollRunId == payrollRunId)
+                .ExecuteDeleteAsync();
         }
 
         public async Task<int> CountMissingRulesAsync(int payrollRunId)
