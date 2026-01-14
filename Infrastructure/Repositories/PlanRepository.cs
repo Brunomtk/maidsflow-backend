@@ -27,6 +27,15 @@ namespace Infrastructure.Repositories
                 .ToListAsync();
         }
 
+        public async Task<Plan?> GetByStripePriceIdAsync(string stripePriceId)
+        {
+            if (string.IsNullOrWhiteSpace(stripePriceId)) return null;
+
+            return await _dbContext.Set<Plan>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.StripePriceId == stripePriceId);
+        }
+
         public async Task<PagedResult<Plan>> GetPlansPaged(FiltersDTO filtersDTO)
         {
             var query = _dbContext.Set<Plan>().AsQueryable();
@@ -52,5 +61,6 @@ namespace Infrastructure.Repositories
 
         Task<Plan?> GetByIdWithCompaniesAsync(int id);
         Task<IEnumerable<Plan>> GetAllWithCompaniesAsync();
+        Task<Plan?> GetByStripePriceIdAsync(string stripePriceId);
     }
 }

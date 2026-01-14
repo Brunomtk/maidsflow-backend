@@ -18,6 +18,10 @@ namespace Core.DTO.Plan
         /// </summary>
         public int? Duration { get; set; }
 
+        // Opcional: IDs do Stripe para mapeamento do plano (Product/Price)
+        public string? StripeProductId { get; set; }
+        public string? StripePriceId { get; set; }
+
         /// <summary>
         /// Lista de funcionalidades. Se vier null, mantém o valor atual.
         /// Envie lista vazia para limpar.

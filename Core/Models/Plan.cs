@@ -9,6 +9,10 @@ namespace Core.Models
         public required string Name { get; set; }
         public decimal Price { get; set; }
 
+        // Stripe mapping (optional)
+        public string? StripeProductId { get; set; }
+        public string? StripePriceId { get; set; }
+
         public List<string> Features { get; set; } = new();
 
         public int? ProfessionalsLimit { get; set; }

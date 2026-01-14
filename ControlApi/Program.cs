@@ -13,6 +13,7 @@ using Services;
 using Services.Storage;
 using Services.Integrations.Twilio;
 using Services.Integrations.SendGrid;
+using Services.Integrations.Stripe;
 using Services.Email;
 using Core.Options;
 using System.Text.Json.Serialization;
@@ -65,6 +66,8 @@ builder.Services.AddScoped<IAppointmentCompletionService, AppointmentCompletionS
             builder.Services.AddScoped<IPushSubscriptionService, PushSubscriptionService>();
             builder.Services.AddScoped<IPushNotificationSender, WebPushNotificationSender>();
 
+            builder.Services.AddScoped<IStripeBillingService, StripeBillingService>();
+
             // -----------------------------
             // S3 (Checklist Photos)
             // -----------------------------
@@ -81,6 +84,8 @@ builder.Services.AddScoped<IAppointmentCompletionService, AppointmentCompletionS
             // SendGrid (Email)
             // -----------------------------
             builder.Services.Configure<SendGridOptions>(builder.Configuration.GetSection("SendGrid"));
+
+            builder.Services.Configure<StripeOptions>(builder.Configuration.GetSection(StripeOptions.SectionName));
             builder.Services.AddHttpClient<ISendGridEmailSender, SendGridEmailSender>();
             builder.Services.AddScoped<ICredentialsEmailService, CredentialsEmailService>();
 

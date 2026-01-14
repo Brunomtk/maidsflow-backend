@@ -13,6 +13,9 @@ namespace Core.Models
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
 
+        // Stripe subscription id (if this subscription came from Stripe)
+        public string? StripeSubscriptionId { get; set; }
+
         public PlanSubscriptionStatusEnum Status { get; set; } = PlanSubscriptionStatusEnum.Active;
 
         public bool AutoRenew { get; set; } = false;

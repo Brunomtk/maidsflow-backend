@@ -87,6 +87,8 @@ namespace Services
             existing.Name = plan.Name;
             existing.Price = plan.Price;
             existing.Features = plan.Features;
+            existing.StripeProductId = plan.StripeProductId;
+            existing.StripePriceId = plan.StripePriceId;
             existing.ProfessionalsLimit = plan.ProfessionalsLimit;
             existing.TeamsLimit = plan.TeamsLimit;
             existing.CustomersLimit = plan.CustomersLimit;

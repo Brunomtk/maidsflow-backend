@@ -46,6 +46,17 @@ namespace Infrastructure.Repositories
                 .ToListAsync();
         }
 
+        public async Task<PlanSubscription?> GetByStripeSubscriptionIdAsync(string stripeSubscriptionId)
+        {
+            if (string.IsNullOrWhiteSpace(stripeSubscriptionId)) return null;
+
+            return await _dbContext.Set<PlanSubscription>()
+                .Include(s => s.Plan)
+                .Include(s => s.Company)
+                .FirstOrDefaultAsync(s => s.StripeSubscriptionId == stripeSubscriptionId);
+        }
+
+
         public async Task<List<PlanSubscription>> GetActivesPastEndDateAsync(DateTime utcNow)
         {
             return await _dbContext.Set<PlanSubscription>()
@@ -60,6 +71,7 @@ namespace Infrastructure.Repositories
 
         Task<PlanSubscription?> GetActiveByCompanyAsync(int companyId);
         Task<List<PlanSubscription>> GetByCompanyAsync(int companyId);
+        Task<PlanSubscription?> GetByStripeSubscriptionIdAsync(string stripeSubscriptionId);
         Task<List<PlanSubscription>> GetActivesPastEndDateAsync(DateTime utcNow);
     }
 }

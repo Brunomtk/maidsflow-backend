@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DbContextClass))]
-    [Migration("20251014130724_Inicial")]
-    partial class Inicial
+    [Migration("20260114003529_Stripewebhook")]
+    partial class Stripewebhook
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -36,6 +36,9 @@ namespace Infrastructure.Migrations
 
                     b.Property<string>("Address")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Category")
                         .HasColumnType("text");
 
                     b.Property<int>("CompanyId")
@@ -70,8 +73,8 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime?>("OriginalStart")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("ProfessionalId")
-                        .HasColumnType("integer");
+                    b.Property<string>("ProfessionalIdsData")
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("RecurrenceEnd")
                         .HasColumnType("timestamp with time zone");
@@ -81,6 +84,9 @@ namespace Infrastructure.Migrations
 
                     b.Property<Guid?>("SeriesId")
                         .HasColumnType("uuid");
+
+                    b.Property<int?>("ServiceTypeId")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("Start")
                         .HasColumnType("timestamp with time zone");
@@ -114,11 +120,166 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.HasIndex("ProfessionalId");
+                    b.HasIndex("ServiceTypeId");
 
                     b.HasIndex("TeamId");
 
                     b.ToTable("Appointments", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Models.AppointmentCompletion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AppointmentId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CategorySnapshot")
+                        .HasColumnType("text");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CustomerIdSnapshot")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("OccurrenceEnd")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("OccurrenceStart")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("ProfessionalIdsDataSnapshot")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("SeriesId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("ServiceTypeIdSnapshot")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("SourceAmountSnapshot")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int?>("TeamIdSnapshot")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppointmentId");
+
+                    b.HasIndex("CompanyId", "AppointmentId", "OccurrenceStart")
+                        .IsUnique();
+
+                    b.HasIndex("CompanyId", "SeriesId", "OccurrenceStart");
+
+                    b.ToTable("AppointmentCompletions", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Models.AppointmentRecurrenceException", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancelled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("OccurrenceEnd")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("OccurrenceStart")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OverrideAddress")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("OverrideEnd")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OverrideNotes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OverrideProfessionalIdsData")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("OverrideStart")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("OverrideStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("OverrideTitle")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("OverrideType")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SeriesId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AppointmentRecurrenceExceptions");
+                });
+
+            modelBuilder.Entity("Core.Models.AppointmentReminderDispatch", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AppointmentId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("OccurrenceStartUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RecipientUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReminderType")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("SeriesId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipientUserId", "AppointmentId", "SeriesId", "OccurrenceStartUtc", "ReminderType")
+                        .IsUnique();
+
+                    b.ToTable("AppointmentReminderDispatches", (string)null);
                 });
 
             modelBuilder.Entity("Core.Models.Cancellation", b =>
@@ -254,6 +415,9 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("AppointmentId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -276,6 +440,8 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AppointmentId");
+
+                    b.HasIndex("CompanyId");
 
                     b.HasIndex("CustomerId");
 
@@ -358,6 +524,9 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AvatarKey")
+                        .HasColumnType("text");
+
                     b.Property<string>("Cnpj")
                         .IsRequired()
                         .HasColumnType("text");
@@ -377,8 +546,14 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("PlanId")
+                    b.Property<int?>("PlanId")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("ReceiveEmail")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ReceiveSms")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Responsible")
                         .IsRequired()
@@ -386,6 +561,10 @@ namespace Infrastructure.Migrations
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
+
+                    b.Property<string>("StripeCustomerId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
                     b.Property<DateTime>("UpdatedDate")
                         .HasColumnType("timestamp with time zone");
@@ -426,7 +605,6 @@ namespace Infrastructure.Migrations
                         .HasDefaultValueSql("now()");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Frequency")
@@ -448,6 +626,12 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("ReceiveEmail")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ReceiveSms")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Ssn")
                         .HasMaxLength(11)
                         .HasColumnType("character varying(11)");
@@ -468,6 +652,9 @@ namespace Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
+
+                    b.Property<string>("ZipCode")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -546,6 +733,9 @@ namespace Infrastructure.Migrations
                         .HasColumnType("double precision");
 
                     b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TeamId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("Timestamp")
@@ -724,6 +914,9 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int?>("ProfessionalId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ReadAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -754,6 +947,9 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<int?>("UserId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.ToTable("Notifications", (string)null);
@@ -782,6 +978,9 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -791,7 +990,7 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime?>("PaymentDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("PlanId")
+                    b.Property<int?>("PlanId")
                         .HasColumnType("integer");
 
                     b.Property<string>("PlanName")
@@ -812,7 +1011,194 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CustomerId");
+
                     b.ToTable("Payments", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Models.PayrollItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AppointmentCompletionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AppointmentId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("CalculatedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Category")
+                        .HasColumnType("text");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<bool>("MissingRule")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("OccurrenceEnd")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("OccurrenceStart")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int?>("PayrollRuleId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PayrollRulePriority")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PayrollRunId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ProfessionalId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("RateType")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("RateValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int?>("ServiceTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("SourceAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("TeamRole")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppointmentCompletionId");
+
+                    b.HasIndex("AppointmentId");
+
+                    b.HasIndex("PayrollRuleId");
+
+                    b.HasIndex("ProfessionalId");
+
+                    b.HasIndex("ServiceTypeId");
+
+                    b.HasIndex("PayrollRunId", "ProfessionalId", "AppointmentId", "OccurrenceStart")
+                        .IsUnique();
+
+                    b.ToTable("PayrollItems", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Models.PayrollRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("Priority")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("RateType")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("RateValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int?>("ServiceTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TeamRole")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServiceTypeId");
+
+                    b.HasIndex("CompanyId", "ServiceTypeId", "TeamRole", "Priority");
+
+                    b.ToTable("PayrollRules", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Models.PayrollRun", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ClosedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("PaidDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("PeriodEnd")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("PeriodStart")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "PeriodStart", "PeriodEnd");
+
+                    b.ToTable("PayrollRuns", (string)null);
                 });
 
             modelBuilder.Entity("Core.Models.Plan", b =>
@@ -853,6 +1239,14 @@ namespace Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
+                    b.Property<string>("StripePriceId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("StripeProductId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
                     b.Property<int?>("TeamsLimit")
                         .HasColumnType("integer");
 
@@ -860,6 +1254,8 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("StripePriceId");
 
                     b.ToTable("Plans", (string)null);
                 });
@@ -893,6 +1289,10 @@ namespace Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
+                    b.Property<string>("StripeSubscriptionId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
                     b.Property<DateTime>("UpdatedDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -901,6 +1301,8 @@ namespace Infrastructure.Migrations
                     b.HasIndex("CompanyId");
 
                     b.HasIndex("PlanId");
+
+                    b.HasIndex("StripeSubscriptionId");
 
                     b.ToTable("PlanSubscriptions", (string)null);
                 });
@@ -962,6 +1364,53 @@ namespace Infrastructure.Migrations
                     b.HasIndex("TeamId");
 
                     b.ToTable("Professionals", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Models.PushSubscription", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Auth")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long?>("ExpirationTime")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("P256dh")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("text");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Endpoint")
+                        .IsUnique();
+
+                    b.ToTable("PushSubscriptions", (string)null);
                 });
 
             modelBuilder.Entity("Core.Models.Recurrence", b =>
@@ -1054,16 +1503,14 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("AppointmentId")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("AppointmentId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Comment")
                         .HasColumnType("text");
 
-                    b.Property<string>("CompanyId")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("CompanyName")
                         .HasColumnType("text");
@@ -1073,9 +1520,8 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<string>("CustomerId")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("CustomerName")
                         .HasColumnType("text");
@@ -1083,11 +1529,14 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("ProfessionalId")
-                        .HasColumnType("text");
+                    b.Property<int?>("ProfessionalId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("ProfessionalName")
                         .HasColumnType("text");
+
+                    b.Property<Guid?>("PublicToken")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Rating")
                         .HasColumnType("integer");
@@ -1105,8 +1554,11 @@ namespace Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<string>("TeamId")
-                        .HasColumnType("text");
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("TeamId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("TeamName")
                         .HasColumnType("text");
@@ -1118,7 +1570,55 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AppointmentId");
+
+                    b.HasIndex("PublicToken")
+                        .IsUnique();
+
                     b.ToTable("Reviews", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Models.ServiceType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("ServiceTypes", (string)null);
                 });
 
             modelBuilder.Entity("Core.Models.Team", b =>
@@ -1176,6 +1676,54 @@ namespace Infrastructure.Migrations
                     b.ToTable("Teams", (string)null);
                 });
 
+            modelBuilder.Entity("Core.Models.TeamMember", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<bool>("IsLeader")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("ProfessionalId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TeamId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProfessionalId");
+
+                    b.HasIndex("TeamId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("TeamMembers", (string)null);
+                });
+
             modelBuilder.Entity("Core.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -1185,6 +1733,9 @@ namespace Infrastructure.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Avatar")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AvatarKey")
                         .HasColumnType("text");
 
                     b.Property<int?>("CompanyId")
@@ -1203,6 +1754,11 @@ namespace Infrastructure.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("Onboarding")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Password")
                         .IsRequired()
@@ -1237,6 +1793,42 @@ namespace Infrastructure.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
+            modelBuilder.Entity("Core.Models.UserPermission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserPermissions", (string)null);
+                });
+
             modelBuilder.Entity("Core.Models.Appointment", b =>
                 {
                     b.HasOne("Core.Models.Company", "Company")
@@ -1246,14 +1838,14 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("Core.Models.Customer", "Customer")
-                        .WithMany()
+                        .WithMany("Appointments")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Core.Models.Professional", "Professional")
+                    b.HasOne("Core.Models.ServiceType", "ServiceType")
                         .WithMany()
-                        .HasForeignKey("ProfessionalId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("ServiceTypeId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Core.Models.Team", "Team")
                         .WithMany()
@@ -1264,9 +1856,28 @@ namespace Infrastructure.Migrations
 
                     b.Navigation("Customer");
 
-                    b.Navigation("Professional");
+                    b.Navigation("ServiceType");
 
                     b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("Core.Models.AppointmentCompletion", b =>
+                {
+                    b.HasOne("Core.Models.Appointment", "Appointment")
+                        .WithMany()
+                        .HasForeignKey("AppointmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Core.Models.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Appointment");
+
+                    b.Navigation("Company");
                 });
 
             modelBuilder.Entity("Core.Models.Checklist", b =>
@@ -1275,6 +1886,12 @@ namespace Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("AppointmentId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Core.Models.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("Core.Models.Customer", "Customer")
                         .WithMany()
@@ -1288,6 +1905,8 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Appointment");
+
+                    b.Navigation("Company");
 
                     b.Navigation("Customer");
 
@@ -1329,8 +1948,7 @@ namespace Infrastructure.Migrations
                     b.HasOne("Core.Models.Plan", "Plan")
                         .WithMany()
                         .HasForeignKey("PlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Plan");
                 });
@@ -1413,6 +2031,93 @@ namespace Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Core.Models.Payment", b =>
+                {
+                    b.HasOne("Core.Models.Customer", "Customer")
+                        .WithMany("Payments")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("Core.Models.PayrollItem", b =>
+                {
+                    b.HasOne("Core.Models.AppointmentCompletion", "AppointmentCompletion")
+                        .WithMany()
+                        .HasForeignKey("AppointmentCompletionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Core.Models.Appointment", "Appointment")
+                        .WithMany()
+                        .HasForeignKey("AppointmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Core.Models.PayrollRule", "PayrollRule")
+                        .WithMany()
+                        .HasForeignKey("PayrollRuleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Core.Models.PayrollRun", "PayrollRun")
+                        .WithMany("Items")
+                        .HasForeignKey("PayrollRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Models.Professional", "Professional")
+                        .WithMany()
+                        .HasForeignKey("ProfessionalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Core.Models.ServiceType", "ServiceType")
+                        .WithMany()
+                        .HasForeignKey("ServiceTypeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Appointment");
+
+                    b.Navigation("AppointmentCompletion");
+
+                    b.Navigation("PayrollRule");
+
+                    b.Navigation("PayrollRun");
+
+                    b.Navigation("Professional");
+
+                    b.Navigation("ServiceType");
+                });
+
+            modelBuilder.Entity("Core.Models.PayrollRule", b =>
+                {
+                    b.HasOne("Core.Models.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Models.ServiceType", "ServiceType")
+                        .WithMany()
+                        .HasForeignKey("ServiceTypeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Company");
+
+                    b.Navigation("ServiceType");
+                });
+
+            modelBuilder.Entity("Core.Models.PayrollRun", b =>
+                {
+                    b.HasOne("Core.Models.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+                });
+
             modelBuilder.Entity("Core.Models.PlanSubscription", b =>
                 {
                     b.HasOne("Core.Models.Company", "Company")
@@ -1449,6 +2154,15 @@ namespace Infrastructure.Migrations
                     b.Navigation("Team");
                 });
 
+            modelBuilder.Entity("Core.Models.PushSubscription", b =>
+                {
+                    b.HasOne("Core.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Core.Models.Recurrence", b =>
                 {
                     b.HasOne("Core.Models.Company", "Company")
@@ -1474,6 +2188,17 @@ namespace Infrastructure.Migrations
                     b.Navigation("Team");
                 });
 
+            modelBuilder.Entity("Core.Models.ServiceType", b =>
+                {
+                    b.HasOne("Core.Models.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+                });
+
             modelBuilder.Entity("Core.Models.Team", b =>
                 {
                     b.HasOne("Core.Models.Company", "Company")
@@ -1492,12 +2217,49 @@ namespace Infrastructure.Migrations
                     b.Navigation("Leader");
                 });
 
+            modelBuilder.Entity("Core.Models.TeamMember", b =>
+                {
+                    b.HasOne("Core.Models.Professional", "Professional")
+                        .WithMany()
+                        .HasForeignKey("ProfessionalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Core.Models.Team", "Team")
+                        .WithMany("Members")
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Professional");
+
+                    b.Navigation("Team");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Core.Models.User", b =>
                 {
                     b.HasOne("Core.Models.Company", null)
                         .WithMany("Users")
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Core.Models.UserPermission", b =>
+                {
+                    b.HasOne("Core.Models.User", "User")
+                        .WithMany("Permissions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Core.Models.Checklist", b =>
@@ -1515,14 +2277,36 @@ namespace Infrastructure.Migrations
                     b.Navigation("Users");
                 });
 
+            modelBuilder.Entity("Core.Models.Customer", b =>
+                {
+                    b.Navigation("Appointments");
+
+                    b.Navigation("Payments");
+                });
+
             modelBuilder.Entity("Core.Models.InternalFeedback", b =>
                 {
                     b.Navigation("Comments");
                 });
 
+            modelBuilder.Entity("Core.Models.PayrollRun", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("Core.Models.Plan", b =>
                 {
                     b.Navigation("Subscriptions");
+                });
+
+            modelBuilder.Entity("Core.Models.Team", b =>
+                {
+                    b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("Core.Models.User", b =>
+                {
+                    b.Navigation("Permissions");
                 });
 #pragma warning restore 612, 618
         }

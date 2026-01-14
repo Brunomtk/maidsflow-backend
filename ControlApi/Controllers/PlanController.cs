@@ -65,6 +65,8 @@ namespace Api.Controllers
                 Name = request.Name,
                 Price = request.Price,
                 Duration = request.Duration,
+                StripeProductId = request.StripeProductId,
+                StripePriceId = request.StripePriceId,
                 Features = request.Features ?? new List<string>(),
                 Status = Core.Enums.StatusEnum.Active,
                 ProfessionalsLimit = request.Limits?.Professionals,
@@ -92,6 +94,8 @@ namespace Api.Controllers
             if (!string.IsNullOrWhiteSpace(request.Name)) plan.Name = request.Name;
             if (request.Price.HasValue) plan.Price = request.Price.Value;
             if (request.Duration.HasValue) plan.Duration = request.Duration.Value;
+            if (request.StripeProductId != null) plan.StripeProductId = request.StripeProductId;
+            if (request.StripePriceId != null) plan.StripePriceId = request.StripePriceId;
             if (request.Features != null) plan.Features = request.Features;
 
             if (request.Limits != null)

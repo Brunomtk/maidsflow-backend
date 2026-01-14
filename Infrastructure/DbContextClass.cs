@@ -140,6 +140,7 @@ namespace Infrastructure
             {
                 entity.ToTable("Companies");
                 entity.HasKey(c => c.Id);
+                entity.Property(c => c.StripeCustomerId).HasMaxLength(128);
                 // Plan agora é opcional: uma Company pode existir sem estar vinculada a um plano.
                 entity.HasOne(c => c.Plan)
                       .WithMany()
@@ -158,6 +159,9 @@ namespace Infrastructure
                 entity.HasKey(p => p.Id);
                 entity.Property(p => p.Name).IsRequired();
                 entity.Property(p => p.Price).HasPrecision(18, 2);
+                entity.Property(p => p.StripeProductId).HasMaxLength(128);
+                entity.Property(p => p.StripePriceId).HasMaxLength(128);
+                entity.HasIndex(p => p.StripePriceId);
                 entity.Property(p => p.Status).HasConversion<int>();
                 entity.Property(p => p.Features).HasColumnType("text[]");
                 entity.HasMany(p => p.Subscriptions)
@@ -172,6 +176,8 @@ namespace Infrastructure
                 entity.ToTable("PlanSubscriptions");
                 entity.HasKey(s => s.Id);
                 entity.Property(s => s.Status).HasConversion<int>();
+                entity.Property(s => s.StripeSubscriptionId).HasMaxLength(128);
+                entity.HasIndex(s => s.StripeSubscriptionId);
                 entity.HasOne(s => s.Company)
                       .WithMany()
                       .HasForeignKey(s => s.CompanyId)

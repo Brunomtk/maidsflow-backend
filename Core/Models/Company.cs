@@ -18,6 +18,9 @@ namespace Core.Models
         // Optional S3 key for company avatar image (stored in S3; presigned URLs are generated on demand).
         public string? AvatarKey { get; set; }
 
+        // Stripe customer id (used for billing / subscriptions)
+        public string? StripeCustomerId { get; set; }
+
 
         // Agora é opcional (pode ser definido depois, via update ou via assinatura).
         public int? PlanId { get; set; }

@@ -51,6 +51,20 @@ namespace Infrastructure.Repositories
         }
 
         /// <summary>
+        /// Gets a company by Stripe Customer Id.
+        /// Used to reconcile Stripe subscription webhooks when metadata is missing.
+        /// </summary>
+        public async Task<Company?> GetByStripeCustomerIdAsync(string stripeCustomerId)
+        {
+            if (string.IsNullOrWhiteSpace(stripeCustomerId)) return null;
+
+            // Tracked entity (no AsNoTracking) because webhook flows may update PlanId/StripeCustomerId.
+            return await _dbContext.Companies
+                .Include(c => c.Plan)
+                .FirstOrDefaultAsync(c => c.StripeCustomerId == stripeCustomerId);
+        }
+
+        /// <summary>
         /// Returns paged companies filtered by name, plan, and status.
         /// </summary>
         public async Task<PagedResult<Company>> GetCompaniesPagedFilteredAsync(CompanyFiltersDTO filters)
@@ -97,6 +111,7 @@ namespace Infrastructure.Repositories
         Task<Company?> GetByCnpj(string cnpj);
         Task<Company?> GetByIdAsync(int companyId);
         Task<int?> GetPlanIdByCompanyId(int companyId);
+        Task<Company?> GetByStripeCustomerIdAsync(string stripeCustomerId);
         Task<PagedResult<Company>> GetCompaniesPagedFilteredAsync(CompanyFiltersDTO filters);
     }
 }
