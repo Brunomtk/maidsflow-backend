@@ -42,18 +42,6 @@ namespace ControlApi.Controllers
         }
 
         /// <summary>
-        /// Confirma uma Checkout Session retornada pelo Stripe (fallback).
-        /// Use quando a UI voltar do checkout com session_id e precisar ativar o plano imediatamente.
-        /// </summary>
-        [Authorize]
-        [HttpPost("confirm-checkout")]
-        public async Task<IActionResult> ConfirmCheckout([FromBody] ConfirmStripeCheckoutSessionRequest request)
-        {
-            var result = await _stripe.ConfirmCheckoutSessionAsync(request);
-            return Ok(result);
-        }
-
-        /// <summary>
         /// Webhook do Stripe (server-to-server). Não requer autenticação.
         /// Configure o endpoint no Stripe e o segredo em Stripe:WebhookSecret.
         /// </summary>
