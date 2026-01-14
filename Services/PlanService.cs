@@ -26,19 +26,50 @@ namespace Services
             _scope = scope;
         }
 
+        
         public async Task<PagedResult<Plan>> GetPlansPaged(FiltersDTO filtersDTO)
         {
-            // Non-admins should not see inactive plans by default. If they explicitly filter, we still keep it safe.
-            if (!_currentUser.IsAdmin)
+            await _planSubscriptionService.RefreshExpiredSubscriptionsAsync();
+
+            // Admin can list everything using repository paging
+            if (_currentUser.IsAdmin)
+                return await _unitOfWork.Plans.GetPlansPaged(filtersDTO);
+
+            // Non-admin: expose only Active plans (needed for plan-expired screen).
+            // Because the number of plans is small, we can safely page in memory.
+            var plans = await _unitOfWork.Plans.GetAllWithCompaniesAsync();
+
+            var query = plans.AsQueryable().Where(p => p.Status == StatusEnum.Active);
+
+            if (!string.IsNullOrWhiteSpace(filtersDTO.Name))
             {
-                // Repo supports filtering by status through FiltersDTO? It doesn't, so just return all and filter in memory would break paging.
-                // Best effort: keep repository paging but do not allow non-admin to use it as an admin listing.
-                // Non-admins can use GetAllPlans() instead.
-                throw new ForbiddenException("A listagem paginada de planos é restrita ao admin.");
+                var name = filtersDTO.Name.ToLowerInvariant();
+                query = query.Where(p =>
+                    (!string.IsNullOrWhiteSpace(p.Name) && p.Name.ToLowerInvariant().Contains(name)) ||
+                    (p.Features != null && p.Features.Any(f => !string.IsNullOrWhiteSpace(f) && f.ToLowerInvariant().Contains(name)))
+                );
             }
 
-            return await _unitOfWork.Plans.GetPlansPaged(filtersDTO);
+            query = query.OrderByDescending(p => p.CreatedDate);
+
+            var pageNumber = filtersDTO.pageNumber <= 0 ? 1 : filtersDTO.pageNumber;
+            var pageSize = filtersDTO.pageSize <= 0 ? 10 : filtersDTO.pageSize;
+
+            var totalItems = query.Count();
+            var results = query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+
+            var pageCount = (int)System.Math.Ceiling(totalItems / (double)pageSize);
+
+            return new PagedResult<Plan>
+            {
+                CurrentPage = pageNumber,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                PageCount = pageCount,
+                Results = results
+            };
         }
+
 
         public async Task<IEnumerable<Plan>> GetAllPlans()
         {
