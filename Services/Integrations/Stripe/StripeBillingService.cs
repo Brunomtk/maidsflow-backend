@@ -150,6 +150,167 @@ namespace Services.Integrations.Stripe
             };
         }
 
+        public async Task<ConfirmStripeCheckoutSessionResponse> ConfirmCheckoutSessionAsync(ConfirmStripeCheckoutSessionRequest request)
+        {
+            EnsureStripeConfigured();
+
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            if (string.IsNullOrWhiteSpace(request.SessionId))
+                throw new InvalidOperationException("SessionId é obrigatório.");
+
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode assinar/alterar planos.");
+
+            var sessionService = new global::Stripe.Checkout.SessionService();
+            var session = await sessionService.GetAsync(request.SessionId);
+
+            var isPaid = string.Equals(session?.PaymentStatus, "paid", StringComparison.OrdinalIgnoreCase)
+                         || string.Equals(session?.Status, "complete", StringComparison.OrdinalIgnoreCase);
+
+            if (!isPaid)
+            {
+                return new ConfirmStripeCheckoutSessionResponse
+                {
+                    Activated = false
+                };
+            }
+
+            // Resolve CompanyId (metadata > admin request > token scope > StripeCustomerId)
+            int companyId = 0;
+            var metaCompanyId = TryParseIntFromMetadata(session?.Metadata, "companyId");
+            if (metaCompanyId.HasValue && metaCompanyId.Value > 0)
+                companyId = metaCompanyId.Value;
+
+            if (companyId <= 0 && _currentUser.IsAdmin)
+            {
+                if (request.CompanyId.HasValue && request.CompanyId.Value > 0)
+                    companyId = request.CompanyId.Value;
+            }
+
+            if (companyId <= 0 && !_currentUser.IsAdmin)
+            {
+                var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+                if (scopedCompanyId.HasValue && scopedCompanyId.Value > 0)
+                    companyId = scopedCompanyId.Value;
+            }
+
+            if (companyId <= 0)
+            {
+                // fallback: tentar por StripeCustomerId
+                var custId = session?.CustomerId ?? TryGetStringProperty(session, "Customer");
+                if (!string.IsNullOrWhiteSpace(custId))
+                {
+                    var companyByCustomer = await _uow.Companies.GetByStripeCustomerIdAsync(custId);
+                    if (companyByCustomer != null)
+                        companyId = companyByCustomer.Id;
+                }
+            }
+
+            if (companyId <= 0)
+                throw new InvalidOperationException("Não foi possível resolver CompanyId para confirmar o checkout.");
+
+            // subscriptionId (se for modo subscription)
+            var subscriptionId = TryGetCheckoutSessionSubscriptionId(session);
+
+            // customerId (para persistir em Companies.StripeCustomerId se precisar)
+            var sessionCustomerId = session?.CustomerId ?? TryGetStringProperty(session, "Customer");
+
+            if (!string.IsNullOrWhiteSpace(subscriptionId))
+            {
+                // caminho ideal: sincroniza a assinatura baseada no Stripe Subscription
+                var subscriptionService = new global::Stripe.SubscriptionService();
+                var stripeSub = await subscriptionService.GetAsync(subscriptionId, new global::Stripe.SubscriptionGetOptions
+                {
+                    Expand = new List<string> { "items.data.price" }
+                });
+
+                await SyncSubscriptionFromStripeAsync(stripeSub, deletedEvent: false);
+
+                var local = await _uow.PlanSubscriptions.GetByStripeSubscriptionIdAsync(subscriptionId);
+                return new ConfirmStripeCheckoutSessionResponse
+                {
+                    Activated = local != null && local.Status == Core.Enums.Plan.PlanSubscriptionStatusEnum.Active,
+                    CompanyId = companyId,
+                    PlanId = local?.PlanId,
+                    StripeSubscriptionId = subscriptionId
+                };
+            }
+
+            // fallback: sem subscriptionId, tenta resolver priceId e ativar via plano local
+            var priceId = TryGetMetadataValue(session?.Metadata, "priceId");
+            if (string.IsNullOrWhiteSpace(priceId))
+            {
+                // Tenta obter via line items
+                try
+                {
+                    var lineItems = await sessionService.ListLineItemsAsync(request.SessionId, new global::Stripe.Checkout.SessionListLineItemsOptions
+                    {
+                        Limit = 1,
+                        Expand = new List<string> { "data.price" }
+                    });
+
+                    priceId = lineItems?.Data?.FirstOrDefault()?.Price?.Id;
+                }
+                catch
+                {
+                    // ignora e deixa a validação abaixo disparar
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(priceId))
+                throw new InvalidOperationException("Não foi possível resolver priceId da sessão.");
+
+            // garante que o PriceId está vinculado a um Plan do sistema
+            var plan = await _uow.Plans.GetByStripePriceIdAsync(priceId);
+            if (plan == null)
+                throw new InvalidOperationException("Este priceId não está vinculado a nenhum plano do sistema.");
+
+            var company = await _uow.Companies.GetById(companyId);
+            if (company == null)
+                throw new InvalidOperationException("Company não encontrada.");
+
+            if (!string.IsNullOrWhiteSpace(sessionCustomerId) && string.IsNullOrWhiteSpace(company.StripeCustomerId))
+                company.StripeCustomerId = sessionCustomerId;
+
+            // desativa assinatura ativa anterior
+            var currentActive = await _uow.PlanSubscriptions.GetActiveByCompanyAsync(companyId);
+            if (currentActive != null)
+            {
+                currentActive.Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Inactive;
+                currentActive.EndDate = DateTime.UtcNow;
+                _uow.PlanSubscriptions.Update(currentActive);
+            }
+
+            var start = DateTime.UtcNow;
+            var months = plan.Duration <= 0 ? 1 : plan.Duration;
+            var end = start.AddMonths(months);
+
+            var sub = new Core.Models.PlanSubscription
+            {
+                PlanId = plan.Id,
+                CompanyId = companyId,
+                StartDate = start,
+                EndDate = end,
+                Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Active,
+                AutoRenew = true,
+                StripeSubscriptionId = null
+            };
+
+            company.PlanId = plan.Id;
+            _uow.Companies.Update(company);
+            await _uow.PlanSubscriptions.Add(sub);
+
+            _uow.Save();
+
+            return new ConfirmStripeCheckoutSessionResponse
+            {
+                Activated = true,
+                CompanyId = companyId,
+                PlanId = plan.Id,
+                StripeSubscriptionId = subscriptionId
+            };
+        }
+
         public async Task HandleWebhookAsync(string json, string stripeSignatureHeader)
         {
             EnsureStripeConfigured();
@@ -469,6 +630,57 @@ namespace Services.Integrations.Stripe
         {
             if (string.IsNullOrWhiteSpace(_opts.SecretKey))
                 throw new InvalidOperationException("Stripe:SecretKey nÃ£o configurado.");
+        }
+
+        private static int? TryParseIntFromMetadata(Dictionary<string, string>? metadata, string key)
+        {
+            if (metadata == null) return null;
+            if (!metadata.TryGetValue(key, out var raw)) return null;
+            return int.TryParse(raw, out var v) ? v : null;
+        }
+
+        private static string? TryGetMetadataValue(Dictionary<string, string>? metadata, string key)
+        {
+            if (metadata == null) return null;
+            return metadata.TryGetValue(key, out var v) ? v : null;
+        }
+
+        private static string? TryGetStringProperty(object? obj, string propName)
+        {
+            if (obj == null) return null;
+            var prop = obj.GetType().GetProperty(propName);
+            if (prop == null) return null;
+            return prop.GetValue(obj) as string;
+        }
+
+        private static string? TryGetCheckoutSessionSubscriptionId(global::Stripe.Checkout.Session? session)
+        {
+            if (session == null) return null;
+
+            // Stripe.NET versions may expose SubscriptionId directly
+            var direct = session.SubscriptionId;
+            if (!string.IsNullOrWhiteSpace(direct)) return direct;
+
+            // defensivo entre versões: tentar via reflection (Subscription/SubscriptionId)
+            var t = session.GetType();
+
+            var subIdProp = t.GetProperty("SubscriptionId");
+            if (subIdProp != null)
+            {
+                var v = subIdProp.GetValue(session) as string;
+                if (!string.IsNullOrWhiteSpace(v)) return v;
+            }
+
+            var subProp = t.GetProperty("Subscription");
+            if (subProp != null)
+            {
+                var subObj = subProp.GetValue(session);
+                var idProp = subObj?.GetType().GetProperty("Id");
+                var v = idProp?.GetValue(subObj) as string;
+                if (!string.IsNullOrWhiteSpace(v)) return v;
+            }
+
+            return null;
         }
 
         private static CheckoutCompletedPayload ExtractCheckoutCompletedPayload(string json)
