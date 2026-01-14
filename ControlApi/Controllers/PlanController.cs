@@ -131,7 +131,7 @@ namespace Api.Controllers
         }
 
         /// <summary>
-        /// Ativa um plano para uma Company. A duraÃ§Ã£o Ã© calculada a partir da data de ativaÃ§Ã£o (UTC) com base no campo Duration do plano.
+        /// Ativa um plano para uma Company. A duraÃ§Ã£o Ã© calculada a partir da data de ativaÃ§Ã£o (UTC) com base no campo Duration do plano (em dias).
         /// Se existir uma assinatura ativa para essa Company, ela serÃ¡ marcada como Inactive.
         /// </summary>
         [HttpPost("{id}/activate")]

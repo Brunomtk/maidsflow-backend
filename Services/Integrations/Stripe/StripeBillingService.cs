@@ -252,8 +252,8 @@ namespace Services.Integrations.Stripe
             {
                 // fallback (nÃ£o ideal): usa Duration do plano local
                 start = DateTime.UtcNow;
-                var months = plan.Duration <= 0 ? 1 : plan.Duration;
-                end = start.AddMonths(months);
+                var days = plan.Duration <= 0 ? 30 : plan.Duration;
+                end = start.AddDays(days);
                 autoRenew = true;
             }
 
@@ -301,7 +301,7 @@ namespace Services.Integrations.Stripe
 
             // Status local
             var localStatus = MapStripeStatusToLocal(stripeSub.Status, periodEnd, deletedEvent);
-            var autoRenew = !stripeSub.CancelAtPeriodEnd;
+            var autoRenew = localStatus == Core.Enums.Plan.PlanSubscriptionStatusEnum.Active && !stripeSub.CancelAtPeriodEnd;
 
             // Local subscription por StripeSubscriptionId
             var localSub = await _uow.PlanSubscriptions.GetByStripeSubscriptionIdAsync(stripeSub.Id);
@@ -347,8 +347,9 @@ namespace Services.Integrations.Stripe
             if (plan != null && localSub.PlanId != plan.Id)
             {
                 localSub.PlanId = plan.Id;
-                // Troca de plano: atualizar Company.PlanId tambÃ©m
-                company.PlanId = plan.Id;
+                // Só vincula na Company se a assinatura estiver ativa.
+                if (localStatus == Core.Enums.Plan.PlanSubscriptionStatusEnum.Active)
+                    company.PlanId = plan.Id;
             }
 
             if (periodStart.HasValue)
@@ -358,6 +359,12 @@ namespace Services.Integrations.Stripe
 
             localSub.AutoRenew = autoRenew;
             localSub.Status = localStatus;
+
+            // Sem pagamento/status ativo => não mantém plano vigente nem autorrenovação.
+            if (localStatus == Core.Enums.Plan.PlanSubscriptionStatusEnum.Active && plan != null)
+                company.PlanId = plan.Id;
+            else if (company.PlanId.HasValue && company.PlanId.Value == localSub.PlanId)
+                company.PlanId = null;
 
             // Se esta assinatura estÃ¡ ativa, inativa qualquer outra ativa (garante 1 ativa por company)
             if (localStatus == Core.Enums.Plan.PlanSubscriptionStatusEnum.Active)
