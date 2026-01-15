@@ -42,6 +42,19 @@ namespace ControlApi.Controllers
         }
 
         /// <summary>
+        /// Histórico de cobranças (Stripe Invoices) da empresa.
+        /// Company: usa a company do token.
+        /// Admin: pode informar companyId.
+        /// </summary>
+        [Authorize]
+        [HttpGet("billing-history")]
+        public async Task<IActionResult> GetBillingHistory([FromQuery] int? companyId = null, [FromQuery] int limit = 20)
+        {
+            var items = await _stripe.GetBillingHistoryAsync(companyId, limit);
+            return Ok(items);
+        }
+
+        /// <summary>
         /// Webhook do Stripe (server-to-server). Não requer autenticação.
         /// Configure o endpoint no Stripe e o segredo em Stripe:WebhookSecret.
         /// </summary>

@@ -150,6 +150,220 @@ namespace Services.Integrations.Stripe
             };
         }
 
+        public async Task<List<BillingHistoryItemDTO>> GetBillingHistoryAsync(int? companyId = null, int limit = 20)
+        {
+            EnsureStripeConfigured();
+
+            if (limit <= 0) limit = 20;
+            if (limit > 100) limit = 100;
+
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode acessar billing history.");
+
+            int resolvedCompanyId;
+            if (_currentUser.IsAdmin)
+            {
+                if (!companyId.HasValue || companyId.Value <= 0)
+                    throw new InvalidOperationException("CompanyId é obrigatório para admin.");
+                resolvedCompanyId = companyId.Value;
+            }
+            else
+            {
+                var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+                if (!scopedCompanyId.HasValue)
+                    throw new ForbiddenException("Escopo de company inválido.");
+                resolvedCompanyId = scopedCompanyId.Value;
+            }
+
+            var company = await _uow.Companies.GetById(resolvedCompanyId);
+            if (company == null)
+                throw new InvalidOperationException("Company não encontrada.");
+
+            // Se ainda não existe customer no Stripe, não há histórico.
+            if (string.IsNullOrWhiteSpace(company.StripeCustomerId))
+                return new List<BillingHistoryItemDTO>();
+
+            var invoiceService = new global::Stripe.InvoiceService();
+            var invoices = await invoiceService.ListAsync(new global::Stripe.InvoiceListOptions
+            {
+                Customer = company.StripeCustomerId,
+                Limit = limit,
+                // ajuda a obter período e links sem chamadas extras
+                Expand = new List<string>
+                {
+                    "data.lines.data.period",
+                    "data.status_transitions"
+                }
+            });
+
+            return invoices
+                .Select(inv =>
+                {
+                    var createdUtc = ReadDateTime(inv, "Created") ?? DateTime.UtcNow;
+                    createdUtc = DateTime.SpecifyKind(createdUtc, DateTimeKind.Utc);
+
+                    DateTime? paidAtUtc = null;
+                    try
+                    {
+                        // Stripe.NET: inv.StatusTransitions?.PaidAt pode variar por versão
+                        var st = inv.StatusTransitions;
+                        if (st != null)
+                        {
+                            var paidAtProp = st.GetType().GetProperty("PaidAt");
+                            if (paidAtProp != null)
+                            {
+                                var val = paidAtProp.GetValue(st);
+                                if (val is DateTime dt)
+                                    paidAtUtc = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+                                else if (val is DateTimeOffset dto)
+                                    paidAtUtc = dto.UtcDateTime;
+                                else if (val is long l)
+                                    paidAtUtc = DateTimeOffset.FromUnixTimeSeconds(l).UtcDateTime;
+                                else if (val is int i)
+                                    paidAtUtc = DateTimeOffset.FromUnixTimeSeconds(i).UtcDateTime;
+                            }
+                        }
+                    }
+                    catch { /* ignorar */ }
+
+                    DateTime? periodStartUtc = null;
+                    DateTime? periodEndUtc = null;
+                    try
+                    {
+                        // O período mais confiável em assinaturas vem da primeira line com period
+                        var firstLine = inv.Lines?.Data?.FirstOrDefault(l => l.Period != null);
+                        if (firstLine?.Period != null)
+                        {
+                            periodStartUtc = ReadDateTime(firstLine.Period, "Start");
+                            periodEndUtc = ReadDateTime(firstLine.Period, "End");
+                            if (periodStartUtc.HasValue)
+                                periodStartUtc = DateTime.SpecifyKind(periodStartUtc.Value, DateTimeKind.Utc);
+                            if (periodEndUtc.HasValue)
+                                periodEndUtc = DateTime.SpecifyKind(periodEndUtc.Value, DateTimeKind.Utc);
+                        }
+                    }
+                    catch { /* ignorar */ }
+
+                    return new BillingHistoryItemDTO
+                    {
+                        InvoiceId = inv.Id,
+                        Number = inv.Number,
+                        Status = inv.Status,
+                        Paid = ReadBool(inv, "Paid") ?? false,
+                        AmountDue = ReadLong(inv, "AmountDue") ?? 0,
+                        AmountPaid = ReadLong(inv, "AmountPaid") ?? 0,
+                        AmountRemaining = ReadLong(inv, "AmountRemaining") ?? 0,
+                        Currency = ReadString(inv, "Currency") ?? _opts.Currency,
+                        CreatedAtUtc = createdUtc,
+                        PaidAtUtc = paidAtUtc,
+                        PeriodStartUtc = periodStartUtc,
+                        PeriodEndUtc = periodEndUtc,
+                        SubscriptionId = inv.SubscriptionId,
+                        HostedInvoiceUrl = inv.HostedInvoiceUrl,
+                        InvoicePdfUrl = inv.InvoicePdf
+                    };
+                })
+                .OrderByDescending(i => i.CreatedAtUtc)
+                .ToList();
+        }
+
+        private static string? ReadString(object obj, string propertyName)
+        {
+            try
+            {
+                var prop = obj.GetType().GetProperty(propertyName);
+                return prop?.GetValue(obj) as string;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static long? ReadLong(object obj, string propertyName)
+        {
+            try
+            {
+                var prop = obj.GetType().GetProperty(propertyName);
+                var val = prop?.GetValue(obj);
+                if (val == null) return null;
+
+                // Nullable primitives, when boxed, become either null or the underlying value type.
+                if (val is long l) return l;
+                if (val is int i) return i;
+                if (val is short s) return s;
+                if (val is decimal dec) return (long)dec;
+                if (val is double dbl) return (long)dbl;
+                if (val is float fl) return (long)fl;
+                if (val is string str)
+                {
+                    if (long.TryParse(str, out var parsed)) return parsed;
+                }
+
+                return Convert.ToInt64(val);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static bool? ReadBool(object obj, string propertyName)
+        {
+            try
+            {
+                var prop = obj.GetType().GetProperty(propertyName);
+                var val = prop?.GetValue(obj);
+                if (val == null) return null;
+
+                // Nullable bool, when boxed, becomes either null or bool.
+                if (val is bool b) return b;
+                if (val is string str)
+                {
+                    if (bool.TryParse(str, out var parsed)) return parsed;
+                    if (str == "1") return true;
+                    if (str == "0") return false;
+                }
+
+                return Convert.ToBoolean(val);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static DateTime? ReadDateTime(object obj, string propertyName)
+        {
+            try
+            {
+                var prop = obj.GetType().GetProperty(propertyName);
+                var val = prop?.GetValue(obj);
+                if (val == null) return null;
+
+                // Nullable DateTime, when boxed, becomes either null or DateTime.
+                if (val is DateTime dt) return dt;
+                if (val is DateTimeOffset dto) return dto.UtcDateTime;
+
+                // Stripe às vezes expõe timestamps como Unix (segundos)
+                if (val is long l) return DateTimeOffset.FromUnixTimeSeconds(l).UtcDateTime;
+                if (val is int i) return DateTimeOffset.FromUnixTimeSeconds(i).UtcDateTime;
+
+                if (val is string str)
+                {
+                    if (DateTimeOffset.TryParse(str, out var parsedDto)) return parsedDto.UtcDateTime;
+                    if (DateTime.TryParse(str, out var parsedDt)) return DateTime.SpecifyKind(parsedDt, DateTimeKind.Utc);
+                    if (long.TryParse(str, out var unix)) return DateTimeOffset.FromUnixTimeSeconds(unix).UtcDateTime;
+                }
+
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public async Task HandleWebhookAsync(string json, string stripeSignatureHeader)
         {
             EnsureStripeConfigured();
