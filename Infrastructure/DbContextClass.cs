@@ -487,6 +487,7 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                 entity.Property(c => c.City);
                 entity.Property(c => c.State);
                 entity.Property(c => c.Observations);
+                entity.Property(c => c.ServiceTypeId);
                 entity.Property(c => c.Status).HasConversion<string>();
                 entity.Property(c => c.CreatedDate).HasDefaultValueSql("now()");
                 entity.Property(c => c.UpdatedDate).HasDefaultValueSql("now()");
@@ -494,6 +495,11 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                       .WithMany()
                       .HasForeignKey(c => c.CompanyId)
                       .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(c => c.ServiceType)
+                      .WithMany()
+                      .HasForeignKey(c => c.ServiceTypeId)
+                      .OnDelete(DeleteBehavior.SetNull);
             
         entity.Property(c => c.Frequency).HasMaxLength(50);
         entity.Property(c => c.Ssn).HasMaxLength(11);

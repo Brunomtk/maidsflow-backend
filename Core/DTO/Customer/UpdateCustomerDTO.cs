@@ -23,6 +23,7 @@ namespace Core.DTO.Customer
         public string? Observations { get; set; }
 
         public decimal? Ticket { get; set; }
+        public int? ServiceTypeId { get; set; }
         public string? Frequency { get; set; }
         public string? PaymentMethod { get; set; }
 

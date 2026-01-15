@@ -7328,6 +7328,11 @@
             "format": "double",
             "nullable": true
           },
+          "serviceTypeId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
           "frequency": {
             "maxLength": 50,
             "type": "string",
@@ -8062,6 +8067,14 @@
             "type": "number",
             "format": "double",
             "nullable": true
+          },
+          "serviceTypeId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "serviceType": {
+            "$ref": "#/components/schemas/ServiceType"
           },
           "frequency": {
             "maxLength": 50,
@@ -9670,6 +9683,11 @@
           "ticket": {
             "type": "number",
             "format": "double",
+            "nullable": true
+          },
+          "serviceTypeId": {
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           },
           "frequency": {

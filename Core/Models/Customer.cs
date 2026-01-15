@@ -30,6 +30,10 @@ namespace Core.Models
 
         public decimal? Ticket { get; set; }
 
+        // Default Service Type for this customer (optional)
+        public int? ServiceTypeId { get; set; }
+        public ServiceType? ServiceType { get; set; }
+
         [MaxLength(50)]
         public string? Frequency { get; set; }
 

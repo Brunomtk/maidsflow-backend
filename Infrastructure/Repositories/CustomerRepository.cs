@@ -26,6 +26,7 @@ namespace Infrastructure.Repositories
         {
             return await _context.Customers
                 .Include(c => c.Company)
+                .Include(c => c.ServiceType)
                 .Include(c => c.Appointments)
                     .ThenInclude(a => a.Team)
                 .Include(c => c.Appointments)
@@ -37,6 +38,7 @@ namespace Infrastructure.Repositories
         {
             var query = _context.Customers
                 .Include(c => c.Company)
+                .Include(c => c.ServiceType)
                 .AsQueryable();
 
             // ✅ Corrigido para tipo int
