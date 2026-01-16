@@ -27,9 +27,6 @@ namespace Core.DTO.Customer
 
         public decimal? Ticket { get; set; }
 
-        // Default Service Type for this customer (optional)
-        public int? ServiceTypeId { get; set; }
-
         [MaxLength(50)]
         public string? Frequency { get; set; }
 

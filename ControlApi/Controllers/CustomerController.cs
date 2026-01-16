@@ -111,7 +111,6 @@ namespace ControlApi.Controllers
                 State = dto.State,
                 Observations = dto.Observations,
                 Ticket = dto.Ticket,
-                ServiceTypeId = (dto.ServiceTypeId.HasValue && dto.ServiceTypeId.Value > 0) ? dto.ServiceTypeId.Value : null,
                 Frequency = dto.Frequency,
                 PaymentMethod = dto.PaymentMethod,
                 ReceiveSms = dto.ReceiveSms,
@@ -149,11 +148,6 @@ namespace ControlApi.Controllers
             existing.Observations = dto.Observations ?? existing.Observations;
 
             existing.Ticket = dto.Ticket ?? existing.Ticket;
-            if (dto.ServiceTypeId.HasValue)
-            {
-                // Convention: 0 clears the value
-                existing.ServiceTypeId = dto.ServiceTypeId.Value > 0 ? dto.ServiceTypeId.Value : null;
-            }
             existing.Frequency = dto.Frequency ?? existing.Frequency;
             existing.PaymentMethod = dto.PaymentMethod ?? existing.PaymentMethod;
 

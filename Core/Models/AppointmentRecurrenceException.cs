@@ -30,6 +30,9 @@ namespace Core.Models
         public AppointmentStatus? OverrideStatus { get; set; }
         public AppointmentType? OverrideType { get; set; }
 
+        // Optional override for ServiceType (Payroll)
+        public int? OverrideServiceTypeId { get; set; }
+
         [JsonIgnore]
         public string? OverrideProfessionalIdsData { get; set; }
 

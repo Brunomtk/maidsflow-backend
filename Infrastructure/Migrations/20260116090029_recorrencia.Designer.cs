@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DbContextClass))]
-    [Migration("20260115163705_1AddCustomerServiceType")]
-    partial class _1AddCustomerServiceType
+    [Migration("20260116090029_recorrencia")]
+    partial class recorrencia
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -221,6 +221,9 @@ namespace Infrastructure.Migrations
 
                     b.Property<string>("OverrideProfessionalIdsData")
                         .HasColumnType("text");
+
+                    b.Property<int?>("OverrideServiceTypeId")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("OverrideStart")
                         .HasColumnType("timestamp with time zone");
@@ -632,9 +635,6 @@ namespace Infrastructure.Migrations
                     b.Property<bool>("ReceiveSms")
                         .HasColumnType("boolean");
 
-                    b.Property<int?>("ServiceTypeId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Ssn")
                         .HasMaxLength(11)
                         .HasColumnType("character varying(11)");
@@ -662,8 +662,6 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyId");
-
-                    b.HasIndex("ServiceTypeId");
 
                     b.ToTable("Customers", (string)null);
                 });
@@ -1966,14 +1964,7 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Core.Models.ServiceType", "ServiceType")
-                        .WithMany()
-                        .HasForeignKey("ServiceTypeId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("Company");
-
-                    b.Navigation("ServiceType");
                 });
 
             modelBuilder.Entity("Core.Models.CustomerArea", b =>

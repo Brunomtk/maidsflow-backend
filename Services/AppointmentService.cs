@@ -404,6 +404,19 @@ namespace Services
             if (completions.Count > 0)
                 _db.AppointmentCompletions.RemoveRange(completions);
 
+            // Series cleanup: when deleting a recurring appointment anchor, also delete all
+            // recurrence exception records linked to its SeriesId.
+            if (appointment.IsRecurring && appointment.SeriesId.HasValue)
+            {
+                var seriesId = appointment.SeriesId.Value;
+                var recurrenceExceptions = await _db.AppointmentRecurrenceExceptions
+                    .Where(e => e.SeriesId == seriesId)
+                    .ToListAsync();
+
+                if (recurrenceExceptions.Count > 0)
+                    _db.AppointmentRecurrenceExceptions.RemoveRange(recurrenceExceptions);
+            }
+
             _unitOfWork.Appointments.Delete(appointment);
             return await _unitOfWork.SaveAsync() > 0;
         }

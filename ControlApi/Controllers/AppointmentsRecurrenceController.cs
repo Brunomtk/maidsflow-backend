@@ -295,6 +295,22 @@ public async Task<IActionResult> GetCalendar(
         .GroupBy(e => (e.SeriesId, e.OccurrenceStart))
         .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.UpdatedDate).First());
 
+    // ServiceType lookup (needed because recurring overrides may change ServiceTypeId
+    // and we don't want extra per-occurrence queries).
+    var serviceTypeIds = new HashSet<int>();
+    foreach (var a in normals)
+        if (a.ServiceTypeId.HasValue) serviceTypeIds.Add(a.ServiceTypeId.Value);
+    foreach (var a in anchors)
+        if (a.ServiceTypeId.HasValue) serviceTypeIds.Add(a.ServiceTypeId.Value);
+    foreach (var e in exceptions)
+        if (e.OverrideServiceTypeId.HasValue) serviceTypeIds.Add(e.OverrideServiceTypeId.Value);
+
+    var serviceTypeNameMap = serviceTypeIds.Count == 0
+        ? new Dictionary<int, string>()
+        : await _db.Set<ServiceType>().AsNoTracking()
+            .Where(s => serviceTypeIds.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id, s => s.Name);
+
     var outList = new List<CalendarOccurrenceDTO>();
 
     // Normal -> Calendar DTO
@@ -351,7 +367,10 @@ public async Task<IActionResult> GetCalendar(
             Type = a.Type,
             Category = a.Category ?? a.Type.ToString(),
             ServiceTypeId = a.ServiceTypeId,
-            ServiceTypeName = a.ServiceType?.Name,
+            ServiceTypeName = a.ServiceType?.Name
+                ?? (a.ServiceTypeId.HasValue && serviceTypeNameMap.TryGetValue(a.ServiceTypeId.Value, out var stNameA)
+                    ? stNameA
+                    : null),
             Customer = customerMini,
             Team = teamMini,
             ProfessionalIds = a.ProfessionalIds?.ToList() ?? new List<int>(),
@@ -460,8 +479,10 @@ public async Task<IActionResult> GetCalendar(
                     Status = ex.OverrideStatus ?? anchor.Status,
                     Type = ex.OverrideType ?? anchor.Type,
                     Category = (ex.OverrideType ?? anchor.Type).ToString(),
-                    ServiceTypeId = anchor.ServiceTypeId,
-                    ServiceTypeName = anchor.ServiceType?.Name,
+                    ServiceTypeId = ex.OverrideServiceTypeId ?? anchor.ServiceTypeId,
+                    ServiceTypeName = (ex.OverrideServiceTypeId ?? anchor.ServiceTypeId).HasValue
+                        ? serviceTypeNameMap.GetValueOrDefault((ex.OverrideServiceTypeId ?? anchor.ServiceTypeId)!.Value)
+                        : null,
 
                     Customer = customerMini,
                     Team = teamMini,
@@ -522,7 +543,9 @@ public async Task<IActionResult> GetCalendar(
                 Type = anchor.Type,
                 Category = anchor.Category ?? anchor.Type.ToString(),
                 ServiceTypeId = anchor.ServiceTypeId,
-                ServiceTypeName = anchor.ServiceType?.Name,
+                ServiceTypeName = anchor.ServiceTypeId.HasValue
+                    ? serviceTypeNameMap.GetValueOrDefault(anchor.ServiceTypeId.Value)
+                    : null,
 
                 Customer = customerMini,
                 Team = teamMini,
@@ -758,6 +781,13 @@ public async Task<IActionResult> DeleteInstance(
             if (dto.Status.HasValue) ex.OverrideStatus = dto.Status.Value;
             if (dto.Type.HasValue) ex.OverrideType = dto.Type.Value;
 
+            if (dto.ServiceTypeId.HasValue)
+            {
+                var stId = dto.ServiceTypeId.Value;
+                ex.OverrideServiceTypeId = stId <= 0 ? null : stId;
+                await ValidateServiceTypeForCompanyAsync(anchor.CompanyId, ex.OverrideServiceTypeId);
+            }
+
             if (dto.ProfessionalIds != null)
                 ex.OverrideProfessionalIds = dto.ProfessionalIds.Distinct().ToList();
         }
@@ -857,6 +887,21 @@ public async Task<IActionResult> DeleteInstance(
 
             if (completions.Count > 0)
                 _db.Set<AppointmentCompletion>().RemoveRange(completions);
+        }
+
+        private async Task ValidateServiceTypeForCompanyAsync(int companyId, int? serviceTypeId)
+        {
+            if (!serviceTypeId.HasValue) return;
+
+            var st = await _db.Set<ServiceType>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Id == serviceTypeId.Value);
+
+            if (st == null)
+                throw new BadRequestException("ServiceTypeId inválido.");
+
+            if (st.CompanyId != companyId)
+                throw new ForbiddenException("ServiceType não pertence a esta company.");
         }
 
         // Simple RRULE expansion supporting DAILY and WEEKLY with INTERVAL, BYDAY, COUNT, UNTIL
@@ -1165,6 +1210,13 @@ private async Task UpdateAllAsync(Appointment anchor, UpdateAppointmentDTO dto, 
                 return;
             }
 
+            var normalizedServiceTypeId = dto.ServiceTypeId.HasValue
+                ? (dto.ServiceTypeId.Value <= 0 ? (int?)null : dto.ServiceTypeId.Value)
+                : null;
+
+            if (dto.ServiceTypeId.HasValue)
+                await ValidateServiceTypeForCompanyAsync(anchor.CompanyId, normalizedServiceTypeId);
+
             var all = await _db.Set<Appointment>().Where(a => a.SeriesId == anchor.SeriesId).ToListAsync();
             foreach (var a in all)
             {
@@ -1173,6 +1225,16 @@ private async Task UpdateAllAsync(Appointment anchor, UpdateAppointmentDTO dto, 
                 if (dto.Address != null) a.Address = dto.Address;
                 if (dto.Notes != null) a.Notes = dto.Notes;
                 if (dto.TimeZoneId != null) a.TimeZoneId = tz.Id;
+
+                // Category / Type / ServiceType (Payroll)
+                if (dto.Type.HasValue) a.Type = dto.Type.Value;
+                if (dto.Category != null) a.Category = dto.Category;
+                else if (dto.Type.HasValue) a.Category = dto.Type.Value.ToString();
+                if (dto.ServiceTypeId.HasValue) a.ServiceTypeId = normalizedServiceTypeId;
+
+                if (dto.ProfessionalIds != null)
+                    a.ProfessionalIds = dto.ProfessionalIds.Distinct().ToList();
+
                 if (dto.Start.HasValue && dto.End.HasValue)
                 {
                     a.Start = dto.Start.Value;
