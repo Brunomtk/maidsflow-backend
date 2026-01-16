@@ -194,6 +194,10 @@ namespace ControlApi.Controllers
 
             if (scope == RecurrenceScope.This)
             {
+                // Se essa ocorrência já foi concluída (ou já entrou no payroll), removemos os registros
+                // dependentes antes de “cancelar” a instância via exception. Assim evitamos ficar com
+                // snapshots/origens órfãs em AppointmentCompletions e PayrollItems.
+                await CleanupAppointmentOccurrenceReferencesAsync(current.Id, occurrenceStart.Value);
                 await UpsertExceptionCancellationAsync(current, occurrenceStart.Value, occurrenceEnd);
                 await _db.SaveChangesAsync();
                 return NoContent();
@@ -201,6 +205,9 @@ namespace ControlApi.Controllers
 
             if (scope == RecurrenceScope.ThisAndFollowing)
             {
+                // Ao cortar/deletar “esta e as seguintes”, removemos qualquer completion/payroll já gerado
+                // a partir do corte, para não manter histórico em instâncias que deixam de existir.
+                await CleanupAppointmentOccurrenceReferencesFromAsync(current.Id, occurrenceStart.Value);
                 await CutSeriesAsync(current, occurrenceStart.Value);
                 await _db.SaveChangesAsync();
                 return NoContent();
@@ -920,6 +927,68 @@ public async Task<IActionResult> DeleteInstance(
 
             if (completions.Count > 0)
                 _db.Set<AppointmentCompletion>().RemoveRange(completions);
+        }
+
+        /// <summary>
+        /// Remove itens/snapshots referentes a UMA ocorrência específica (AppointmentId + OccurrenceStart).
+        /// Útil quando o usuário exclui apenas uma instância da série (scope=This).
+        /// </summary>
+        private async Task CleanupAppointmentOccurrenceReferencesAsync(int appointmentId, DateTime occurrenceStart)
+        {
+            // PayrollItems são únicos por (PayrollRunId, ProfessionalId, AppointmentId, OccurrenceStart)
+            var payrollItems = await _db.Set<PayrollItem>()
+                .Where(i => i.AppointmentId == appointmentId && i.OccurrenceStart == occurrenceStart)
+                .ToListAsync();
+
+            if (payrollItems.Count > 0)
+                _db.Set<PayrollItem>().RemoveRange(payrollItems);
+
+            // Completion snapshot é único por (CompanyId, AppointmentId, OccurrenceStart)
+            var completion = await _db.Set<AppointmentCompletion>()
+                .FirstOrDefaultAsync(c => c.AppointmentId == appointmentId && c.OccurrenceStart == occurrenceStart);
+
+            if (completion != null)
+            {
+                // Se houver PayrollItems apontando por AppointmentCompletionId, remove antes.
+                var byCompletion = await _db.Set<PayrollItem>()
+                    .Where(i => i.AppointmentCompletionId == completion.Id)
+                    .ToListAsync();
+                if (byCompletion.Count > 0)
+                    _db.Set<PayrollItem>().RemoveRange(byCompletion);
+
+                _db.Set<AppointmentCompletion>().Remove(completion);
+            }
+        }
+
+        /// <summary>
+        /// Remove itens/snapshots a partir de uma ocorrência (>= occurrenceStart).
+        /// Útil no delete scope=ThisAndFollowing.
+        /// </summary>
+        private async Task CleanupAppointmentOccurrenceReferencesFromAsync(int appointmentId, DateTime occurrenceStart)
+        {
+            var payrollItems = await _db.Set<PayrollItem>()
+                .Where(i => i.AppointmentId == appointmentId && i.OccurrenceStart >= occurrenceStart)
+                .ToListAsync();
+
+            if (payrollItems.Count > 0)
+                _db.Set<PayrollItem>().RemoveRange(payrollItems);
+
+            var completions = await _db.Set<AppointmentCompletion>()
+                .Where(c => c.AppointmentId == appointmentId && c.OccurrenceStart >= occurrenceStart)
+                .ToListAsync();
+
+            if (completions.Count > 0)
+            {
+                var completionIds = completions.Select(x => x.Id).ToList();
+                var byCompletion = await _db.Set<PayrollItem>()
+                    .Where(i => i.AppointmentCompletionId.HasValue && completionIds.Contains(i.AppointmentCompletionId.Value))
+                    .ToListAsync();
+
+                if (byCompletion.Count > 0)
+                    _db.Set<PayrollItem>().RemoveRange(byCompletion);
+
+                _db.Set<AppointmentCompletion>().RemoveRange(completions);
+            }
         }
 
         private async Task ValidateServiceTypeForCompanyAsync(int companyId, int? serviceTypeId)
