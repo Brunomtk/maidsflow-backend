@@ -219,9 +219,6 @@ namespace Infrastructure.Migrations
                     b.Property<string>("OverrideProfessionalIdsData")
                         .HasColumnType("text");
 
-                    b.Property<int?>("OverrideServiceTypeId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime?>("OverrideStart")
                         .HasColumnType("timestamp with time zone");
 
@@ -232,6 +229,9 @@ namespace Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<int?>("OverrideType")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("OverrideServiceTypeId")
                         .HasColumnType("integer");
 
                     b.Property<Guid>("SeriesId")

@@ -1,52 +1,12 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_recurrence_servicetypeid_fix_v3\\ControlApi\\",
-  "Documents": [
-    {
-      "AbsoluteMoniker": "D:0:0:{5A2BE95A-38B3-4E5C-97CD-B16FC52486C3}|..\\Infrastructure\\Infrastructure.csproj|e:\\projetos b7\\maidsflow\\dev\\maidsflow-backend_recurrence_servicetypeid_fix_v3\\infrastructure\\migrations\\20260116090619_ajusterecorrencia.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{5A2BE95A-38B3-4E5C-97CD-B16FC52486C3}|..\\Infrastructure\\Infrastructure.csproj|e:\\projetos b7\\maidsflow\\dev\\maidsflow-backend_recurrence_servicetypeid_fix_v3\\infrastructure\\migrations\\20260116090029_recorrencia.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    }
-  ],
+  "WorkspaceRootPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_recurrence_servicetypeid_completion_fix_v1\\ControlApi\\",
+  "Documents": [],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
       "VerticalTabListWidth": 256,
-      "DocumentGroups": [
-        {
-          "DockedWidth": 200,
-          "SelectedChildIndex": 0,
-          "Children": [
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "20260116090619_ajusterecorrencia.cs",
-              "DocumentMoniker": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_recurrence_servicetypeid_fix_v3\\Infrastructure\\Migrations\\20260116090619_ajusterecorrencia.cs",
-              "RelativeDocumentMoniker": "..\\Infrastructure\\Migrations\\20260116090619_ajusterecorrencia.cs",
-              "ToolTip": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_recurrence_servicetypeid_fix_v3\\Infrastructure\\Migrations\\20260116090619_ajusterecorrencia.cs",
-              "RelativeToolTip": "..\\Infrastructure\\Migrations\\20260116090619_ajusterecorrencia.cs",
-              "ViewState": "AgIAABMAAAAAAAAAAAAgwAYAAAAqAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-16T09:06:19.427Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "20260116090029_recorrencia.cs",
-              "DocumentMoniker": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_recurrence_servicetypeid_fix_v3\\Infrastructure\\Migrations\\20260116090029_recorrencia.cs",
-              "RelativeDocumentMoniker": "..\\Infrastructure\\Migrations\\20260116090029_recorrencia.cs",
-              "ToolTip": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_recurrence_servicetypeid_fix_v3\\Infrastructure\\Migrations\\20260116090029_recorrencia.cs",
-              "RelativeToolTip": "..\\Infrastructure\\Migrations\\20260116090029_recorrencia.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAkAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-16T09:00:30.008Z",
-              "EditorCaption": ""
-            }
-          ]
-        }
-      ]
+      "DocumentGroups": []
     }
   ]
 }

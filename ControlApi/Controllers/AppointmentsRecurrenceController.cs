@@ -73,12 +73,22 @@ namespace ControlApi.Controllers
             var current = await _db.Set<Appointment>().FindAsync(id);
             if (current == null) return NotFound();
 
+            var oldAnchorStatus = current.Status;
+
             var tz = ResolveTimeZone(dto.TimeZoneId ?? current.TimeZoneId);
 
             // Non-recurring (or no SeriesId) keeps the classic behavior
             if (!current.IsRecurring || current.SeriesId == null)
             {
                 await UpdateThisAsync(current, dto, tz);
+
+                // Se o status mudou para Completed, registra snapshot em AppointmentCompletions.
+                if (oldAnchorStatus != Core.Enums.Appointment.AppointmentStatus.Completed &&
+                    current.Status == Core.Enums.Appointment.AppointmentStatus.Completed)
+                {
+                    await RecordCompletionSnapshotIfNeededAsync(current, current.Start, current.End, dto.ProfessionalIds);
+                }
+
                 await _db.SaveChangesAsync();
                 return Ok(current);
             }
@@ -91,6 +101,14 @@ namespace ControlApi.Controllers
                     return BadRequest("OccurrenceStart é obrigatório para Scope=This em séries recorrentes.");
 
                 await UpsertExceptionOverrideAsync(current, dto, tz);
+
+                // Quando marcar uma ocorrência como Completed, grava o snapshot (dedupe por AppointmentId + OccurrenceStart)
+                if (dto.Status.HasValue && dto.Status.Value == Core.Enums.Appointment.AppointmentStatus.Completed)
+                {
+                    var (ws, we) = ResolveOccurrenceWindow(current, dto.OccurrenceStart.Value, dto.OccurrenceEnd);
+                    await RecordCompletionSnapshotIfNeededAsync(current, ws, we, dto.ProfessionalIds);
+                }
+
                 await _db.SaveChangesAsync();
                 return Ok(current);
             }
@@ -101,6 +119,14 @@ namespace ControlApi.Controllers
                     return BadRequest("OccurrenceStart é obrigatório para Scope=ThisAndFollowing em séries recorrentes.");
 
                 await UpdateThisAndFollowingAsync(current, dto, tz);
+
+                // Se o status da série (âncora) mudou para Completed, registra snapshot para a ocorrência âncora.
+                if (oldAnchorStatus != Core.Enums.Appointment.AppointmentStatus.Completed &&
+                    current.Status == Core.Enums.Appointment.AppointmentStatus.Completed)
+                {
+                    await RecordCompletionSnapshotIfNeededAsync(current, current.Start, current.End, dto.ProfessionalIds);
+                }
+
                 await _db.SaveChangesAsync();
                 return Ok(current);
             }
@@ -108,6 +134,13 @@ namespace ControlApi.Controllers
             if (dto.Scope == RecurrenceScope.All)
             {
                 await UpdateAllAsync(current, dto, tz);
+
+                if (oldAnchorStatus != Core.Enums.Appointment.AppointmentStatus.Completed &&
+                    current.Status == Core.Enums.Appointment.AppointmentStatus.Completed)
+                {
+                    await RecordCompletionSnapshotIfNeededAsync(current, current.Start, current.End, dto.ProfessionalIds);
+                }
+
                 await _db.SaveChangesAsync();
                 return Ok(current);
             }
@@ -1119,6 +1152,25 @@ public async Task<IActionResult> DeleteInstance(
             if (dto.Address != null) current.Address = dto.Address;
             if (dto.Notes != null) current.Notes = dto.Notes;
             if (dto.TimeZoneId != null) current.TimeZoneId = tz.Id;
+
+            // Status / Type / Category / ServiceType
+            if (dto.Status.HasValue) current.Status = dto.Status.Value;
+
+            if (dto.Type.HasValue) current.Type = dto.Type.Value;
+            if (dto.Category != null) current.Category = dto.Category;
+            else if (dto.Type.HasValue) current.Category = dto.Type.Value.ToString();
+
+            if (dto.ServiceTypeId.HasValue)
+            {
+                var normalizedServiceTypeId = dto.ServiceTypeId.Value <= 0 ? (int?)null : dto.ServiceTypeId.Value;
+                await ValidateServiceTypeForCompanyAsync(current.CompanyId, normalizedServiceTypeId);
+                current.ServiceTypeId = normalizedServiceTypeId;
+            }
+
+            // Relationships / Professionals
+            if (dto.CustomerId.HasValue) current.CustomerId = dto.CustomerId.Value;
+            if (dto.TeamId.HasValue) current.TeamId = dto.TeamId.Value;
+            if (dto.ProfessionalIds != null) current.ProfessionalIds = dto.ProfessionalIds.Distinct().ToList();
             if (dto.Start.HasValue && dto.End.HasValue)
             {
                 current.Start = dto.Start.Value;
@@ -1225,6 +1277,9 @@ private async Task UpdateAllAsync(Appointment anchor, UpdateAppointmentDTO dto, 
                 if (dto.Address != null) a.Address = dto.Address;
                 if (dto.Notes != null) a.Notes = dto.Notes;
                 if (dto.TimeZoneId != null) a.TimeZoneId = tz.Id;
+
+                // Status
+                if (dto.Status.HasValue) a.Status = dto.Status.Value;
 
                 // Category / Type / ServiceType (Payroll)
                 if (dto.Type.HasValue) a.Type = dto.Type.Value;

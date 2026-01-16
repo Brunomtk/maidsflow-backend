@@ -291,6 +291,13 @@ namespace Services
             if (dto.RecurrenceEnd.HasValue) appointment.RecurrenceEnd = dto.RecurrenceEnd;
             if (dto.OccurrenceCount.HasValue) appointment.OccurrenceCount = dto.OccurrenceCount;
 
+            // Sempre que o status transicionar para Completed, registra um snapshot em AppointmentCompletions
+            // (sem duplicar registros; o service já faz dedupe por AppointmentId + OccurrenceStart).
+            if (oldStatus != AppointmentStatus.Completed && appointment.Status == AppointmentStatus.Completed)
+            {
+                await _completion.RecordCompletionAsync(appointment, appointment.Start, appointment.End);
+            }
+
             _unitOfWork.Appointments.Update(appointment);
             return await _unitOfWork.SaveAsync() > 0;
         }
