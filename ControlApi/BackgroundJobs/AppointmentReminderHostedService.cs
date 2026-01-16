@@ -62,12 +62,21 @@ namespace ControlApi.BackgroundJobs
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<DbContextClass>();
+            var config = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
             // IMPORTANT:
             // Background jobs do NOT run under an authenticated HttpContext.
             // Therefore, services that depend on ICurrentUser/ScopeGuard (like NotificationService)
             // may throw "Escopo de company inválido".
             // We create Notification entities directly and then trigger WebPush via IPushNotificationSender.
             var pushSender = scope.ServiceProvider.GetRequiredService<IPushNotificationSender>();
+
+            // Feature flag
+            var enabled = config.GetValue("AutoNotifications:Reminder30Min:Enabled", true);
+            if (!enabled)
+            {
+                _logger.LogDebug("[Reminders] AutoNotifications:Reminder30Min desabilitado.");
+                return;
+            }
 
             var nowUtc = DateTime.UtcNow;
 

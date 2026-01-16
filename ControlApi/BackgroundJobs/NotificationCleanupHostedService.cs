@@ -25,7 +25,10 @@ namespace ControlApi.BackgroundJobs
         // Defaults (caso não exista config)
         private const int DefaultRunHour = 3; // 03:00
         private const int DefaultRunMinute = 0;
-        private const int DefaultReminderRetentionDays = 7;
+        // Lembrete de 30min: queremos manter pouco tempo para não lotar o banco
+        // (o usuário só precisa ver o aviso "agora"; histórico infinito não agrega).
+        private const int DefaultReminderRetentionMinutes = 30;
+        private const int DefaultReminderRetentionDays = 7; // fallback legado (se minutos não estiver configurado)
         private const int DefaultDispatchRetentionDays = 30;
         private const int DefaultReadRetentionDays = 1; // após marcar como lida, manter por 1 dia
 
@@ -125,12 +128,18 @@ namespace ControlApi.BackgroundJobs
                 return;
             }
 
+            var reminderRetentionMinutes = _config.GetValue<int?>("AutoNotifications:Cleanup:ReminderNotificationsRetentionMinutes")
+                                         ?? DefaultReminderRetentionMinutes;
             var reminderRetentionDays = _config.GetValue("AutoNotifications:Cleanup:ReminderNotificationsRetentionDays", DefaultReminderRetentionDays);
             var dispatchRetentionDays = _config.GetValue("AutoNotifications:Cleanup:DispatchRetentionDays", DefaultDispatchRetentionDays);
             var readRetentionDays = _config.GetValue("AutoNotifications:Cleanup:ReadNotificationsRetentionDays", DefaultReadRetentionDays);
 
             var nowUtc = DateTime.UtcNow;
-            var notifCutoffUtc = nowUtc.AddDays(-Math.Max(1, reminderRetentionDays));
+            // Prioriza retenção em minutos (30min por padrão). Se alguém quiser o comportamento antigo, basta remover o Minutes.
+            var notifCutoffUtc = nowUtc.AddMinutes(-Math.Max(1, reminderRetentionMinutes));
+            // fallback legado (caso alguém configure explicitamente 0 minutos)
+            if (reminderRetentionMinutes <= 0)
+                notifCutoffUtc = nowUtc.AddDays(-Math.Max(1, reminderRetentionDays));
             var dispatchCutoffUtc = nowUtc.AddDays(-Math.Max(1, dispatchRetentionDays));
             var readCutoffUtc = nowUtc.AddDays(-Math.Max(1, readRetentionDays));
 
