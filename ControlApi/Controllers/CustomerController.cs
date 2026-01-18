@@ -1,9 +1,11 @@
-﻿using Core.DTO.Customer;
+using ClosedXML.Excel;
+using Core.DTO.Customer;
 using Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services;
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -39,12 +41,117 @@ namespace ControlApi.Controllers
         /// Retorna um cliente por ID.
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id) // ✅ Ajustado de Guid para int
+        public async Task<IActionResult> GetById(int id)
         {
             if (id <= 0) return BadRequest("ID inválido.");
 
             var customer = await _customerService.GetByIdAsync(id);
             return customer != null ? Ok(customer) : NotFound();
+        }
+
+        /// <summary>
+        /// Baixa um template Excel com as colunas esperadas para cadastrar clientes.
+        /// Observação: o campo 'ssn' é o documento US (Social Security Number) quando aplicável.
+        /// </summary>
+        [HttpGet("excel-template")]
+        public IActionResult DownloadExcelTemplate()
+        {
+            using var wb = new XLWorkbook();
+
+            // ---- Sheet: Clients ----
+            var ws = wb.Worksheets.Add("Clients");
+            var headers = new[]
+            {
+                "name",
+                "email",
+                "phone",
+                "address",
+                "zipCode",
+                "city",
+                "state",
+                "observations",
+                "ssn",
+                "receiveSms",
+                "receiveEmail",
+                "ticket",
+                "frequency",
+                "paymentMethod"
+            };
+
+            for (var i = 0; i < headers.Length; i++)
+            {
+                ws.Cell(1, i + 1).Value = headers[i];
+                ws.Cell(1, i + 1).Style.Font.Bold = true;
+            }
+
+            // Example row (optional)
+            ws.Cell(2, 1).Value = "John Doe";
+            ws.Cell(2, 2).Value = "john@example.com";
+            ws.Cell(2, 3).Value = "+1 (555) 123-4567";
+            ws.Cell(2, 4).Value = "123 Main St, Apt 4";
+            ws.Cell(2, 5).Value = "90210";
+            ws.Cell(2, 6).Value = "Beverly Hills";
+            ws.Cell(2, 7).Value = "CA";
+            ws.Cell(2, 8).Value = "VIP client";
+            ws.Cell(2, 9).Value = "123456789"; // SSN digits only
+            ws.Cell(2, 10).Value = true;
+            ws.Cell(2, 11).Value = true;
+            ws.Cell(2, 12).Value = 150;
+            ws.Cell(2, 13).Value = "weekly";
+            ws.Cell(2, 14).Value = "cash";
+
+            ws.SheetView.FreezeRows(1);
+            ws.Columns().AdjustToContents();
+
+            // ---- Sheet: Instructions ----
+            var wi = wb.Worksheets.Add("Instructions");
+            wi.Cell(1, 1).Value = "How to use";
+            wi.Cell(1, 1).Style.Font.Bold = true;
+
+            wi.Cell(3, 1).Value = "1) Keep the header row (row 1) exactly as provided.";
+            wi.Cell(4, 1).Value = "2) Required fields: name, address.";
+            wi.Cell(5, 1).Value = "3) state must be 2 letters (e.g., CA, NY).";
+            wi.Cell(6, 1).Value = "4) ssn is optional; when provided, use digits only.";
+            wi.Cell(7, 1).Value = "5) receiveSms/receiveEmail: leave blank to default true.";
+            wi.Cell(8, 1).Value = "6) Import is done by sending rows to POST /api/Customer/bulk.";
+            wi.Columns().AdjustToContents();
+
+            // ---- Sheet: Reference ----
+            var wr = wb.Worksheets.Add("Reference");
+            wr.Cell(1, 1).Value = "Field";
+            wr.Cell(1, 2).Value = "Notes";
+            wr.Row(1).Style.Font.Bold = true;
+
+            wr.Cell(2, 1).Value = "state";
+            wr.Cell(2, 2).Value = "US state abbreviation (2 letters).";
+            wr.Cell(3, 1).Value = "ssn";
+            wr.Cell(3, 2).Value = "US Social Security Number (digits only).";
+            wr.Cell(4, 1).Value = "zipCode";
+            wr.Cell(4, 2).Value = "ZIP (12345) or ZIP+4 (12345-6789).";
+            wr.Columns().AdjustToContents();
+
+            using var ms = new MemoryStream();
+            wb.SaveAs(ms);
+            var bytes = ms.ToArray();
+
+            return File(
+                bytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "clients_template.xlsx"
+            );
+        }
+
+        /// <summary>
+        /// Importação em lote (bulk) de clientes. O CompanyId é inferido pelo escopo para usuários Company.
+        /// Para Admin, informe CompanyId no payload.
+        /// </summary>
+        [HttpPost("bulk")]
+        public async Task<IActionResult> BulkCreate([FromBody] BulkCreateCustomersRequest request)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var result = await _customerService.BulkCreateAsync(request);
+            return Ok(result);
         }
 
         /// <summary>
@@ -104,11 +211,11 @@ namespace ControlApi.Controllers
                 Name = dto.Name,
                 Ssn = dto.Ssn,
                 Email = dto.Email,
-                Phone = dto.Phone,
+                Phone = dto.Phone ?? string.Empty,
                 Address = dto.Address,
                 ZipCode = dto.ZipCode,
-                City = dto.City,
-                State = dto.State,
+                City = dto.City ?? string.Empty,
+                State = dto.State ?? string.Empty,
                 Observations = dto.Observations,
                 Ticket = dto.Ticket,
                 Frequency = dto.Frequency,
@@ -120,7 +227,6 @@ namespace ControlApi.Controllers
 
             var created = await _customerService.CreateAsync(customer);
             return created != null ? Ok(created) : BadRequest("Erro ao criar cliente.");
-        
         }
 
         /// <summary>
@@ -156,14 +262,13 @@ namespace ControlApi.Controllers
 
             var success = await _customerService.UpdateAsync(existing);
             return success ? Ok(existing) : StatusCode(500, "Falha ao atualizar o cliente.");
-        
         }
 
         /// <summary>
         /// Exclui um cliente por ID.
         /// </summary>
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id) // ✅ Ajustado de Guid para int
+        public async Task<IActionResult> Delete(int id)
         {
             if (id <= 0) return BadRequest("ID inválido.");
 

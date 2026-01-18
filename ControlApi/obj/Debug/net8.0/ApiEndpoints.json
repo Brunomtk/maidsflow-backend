@@ -1410,6 +1410,32 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "ControlApi.Controllers.CustomerController",
+    "Method": "BulkCreate",
+    "RelativePath": "api/Customer/bulk",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Core.DTO.Customer.BulkCreateCustomersRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.CustomerController",
+    "Method": "DownloadExcelTemplate",
+    "RelativePath": "api/Customer/excel-template",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "ControlApi.Controllers.CustomerAreasController",
     "Method": "Create",
     "RelativePath": "api/CustomerAreas",

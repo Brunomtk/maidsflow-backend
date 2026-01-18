@@ -1,16 +1,18 @@
-﻿using Core.DTO.Customer;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Core.DTO.Customer;
 using Core.Models;
 using Infrastructure.ServiceExtension;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Infrastructure.Repositories
 {
     public interface ICustomerRepository : IGenericRepository<Customer>
     {
-        Task<Customer?> GetByIdAsync(int id); // ✅ Corrigido para int
+        Task<Customer?> GetByIdAsync(int id);
         Task<PagedResult<Customer>> GetPagedCustomersAsync(CustomerFiltersDTO filtersDTO);
+        Task AddRangeAsync(IEnumerable<Customer> customers);
     }
 
     public class CustomerRepository : GenericRepository<Customer>, ICustomerRepository
@@ -22,7 +24,7 @@ namespace Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<Customer?> GetByIdAsync(int id) // ✅ Corrigido para int
+        public async Task<Customer?> GetByIdAsync(int id)
         {
             return await _context.Customers
                 .Include(c => c.Company)
@@ -39,7 +41,6 @@ namespace Infrastructure.Repositories
                 .Include(c => c.Company)
                 .AsQueryable();
 
-            // ✅ Corrigido para tipo int
             if (filtersDTO.CompanyId.HasValue && filtersDTO.CompanyId.Value > 0)
                 query = query.Where(c => c.CompanyId == filtersDTO.CompanyId.Value);
 
@@ -53,8 +54,12 @@ namespace Infrastructure.Repositories
                 query = query.Where(c => c.Status == filtersDTO.Status.Value);
 
             query = query.OrderByDescending(c => c.CreatedDate);
-
             return await query.GetPagedAsync(filtersDTO.PageNumber, filtersDTO.PageSize);
+        }
+
+        public async Task AddRangeAsync(IEnumerable<Customer> customers)
+        {
+            await _context.Customers.AddRangeAsync(customers);
         }
     }
 }
