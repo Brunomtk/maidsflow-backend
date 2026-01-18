@@ -150,6 +150,158 @@ namespace Services.Integrations.Stripe
             };
         }
 
+        public async Task ConfirmCheckoutSessionAsync(ConfirmStripeCheckoutSessionRequest request)
+        {
+            EnsureStripeConfigured();
+
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            if (string.IsNullOrWhiteSpace(request.SessionId))
+                throw new InvalidOperationException("SessionId é obrigatório.");
+
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode assinar/alterar planos.");
+
+            // 1) Buscar sessão no Stripe
+            var sessionService = new global::Stripe.Checkout.SessionService();
+            var session = await sessionService.GetAsync(request.SessionId, new global::Stripe.Checkout.SessionGetOptions
+            {
+                Expand = new List<string> { "subscription", "customer" }
+            });
+
+            // 2) Ler metadata (companyId/priceId/planId)
+            var meta = session?.Metadata;
+            int companyId = 0;
+            string? priceId = null;
+            int planId = 0;
+
+            if (meta != null)
+            {
+                if (meta.TryGetValue("companyId", out var c)) int.TryParse(c, out companyId);
+                if (meta.TryGetValue("priceId", out var p)) priceId = p;
+                if (meta.TryGetValue("planId", out var pl)) int.TryParse(pl, out planId);
+            }
+
+            if (companyId <= 0)
+                throw new InvalidOperationException("Checkout Session sem companyId na metadata.");
+
+            // Escopo: company só pode confirmar sua própria sessão
+            if (!_currentUser.IsAdmin)
+            {
+                var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+                if (!scopedCompanyId.HasValue || scopedCompanyId.Value != companyId)
+                    throw new ForbiddenException("Escopo de company inválido para confirmar esta sessão.");
+            }
+
+            // 3) Descobrir subscriptionId
+            var subscriptionId = ReadString(session, "SubscriptionId");
+            if (string.IsNullOrWhiteSpace(subscriptionId))
+                subscriptionId = ReadString(session, "Subscription") ?? session?.SubscriptionId;
+
+            if (string.IsNullOrWhiteSpace(subscriptionId))
+                throw new InvalidOperationException("Checkout Session sem subscriptionId. Verifique se o checkout está em mode=subscription.");
+
+            // 4) Resolve plano
+            Core.Models.Plan? plan = null;
+            if (planId > 0)
+                plan = await _uow.Plans.GetById(planId);
+
+            if (plan == null && !string.IsNullOrWhiteSpace(priceId))
+                plan = await _uow.Plans.GetByStripePriceIdAsync(priceId);
+
+            if (plan == null)
+                throw new InvalidOperationException("Não foi possível resolver o plano para esta sessão (planId/priceId).");
+
+            var company = await _uow.Companies.GetById(companyId);
+            if (company == null)
+                throw new InvalidOperationException("Company não encontrada.");
+
+            // Persist customer id if needed
+            var customerId = ReadString(session, "CustomerId") ?? ReadString(session, "Customer");
+            if (!string.IsNullOrWhiteSpace(customerId) && string.IsNullOrWhiteSpace(company.StripeCustomerId))
+                company.StripeCustomerId = customerId;
+
+            // 5) Idempotência por StripeSubscriptionId
+            var existingByStripe = await _uow.PlanSubscriptions.GetByStripeSubscriptionIdAsync(subscriptionId);
+
+            DateTime start;
+            DateTime end;
+            bool autoRenew;
+
+            var isFreePlan = plan.Price <= 0;
+            var trialDays = request.ForceTrialDays.HasValue && request.ForceTrialDays.Value > 0
+                ? request.ForceTrialDays.Value
+                : 15;
+
+            if (isFreePlan)
+            {
+                // Fluxo: "passou no Stripe" -> ativa trial interno de 15 dias, mas guarda StripeSubscriptionId
+                start = DateTime.UtcNow;
+                end = start.AddDays(trialDays);
+                autoRenew = false;
+            }
+            else
+            {
+                // Usa datas oficiais do Stripe
+                var snap = await TryGetSubscriptionSnapshotAsync(subscriptionId);
+                if (snap?.PeriodStartUtc.HasValue == true && snap?.PeriodEndUtc.HasValue == true)
+                {
+                    start = snap.PeriodStartUtc.Value;
+                    end = snap.PeriodEndUtc.Value;
+                    autoRenew = snap.AutoRenew;
+                }
+                else
+                {
+                    start = DateTime.UtcNow;
+                    var days = plan.Duration <= 0 ? 30 : plan.Duration;
+                    end = start.AddDays(days);
+                    autoRenew = true;
+                }
+            }
+
+            // 6) Desativa atual ativa e cria/atualiza local
+            var currentActive = await _uow.PlanSubscriptions.GetActiveByCompanyAsync(companyId);
+            if (currentActive != null && (existingByStripe == null || currentActive.Id != existingByStripe.Id))
+            {
+                currentActive.Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Inactive;
+                currentActive.EndDate = DateTime.UtcNow;
+                _uow.PlanSubscriptions.Update(currentActive);
+            }
+
+            if (existingByStripe == null)
+            {
+                var newSub = new Core.Models.PlanSubscription
+                {
+                    PlanId = plan.Id,
+                    CompanyId = companyId,
+                    StartDate = start,
+                    EndDate = end,
+                    Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Active,
+                    AutoRenew = autoRenew,
+                    StripeSubscriptionId = subscriptionId
+                };
+
+                company.PlanId = plan.Id;
+                _uow.Companies.Update(company);
+                await _uow.PlanSubscriptions.Add(newSub);
+                _uow.Save();
+                return;
+            }
+
+            // Atualiza registro existente (garantindo PlanId e principalmente StripeSubscriptionId)
+            existingByStripe.PlanId = plan.Id;
+            existingByStripe.CompanyId = companyId;
+            existingByStripe.StartDate = start;
+            existingByStripe.EndDate = end;
+            existingByStripe.AutoRenew = autoRenew;
+            existingByStripe.Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Active;
+            existingByStripe.StripeSubscriptionId = subscriptionId;
+
+            company.PlanId = plan.Id;
+            _uow.PlanSubscriptions.Update(existingByStripe);
+            _uow.Companies.Update(company);
+            _uow.Save();
+        }
+
         public async Task<List<BillingHistoryItemDTO>> GetBillingHistoryAsync(int? companyId = null, int limit = 20)
         {
             EnsureStripeConfigured();

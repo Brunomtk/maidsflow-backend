@@ -418,6 +418,22 @@
   },
   {
     "ContainingType": "ControlApi.Controllers.BillingController",
+    "Method": "ConfirmCheckout",
+    "RelativePath": "api/Billing/confirm-checkout",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Core.DTO.Billing.ConfirmStripeCheckoutSessionRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.BillingController",
     "Method": "ListStripePrices",
     "RelativePath": "api/Billing/stripe-prices",
     "HttpMethod": "GET",

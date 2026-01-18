@@ -42,6 +42,18 @@ namespace ControlApi.Controllers
         }
 
         /// <summary>
+        /// Confirma uma Checkout Session (client-to-server) e garante o registro local em PlanSubscriptions
+        /// com StripeSubscriptionId preenchido. Útil para o fluxo onde a UI volta do Stripe com ?session_id=...
+        /// </summary>
+        [Authorize]
+        [HttpPost("confirm-checkout")]
+        public async Task<IActionResult> ConfirmCheckout([FromBody] ConfirmStripeCheckoutSessionRequest request)
+        {
+            await _stripe.ConfirmCheckoutSessionAsync(request);
+            return Ok(new { ok = true });
+        }
+
+        /// <summary>
         /// Histórico de cobranças (Stripe Invoices) da empresa.
         /// Company: usa a company do token.
         /// Admin: pode informar companyId.
