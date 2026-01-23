@@ -103,7 +103,7 @@ namespace Services
             a.ServiceTypeId,
             a.Category ?? a.Type.ToString(),
             professionalIds,
-            a.Customer?.Ticket ?? 0m
+            a.CustomerAddress?.Ticket ?? a.Customer?.Ticket ?? 0m
         ));
     }
 

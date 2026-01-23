@@ -30,6 +30,7 @@ namespace Infrastructure.ServiceExtension
             services.AddScoped<IPayrollRunRepository, PayrollRunRepository>();
             services.AddScoped<IPayrollItemRepository, PayrollItemRepository>();
             services.AddScoped<ICustomerRepository, CustomerRepository>();
+            services.AddScoped<ICustomerAddressRepository, CustomerAddressRepository>();
             services.AddScoped<ICheckRecordRepository, CheckRecordRepository>();
             services.AddScoped<IRecurrenceRepository, RecurrenceRepository>();
             services.AddScoped<IGpsTrackingRepository, GpsTrackingRepository>();

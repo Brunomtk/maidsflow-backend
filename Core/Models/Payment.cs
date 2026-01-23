@@ -29,5 +29,8 @@ namespace Core.Models
         // Customer agora pode ser vinculado ao pagamento (opcional)
         public int? CustomerId { get; set; }
         public Customer? Customer { get; set; }
+
+        public int? CustomerAddressId { get; set; }
+        public CustomerAddress? CustomerAddress { get; set; }
     }
 }

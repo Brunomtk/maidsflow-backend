@@ -33,6 +33,7 @@ namespace Core.Models
         public DateTime CompletedAt { get; set; } = DateTime.UtcNow;
 
         public int? CustomerIdSnapshot { get; set; }
+        public int? CustomerAddressIdSnapshot { get; set; }
         public int? TeamIdSnapshot { get; set; }
 
         public string? CategorySnapshot { get; set; }
@@ -42,6 +43,10 @@ namespace Core.Models
         /// Base amount used for payroll calculations (Percent). For now we snapshot Customer.Ticket.
         /// </summary>
         public decimal SourceAmountSnapshot { get; set; }
+
+        public string? CustomerAddressSnapshot { get; set; }
+        public string? PaymentMethodSnapshot { get; set; }
+        public string? FrequencySnapshot { get; set; }
 
         /// <summary>
         /// JSON array of professional ids that actually worked on this occurrence.

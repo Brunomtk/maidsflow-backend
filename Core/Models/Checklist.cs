@@ -14,6 +14,9 @@ namespace Core.Models
         public int CustomerId { get; set; }
         public Customer Customer { get; set; } = null!;
 
+        public int? CustomerAddressId { get; set; }
+        public CustomerAddress? CustomerAddress { get; set; }
+
         public int CompanyId { get; set; }
         public Company Company { get; set; } = null!;
 

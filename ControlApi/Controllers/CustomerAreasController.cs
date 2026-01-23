@@ -14,9 +14,9 @@ namespace ControlApi.Controllers
         public CustomerAreasController(Services.ICustomerAreaService service) => _service = service;
 
         [HttpGet("by-customer/{customerId:int}")]
-        public IActionResult GetByCustomer(int customerId, [FromQuery] bool onlyActive = true)
+        public IActionResult GetByCustomer(int customerId, [FromQuery] int? customerAddressId = null, [FromQuery] bool onlyActive = true)
         {
-            var q = _service.QueryByCustomer(customerId, onlyActive);
+            var q = _service.QueryByCustomer(customerId, customerAddressId, onlyActive);
             return Ok(q.ToList());
         }
 

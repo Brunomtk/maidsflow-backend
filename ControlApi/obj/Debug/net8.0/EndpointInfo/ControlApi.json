@@ -1085,6 +1085,14 @@
             }
           },
           {
+            "name": "CustomerAddressId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
             "name": "CompanyId",
             "in": "query",
             "schema": {
@@ -2213,6 +2221,182 @@
         }
       }
     },
+    "/api/Customer/{id}/addresses": {
+      "get": {
+        "tags": [
+          "Customer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Customer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerAddressDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerAddressDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerAddressDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Customer/{id}/addresses/{addressId}": {
+      "put": {
+        "tags": [
+          "Customer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "addressId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerAddressDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerAddressDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerAddressDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Customer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "addressId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Customer/{id}/addresses/{addressId}/set-primary": {
+      "post": {
+        "tags": [
+          "Customer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "addressId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/Customer/excel-template": {
       "get": {
         "tags": [
@@ -2272,6 +2456,110 @@
             }
           },
           {
+            "name": "customerAddressId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Customer/{id}/addresses/{addressId}/appointments": {
+      "get": {
+        "tags": [
+          "Customer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "addressId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Customer/{id}/addresses/{addressId}/payments": {
+      "get": {
+        "tags": [
+          "Customer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "addressId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
             "name": "start",
             "in": "query",
             "schema": {
@@ -2311,6 +2599,14 @@
             }
           },
           {
+            "name": "customerAddressId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
             "name": "start",
             "in": "query",
             "schema": {
@@ -2344,6 +2640,14 @@
             "name": "customerId",
             "in": "path",
             "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "customerAddressId",
+            "in": "query",
             "schema": {
               "type": "integer",
               "format": "int32"
@@ -3467,6 +3771,14 @@
           },
           {
             "name": "CustomerId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "CustomerAddressId",
             "in": "query",
             "schema": {
               "type": "integer",
@@ -6587,6 +6899,14 @@
           "customer": {
             "$ref": "#/components/schemas/Customer"
           },
+          "customerAddressId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "customerAddress": {
+            "$ref": "#/components/schemas/CustomerAddress"
+          },
           "teamId": {
             "type": "integer",
             "format": "int32",
@@ -7066,6 +7386,155 @@
         },
         "additionalProperties": false
       },
+      "Checklist": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "appointmentId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "appointment": {
+            "$ref": "#/components/schemas/Appointment"
+          },
+          "professionalId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "professional": {
+            "$ref": "#/components/schemas/Professional"
+          },
+          "customerId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/Customer"
+          },
+          "customerAddressId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "customerAddress": {
+            "$ref": "#/components/schemas/CustomerAddress"
+          },
+          "companyId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "company": {
+            "$ref": "#/components/schemas/Company"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ChecklistStatus"
+          },
+          "observacoesGerais": {
+            "type": "string",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChecklistItem"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChecklistItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "checklistId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "checklist": {
+            "$ref": "#/components/schemas/Checklist"
+          },
+          "customerAreaId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "customerArea": {
+            "$ref": "#/components/schemas/CustomerArea"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ChecklistItemStatus"
+          },
+          "observacoes": {
+            "type": "string",
+            "nullable": true
+          },
+          "photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChecklistItemPhoto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChecklistItemPhoto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "checklistItemId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "checklistItem": {
+            "$ref": "#/components/schemas/ChecklistItem"
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "descricao": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ChecklistItemStatus": {
         "enum": [
           1,
@@ -7200,6 +7669,11 @@
             "format": "int32"
           },
           "customerId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "customerAddressId": {
             "type": "integer",
             "format": "int32",
             "nullable": true
@@ -7358,6 +7832,11 @@
             "type": "integer",
             "format": "int32"
           },
+          "customerAddressId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
           "companyId": {
             "type": "integer",
             "format": "int32"
@@ -7441,6 +7920,59 @@
         },
         "additionalProperties": false
       },
+      "CreateCustomerAddressDTO": {
+        "required": [
+          "addressLine1"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "addressLine1": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "addressLine2": {
+            "type": "string",
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "nullable": true
+          },
+          "zipCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "observations": {
+            "type": "string",
+            "nullable": true
+          },
+          "ticket": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "frequency": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "isPrimary": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateCustomerAreaDTO": {
         "required": [
           "customerId",
@@ -7451,6 +7983,11 @@
           "customerId": {
             "type": "integer",
             "format": "int32"
+          },
+          "customerAddressId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           },
           "name": {
             "maxLength": 120,
@@ -7753,6 +8290,11 @@
             "format": "int32"
           },
           "customerId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "customerAddressId": {
             "type": "integer",
             "format": "int32",
             "nullable": true
@@ -8274,12 +8816,154 @@
             },
             "nullable": true
           },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerAddress"
+            },
+            "nullable": true
+          },
           "payments": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Payment"
             },
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CustomerAddress": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "customerId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/Customer"
+          },
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "addressLine1": {
+            "type": "string",
+            "nullable": true
+          },
+          "addressLine2": {
+            "type": "string",
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "nullable": true
+          },
+          "zipCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "observations": {
+            "type": "string",
+            "nullable": true
+          },
+          "ticket": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "frequency": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "isPrimary": {
+            "type": "boolean"
+          },
+          "areas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerArea"
+            },
+            "nullable": true
+          },
+          "checklists": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Checklist"
+            },
+            "nullable": true
+          },
+          "payments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Payment"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CustomerArea": {
+        "required": [
+          "customerId",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "customerId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/Customer"
+          },
+          "customerAddressId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "customerAddress": {
+            "$ref": "#/components/schemas/CustomerAddress"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -8517,6 +9201,14 @@
           },
           "customer": {
             "$ref": "#/components/schemas/Customer"
+          },
+          "customerAddressId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "customerAddress": {
+            "$ref": "#/components/schemas/CustomerAddress"
           }
         },
         "additionalProperties": false
@@ -9575,6 +10267,11 @@
             "format": "int32",
             "nullable": true
           },
+          "customerAddressId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
           "teamId": {
             "type": "integer",
             "format": "int32",
@@ -9752,6 +10449,11 @@
             "type": "integer",
             "format": "int32"
           },
+          "customerAddressId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
           "appointmentId": {
             "type": "integer",
             "format": "int32",
@@ -9769,6 +10471,53 @@
         "type": "object",
         "properties": {
           "key": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateCustomerAddressDTO": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "addressLine1": {
+            "type": "string",
+            "nullable": true
+          },
+          "addressLine2": {
+            "type": "string",
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "nullable": true
+          },
+          "zipCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "observations": {
+            "type": "string",
+            "nullable": true
+          },
+          "ticket": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "frequency": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentMethod": {
             "type": "string",
             "nullable": true
           }
@@ -10049,6 +10798,11 @@
             "nullable": true
           },
           "customerId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "customerAddressId": {
             "type": "integer",
             "format": "int32",
             "nullable": true

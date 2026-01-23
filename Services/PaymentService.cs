@@ -88,15 +88,16 @@ namespace Services
                 // Validates: same company + professional is assigned (directly or via team membership)
                 await _scope.EnsureAppointmentAccessAsync(appointmentId.Value);
 
-                // If customerId is missing (some UIs don't send it), infer from the appointment.
-                if (!dto.CustomerId.HasValue)
-                {
-                    var appt = await _unitOfWork.Appointments.GetById(appointmentId.Value);
-                    if (appt == null)
-                        throw new InvalidOperationException("Agendamento não encontrado para vincular o pagamento.");
+                // If customerId / addressId are missing (some UIs don't send them), infer from the appointment.
+                var appt = await _unitOfWork.Appointments.GetById(appointmentId.Value);
+                if (appt == null)
+                    throw new InvalidOperationException("Agendamento não encontrado para vincular o pagamento.");
 
+                if (!dto.CustomerId.HasValue)
                     dto.CustomerId = appt.CustomerId;
-                }
+
+                if (!dto.CustomerAddressId.HasValue)
+                    dto.CustomerAddressId = appt.CustomerAddressId;
             }
 
             // Validate customer belongs to the scoped company (for non-admins).
@@ -109,10 +110,27 @@ namespace Services
                 await _scope.EnsureCompanyAccessAsync(customer.CompanyId);
             }
 
+            int? customerAddressId = dto.CustomerAddressId;
+            if (customerAddressId.HasValue)
+            {
+                var addr = await _unitOfWork.CustomerAddresses.GetByIdAsync(customerAddressId.Value);
+                if (addr == null || (dto.CustomerId.HasValue && addr.CustomerId != dto.CustomerId.Value))
+                    throw new InvalidOperationException("Endereço do cliente não encontrado para vincular o pagamento.");
+
+                if (!dto.CustomerId.HasValue)
+                    dto.CustomerId = addr.CustomerId;
+            }
+            else if (dto.CustomerId.HasValue)
+            {
+                var primary = await _unitOfWork.CustomerAddresses.GetPrimaryByCustomerAsync(dto.CustomerId.Value);
+                customerAddressId = primary?.Id;
+            }
+
             var entity = new Payment
             {
                 CompanyId = dto.CompanyId,
                 CustomerId = dto.CustomerId,
+                CustomerAddressId = customerAddressId,
                 Amount = dto.Amount,
                 DueDate = dto.DueDate,
                 PaymentDate = dto.PaymentDate,
@@ -160,6 +178,24 @@ namespace Services
             // Não permite trocar CompanyId se não for admin
             if (_currentUser.IsAdmin && dto.CompanyId.HasValue) entity.CompanyId = dto.CompanyId.Value;
             if (dto.CustomerId.HasValue) entity.CustomerId = dto.CustomerId.Value;
+
+            if (dto.CustomerAddressId.HasValue)
+            {
+                var addr = await _unitOfWork.CustomerAddresses.GetByIdAsync(dto.CustomerAddressId.Value);
+                if (addr == null)
+                    throw new InvalidOperationException("Endereço do cliente não encontrado.");
+
+                if (entity.CustomerId.HasValue && addr.CustomerId != entity.CustomerId.Value)
+                    throw new InvalidOperationException("Endereço não pertence ao cliente informado.");
+
+                entity.CustomerAddressId = dto.CustomerAddressId.Value;
+                if (!entity.CustomerId.HasValue) entity.CustomerId = addr.CustomerId;
+            }
+            else if (dto.CustomerId.HasValue)
+            {
+                var primary = await _unitOfWork.CustomerAddresses.GetPrimaryByCustomerAsync(dto.CustomerId.Value);
+                entity.CustomerAddressId = primary?.Id;
+            }
             if (dto.Amount.HasValue) entity.Amount = dto.Amount.Value;
             if (dto.DueDate.HasValue) entity.DueDate = dto.DueDate.Value;
             if (dto.PaymentDate.HasValue) entity.PaymentDate = dto.PaymentDate.Value;

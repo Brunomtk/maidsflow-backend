@@ -28,6 +28,7 @@ namespace Infrastructure.Repositories
         {
             return await _context.Customers
                 .Include(c => c.Company)
+                .Include(c => c.Addresses)
                 .Include(c => c.Appointments)
                     .ThenInclude(a => a.Team)
                 .Include(c => c.Appointments)

@@ -55,6 +55,7 @@ namespace ControlApi
             builder.Services.AddScoped<IPayrollRunService, PayrollRunService>();
 builder.Services.AddScoped<IAppointmentCompletionService, AppointmentCompletionService>();
             builder.Services.AddScoped<ICustomerService, CustomerService>();
+            builder.Services.AddScoped<ICustomerAddressService, CustomerAddressService>();
             builder.Services.AddScoped<ICheckRecordService, CheckRecordService>();
             builder.Services.AddScoped<IRecurrenceService, RecurrenceService>();
             builder.Services.AddScoped<IGpsTrackingService, GpsTrackingService>();

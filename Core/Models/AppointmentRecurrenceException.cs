@@ -33,6 +33,8 @@ namespace Core.Models
         // Optional override for ServiceType (Payroll)
         public int? OverrideServiceTypeId { get; set; }
 
+        public int? OverrideCustomerAddressId { get; set; }
+
         [JsonIgnore]
         public string? OverrideProfessionalIdsData { get; set; }
 

@@ -13,7 +13,7 @@ namespace Services
         Task<CustomerArea?> CreateAsync(CreateCustomerAreaDTO dto);
         Task<bool> UpdateAsync(UpdateCustomerAreaDTO dto);
         Task<bool> SoftDeleteAsync(int id);
-        IQueryable<CustomerArea> QueryByCustomer(int customerId, bool onlyActive);
+        IQueryable<CustomerArea> QueryByCustomer(int customerId, int? customerAddressId, bool onlyActive);
     }
 
     public class CustomerAreaService : ICustomerAreaService
@@ -36,13 +36,28 @@ namespace Services
 
             await _scope.EnsureCustomerInCompanyAsync(dto.CustomerId);
 
+            var addressId = dto.CustomerAddressId;
+            if (!addressId.HasValue)
+            {
+                var primary = await _uow.CustomerAddresses.GetPrimaryByCustomerAsync(dto.CustomerId);
+                addressId = primary?.Id;
+            }
+
+            if (addressId.HasValue)
+            {
+                var addr = await _uow.CustomerAddresses.GetByIdAsync(addressId.Value);
+                if (addr == null || addr.CustomerId != dto.CustomerId)
+                    throw new NotFoundException("Endereço do cliente não encontrado.");
+            }
+
             // Avoid duplicate active area names per customer
-            if (await _uow.CustomerAreas.ExistsActiveByNameAsync(dto.CustomerId, dto.Name))
+            if (await _uow.CustomerAreas.ExistsActiveByNameAsync(dto.CustomerId, addressId, dto.Name))
                 return null;
 
             var area = new CustomerArea
             {
                 CustomerId = dto.CustomerId,
+                CustomerAddressId = addressId,
                 Name = dto.Name,
                 Active = true
             };
@@ -66,7 +81,7 @@ namespace Services
             {
                 // enforce uniqueness if changing name
                 if (!string.Equals(area.Name, dto.Name, System.StringComparison.OrdinalIgnoreCase) &&
-                    await _uow.CustomerAreas.ExistsActiveByNameAsync(area.CustomerId, dto.Name, excludeId: dto.Id))
+                    await _uow.CustomerAreas.ExistsActiveByNameAsync(area.CustomerId, area.CustomerAddressId, dto.Name, excludeId: dto.Id))
                     return false;
 
                 area.Name = dto.Name;
@@ -93,7 +108,7 @@ namespace Services
             return await _uow.SaveAsync() > 0;
         }
 
-        public IQueryable<CustomerArea> QueryByCustomer(int customerId, bool onlyActive)
+        public IQueryable<CustomerArea> QueryByCustomer(int customerId, int? customerAddressId, bool onlyActive)
         {
             // Queryable returning is used by controllers; still enforce scope for non-admin.
             // For professional: allow read inside company.
@@ -103,7 +118,14 @@ namespace Services
                 _scope.EnsureCustomerInCompanyAsync(customerId).GetAwaiter().GetResult();
             }
 
-            return _uow.CustomerAreas.QueryByCustomer(customerId, onlyActive);
+            var addressId = customerAddressId;
+            if (!addressId.HasValue)
+            {
+                var primary = _uow.CustomerAddresses.GetPrimaryByCustomerAsync(customerId).GetAwaiter().GetResult();
+                addressId = primary?.Id;
+            }
+
+            return _uow.CustomerAreas.QueryByCustomer(customerId, addressId, onlyActive);
         }
     }
 }

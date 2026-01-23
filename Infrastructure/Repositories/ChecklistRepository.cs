@@ -19,6 +19,7 @@ namespace Infrastructure.Repositories
 
         public Task<Checklist?> GetByIdWithItemsAsync(int id) =>
             _dbContext.Checklists
+                .Include(c => c.CustomerAddress)
                 .Include(c => c.Items)
                     .ThenInclude(i => i.Photos)
                 .FirstOrDefaultAsync(c => c.Id == id);
@@ -28,6 +29,7 @@ namespace Infrastructure.Repositories
             IQueryable<Checklist> q = _dbContext.Checklists.AsNoTracking();
 
             if (filters.CustomerId.HasValue) q = q.Where(c => c.CustomerId == filters.CustomerId.Value);
+            if (filters.CustomerAddressId.HasValue) q = q.Where(c => c.CustomerAddressId == filters.CustomerAddressId.Value);
             if (filters.CompanyId.HasValue) q = q.Where(c => c.CompanyId == filters.CompanyId.Value);
             if (filters.Status.HasValue) q = q.Where(c => c.Status.ToString() == filters.Status.Value.ToString());
             if (filters.AppointmentId.HasValue) q = q.Where(c => c.AppointmentId == filters.AppointmentId.Value);

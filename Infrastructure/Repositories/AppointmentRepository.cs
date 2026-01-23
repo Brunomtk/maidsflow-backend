@@ -19,6 +19,7 @@ namespace Infrastructure.Repositories
             var query = _dbContext.Set<Appointment>()
                 .Include(a => a.Company)
                 .Include(a => a.Customer)
+                .Include(a => a.CustomerAddress)
                 .Include(a => a.Team)
                 .Include(a => a.ServiceType)
                 .AsQueryable();
@@ -84,6 +85,7 @@ namespace Infrastructure.Repositories
         {
             return await _dbContext.Set<Appointment>()
                 .Include(a => a.Customer)
+                .Include(a => a.CustomerAddress)
                 .Include(a => a.Team)
                 .Include(a => a.ServiceType)
                 .Where(a => a.CompanyId == companyId)
@@ -95,6 +97,7 @@ namespace Infrastructure.Repositories
             return await _dbContext.Set<Appointment>()
                 .Include(a => a.Company)
                 .Include(a => a.Customer)
+                .Include(a => a.CustomerAddress)
                 .Where(a => a.TeamId == teamId)
                 .ToListAsync();
         }
@@ -110,6 +113,7 @@ namespace Infrastructure.Repositories
             return await _dbContext.Set<Appointment>()
                 .Include(a => a.Company)
                 .Include(a => a.Customer)
+                .Include(a => a.CustomerAddress)
                 .Include(a => a.Team)
                 .Include(a => a.ServiceType)
                 .Where(a => a.ProfessionalIdsData != null &&
@@ -125,6 +129,7 @@ namespace Infrastructure.Repositories
             return await _dbContext.Set<Appointment>()
                 .Include(a => a.Company)
                 .Include(a => a.Team)
+                .Include(a => a.CustomerAddress)
                 .Include(a => a.ServiceType)
                 .Where(a => a.CustomerId == customerId)
                 .ToListAsync();
@@ -135,6 +140,7 @@ namespace Infrastructure.Repositories
             var query = _dbContext.Set<Appointment>()
                 .Include(a => a.Company)
                 .Include(a => a.Customer)
+                .Include(a => a.CustomerAddress)
                 .Include(a => a.Team)
                 .Include(a => a.ServiceType)
                 .Where(a => a.Start >= start && a.End <= end);

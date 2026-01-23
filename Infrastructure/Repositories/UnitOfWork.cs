@@ -17,6 +17,7 @@ namespace Infrastructure.Repositories
         ICheckRecordRepository CheckRecords { get; }
         ICompanyRepository Companies { get; }
         ICustomerRepository Customers { get; }
+        ICustomerAddressRepository CustomerAddresses { get; }
         IGpsTrackingRepository GpsTrackings { get; }
         IInternalFeedbackRepository InternalFeedbacks { get; }
         ILeaderRepository Leaders { get; }
@@ -57,6 +58,7 @@ namespace Infrastructure.Repositories
             ICheckRecordRepository checkRecordRepository,
             ICompanyRepository companyRepository,
             ICustomerRepository customerRepository,
+            ICustomerAddressRepository customerAddressRepository,
             IGpsTrackingRepository gpsTrackingRepository,
             IInternalFeedbackRepository internalFeedbackRepository,
             ILeaderRepository leaderRepository,
@@ -89,6 +91,7 @@ namespace Infrastructure.Repositories
             CheckRecords = checkRecordRepository;
             Companies = companyRepository;
             Customers = customerRepository;
+            CustomerAddresses = customerAddressRepository;
             GpsTrackings = gpsTrackingRepository;
             InternalFeedbacks = internalFeedbackRepository;
             Leaders = leaderRepository;
@@ -120,6 +123,7 @@ namespace Infrastructure.Repositories
         public ICheckRecordRepository CheckRecords { get; }
         public ICompanyRepository Companies { get; }
         public ICustomerRepository Customers { get; }
+        public ICustomerAddressRepository CustomerAddresses { get; }
         public IGpsTrackingRepository GpsTrackings { get; }
         public IInternalFeedbackRepository InternalFeedbacks { get; }
         public ILeaderRepository Leaders { get; }

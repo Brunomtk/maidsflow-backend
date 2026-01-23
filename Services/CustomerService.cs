@@ -75,6 +75,7 @@ namespace Services
                 customer.CompanyId = scopedCompanyId.Value;
             }
 
+            EnsurePrimaryAddress(customer);
             await _unitOfWork.Customers.Add(customer);
             var result = await _unitOfWork.SaveAsync();
             return result > 0 ? customer : null;
@@ -94,6 +95,7 @@ namespace Services
             if (!_currentUser.IsAdmin)
                 customer.CompanyId = existing.CompanyId;
 
+            EnsurePrimaryAddress(customer);
             _unitOfWork.Customers.Update(customer);
             var result = await _unitOfWork.SaveAsync();
             return result > 0;
@@ -212,6 +214,8 @@ namespace Services
                     CompanyId = companyId
                 };
 
+                EnsurePrimaryAddress(customer);
+
                 toCreate.Add(customer);
             }
 
@@ -237,6 +241,41 @@ namespace Services
             _ = saved;
             response.CreatedCount = toCreate.Count;
             return response;
+        }
+
+        private static void EnsurePrimaryAddress(Customer customer)
+        {
+            customer.Addresses ??= new List<CustomerAddress>();
+
+            var primary = customer.Addresses.FirstOrDefault(a => a.IsPrimary);
+            if (primary == null)
+            {
+                primary = new CustomerAddress
+                {
+                    Label = "Primary",
+                    AddressLine1 = customer.Address ?? string.Empty,
+                    City = customer.City ?? string.Empty,
+                    State = customer.State ?? string.Empty,
+                    ZipCode = customer.ZipCode,
+                    Observations = customer.Observations,
+                    Ticket = customer.Ticket,
+                    Frequency = customer.Frequency,
+                    PaymentMethod = customer.PaymentMethod,
+                    IsPrimary = true
+                };
+                customer.Addresses.Add(primary);
+                return;
+            }
+
+            primary.AddressLine1 = customer.Address ?? primary.AddressLine1;
+            primary.City = customer.City ?? primary.City;
+            primary.State = customer.State ?? primary.State;
+            primary.ZipCode = customer.ZipCode ?? primary.ZipCode;
+            primary.Observations = customer.Observations ?? primary.Observations;
+            primary.Ticket = customer.Ticket ?? primary.Ticket;
+            primary.Frequency = customer.Frequency ?? primary.Frequency;
+            primary.PaymentMethod = customer.PaymentMethod ?? primary.PaymentMethod;
+            primary.IsPrimary = true;
         }
     }
 }

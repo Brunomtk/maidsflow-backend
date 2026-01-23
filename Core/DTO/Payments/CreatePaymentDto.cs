@@ -7,6 +7,7 @@ namespace Core.DTO.Payments
     {
         public int CompanyId { get; set; }
         public int? CustomerId { get; set; }
+        public int? CustomerAddressId { get; set; }
         public decimal Amount { get; set; }
         public DateTime DueDate { get; set; }
         public DateTime? PaymentDate { get; set; }

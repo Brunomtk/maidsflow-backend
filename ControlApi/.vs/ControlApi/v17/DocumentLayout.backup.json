@@ -1,10 +1,12 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_clients_excel_template_bulk_v1_fixcompile\\maidsflow-backend_webpush_reminder_cleanup_30min_v1\\ControlApi\\",
+  "WorkspaceRootPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\ControlApi\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{71A6AF3F-6B94-48DA-AAED-D1A5D36C8E02}|ControlApi.csproj|e:\\projetos b7\\maidsflow\\dev\\maidsflow-backend_clients_excel_template_bulk_v1_fixcompile\\maidsflow-backend_webpush_reminder_cleanup_30min_v1\\controlapi\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{71A6AF3F-6B94-48DA-AAED-D1A5D36C8E02}|ControlApi.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\Infrastructure\\Migrations\\20260123000348_idsduplicados.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{5A2BE95A-38B3-4E5C-97CD-B16FC52486C3}|..\\Infrastructure\\Infrastructure.csproj|e:\\projetos b7\\maidsflow\\dev\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\infrastructure\\migrations\\20260122234908_customeraddress.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -19,14 +21,27 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "appsettings.json",
-              "DocumentMoniker": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_clients_excel_template_bulk_v1_fixcompile\\maidsflow-backend_webpush_reminder_cleanup_30min_v1\\ControlApi\\appsettings.json",
-              "RelativeDocumentMoniker": "appsettings.json",
-              "ToolTip": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_clients_excel_template_bulk_v1_fixcompile\\maidsflow-backend_webpush_reminder_cleanup_30min_v1\\ControlApi\\appsettings.json",
-              "RelativeToolTip": "appsettings.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAAEAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-01-18T23:25:51.215Z",
+              "Title": "20260123000348_idsduplicados.cs",
+              "DocumentMoniker": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\Infrastructure\\Migrations\\20260123000348_idsduplicados.cs",
+              "RelativeDocumentMoniker": "..\\Infrastructure\\Migrations\\20260123000348_idsduplicados.cs",
+              "ToolTip": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\Infrastructure\\Migrations\\20260123000348_idsduplicados.cs*",
+              "RelativeToolTip": "..\\Infrastructure\\Migrations\\20260123000348_idsduplicados.cs*",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAmAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-23T00:03:48.391Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "20260122234908_CustomerAddress.cs",
+              "DocumentMoniker": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\Infrastructure\\Migrations\\20260122234908_CustomerAddress.cs",
+              "RelativeDocumentMoniker": "..\\Infrastructure\\Migrations\\20260122234908_CustomerAddress.cs",
+              "ToolTip": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\Infrastructure\\Migrations\\20260122234908_CustomerAddress.cs",
+              "RelativeToolTip": "..\\Infrastructure\\Migrations\\20260122234908_CustomerAddress.cs",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAABIAAAAsAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-22T23:49:08.529Z",
               "EditorCaption": ""
             }
           ]

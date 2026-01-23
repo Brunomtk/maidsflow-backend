@@ -51,6 +51,7 @@ namespace Core.DTO.Appointment
         // Para o calendário, é melhor preservar null do que forçar 0.
         public int? CompanyId { get; set; }
         public int? CustomerId { get; set; }
+        public int? CustomerAddressId { get; set; }
         public int? TeamId { get; set; }
 
         public AppointmentStatus Status { get; set; }

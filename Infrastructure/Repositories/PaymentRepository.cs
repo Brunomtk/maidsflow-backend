@@ -28,6 +28,9 @@ namespace Infrastructure.Repositories
             if (filters.CustomerId.HasValue)
                 query = query.Where(p => p.CustomerId == filters.CustomerId.Value);
 
+            if (filters.CustomerAddressId.HasValue)
+                query = query.Where(p => p.CustomerAddressId == filters.CustomerAddressId.Value);
+
             if (filters.Status.HasValue)
                 query = query.Where(p => p.Status == filters.Status.Value);
 

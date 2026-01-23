@@ -14,6 +14,7 @@ namespace Core.DTO.Appointment
 
         public int CompanyId { get; set; }
         public int? CustomerId { get; set; }
+        public int? CustomerAddressId { get; set; }
         public int? TeamId { get; set; }
         public List<int>? ProfessionalIds { get; set; }
 

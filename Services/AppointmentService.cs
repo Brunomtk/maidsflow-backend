@@ -210,6 +210,18 @@ namespace Services
                 appointment.ProfessionalIds = dto.ProfessionalIds.Distinct().ToList();
             }
 
+            if (appointment.CustomerId.HasValue)
+            {
+                var resolvedAddress = await ResolveCustomerAddressAsync(appointment.CustomerId.Value, dto.CustomerAddressId);
+                if (resolvedAddress != null)
+                {
+                    appointment.CustomerAddressId = resolvedAddress.Id;
+
+                    if (string.IsNullOrWhiteSpace(appointment.Address))
+                        appointment.Address = BuildAddressLine(resolvedAddress);
+                }
+            }
+
             await ValidateServiceTypeForCompanyAsync(appointment.CompanyId, appointment.ServiceTypeId);
 
             await _unitOfWork.Appointments.Add(appointment);
@@ -275,6 +287,22 @@ namespace Services
             _ = dto.CompanyId; // CompanyId não é alterável aqui
             appointment.CompanyId = appointment.CompanyId;
             appointment.CustomerId = dto.CustomerId ?? appointment.CustomerId;
+
+            if (appointment.CustomerId.HasValue)
+            {
+                var resolvedAddress = await ResolveCustomerAddressAsync(appointment.CustomerId.Value, dto.CustomerAddressId);
+                if (resolvedAddress != null)
+                {
+                    appointment.CustomerAddressId = resolvedAddress.Id;
+
+                    if (string.IsNullOrWhiteSpace(appointment.Address) && string.IsNullOrWhiteSpace(dto.Address))
+                        appointment.Address = BuildAddressLine(resolvedAddress);
+                }
+                else if (dto.CustomerAddressId.HasValue)
+                {
+                    throw new BadRequestException("CustomerAddressId inválido para este cliente.");
+                }
+            }
             appointment.TeamId = dto.TeamId ?? appointment.TeamId;
 
             if (dto.ProfessionalIds != null)
@@ -315,6 +343,32 @@ namespace Services
                 throw new ForbiddenException("ServiceType não pertence a esta company.");
         }
 
+        private async Task<CustomerAddress?> ResolveCustomerAddressAsync(int customerId, int? customerAddressId)
+        {
+            if (customerAddressId.HasValue)
+            {
+                var addr = await _unitOfWork.CustomerAddresses.GetByIdAsync(customerAddressId.Value);
+                if (addr != null && addr.CustomerId == customerId)
+                    return addr;
+
+                return null;
+            }
+
+            return await _unitOfWork.CustomerAddresses.GetPrimaryByCustomerAsync(customerId);
+        }
+
+        private static string BuildAddressLine(CustomerAddress addr)
+        {
+            var line1 = addr.AddressLine1?.Trim() ?? string.Empty;
+            var city = addr.City?.Trim() ?? string.Empty;
+            var state = addr.State?.Trim() ?? string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(city) && !string.IsNullOrWhiteSpace(state))
+                return string.Join(", ", new[] { line1, $"{city}/{state}" }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+            return string.Join(", ", new[] { line1, city, state }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        }
+
         private static void EnsureProfessionalUpdateIsSafe(Appointment appointment, UpdateAppointmentDTO dto)
         {
             // Permitimos que o front envie o objeto inteiro, mas o profissional só pode
@@ -344,6 +398,9 @@ namespace Services
 
             if (dto.CustomerId.HasValue && dto.CustomerId.Value != appointment.CustomerId)
                 throw new ForbiddenException("Profissional não tem permissão para alterar cliente do agendamento.");
+
+            if (dto.CustomerAddressId.HasValue && dto.CustomerAddressId.Value != appointment.CustomerAddressId)
+                throw new ForbiddenException("Profissional não tem permissão para alterar endereço do cliente do agendamento.");
 
             if (dto.TeamId.HasValue && dto.TeamId.Value != appointment.TeamId)
                 throw new ForbiddenException("Profissional não tem permissão para alterar equipe do agendamento.");

@@ -40,6 +40,7 @@ namespace Infrastructure
         public DbSet<AppointmentRecurrenceException> AppointmentRecurrenceExceptions { get; set; }
         public DbSet<AppointmentCompletion> AppointmentCompletions { get; set; }
         public DbSet<Customer> Customers { get; set; }
+        public DbSet<CustomerAddress> CustomerAddresses { get; set; }
         public DbSet<CheckRecord> CheckRecords { get; set; }
         public DbSet<Recurrence> Recurrences { get; set; }
         public DbSet<GpsTracking> GpsTrackings { get; set; }
@@ -69,7 +70,12 @@ namespace Infrastructure
                       .WithMany()
                       .HasForeignKey(a => a.CustomerId)
                       .OnDelete(DeleteBehavior.Cascade);
-                entity.HasIndex(a => new { a.CustomerId, a.Name, a.Active }).IsUnique();
+
+                entity.HasOne(a => a.CustomerAddress)
+                      .WithMany()
+                      .HasForeignKey(a => a.CustomerAddressId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(a => new { a.CustomerId, a.CustomerAddressId, a.Name, a.Active }).IsUnique();
             });
 
             modelBuilder.Entity<Checklist>(entity =>
@@ -81,6 +87,11 @@ namespace Infrastructure
                       .WithMany()
                       .HasForeignKey(c => c.CustomerId)
                       .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(c => c.CustomerAddress)
+                      .WithMany()
+                      .HasForeignKey(c => c.CustomerAddressId)
+                      .OnDelete(DeleteBehavior.SetNull);
             
                 entity.HasOne(c => c.Appointment)
                       .WithMany()
@@ -438,6 +449,11 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                       .WithMany(c => c.Appointments)
                       .HasForeignKey(a => a.CustomerId)
                       .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(a => a.CustomerAddress)
+                      .WithMany()
+                      .HasForeignKey(a => a.CustomerAddressId)
+                      .OnDelete(DeleteBehavior.SetNull);
                 entity.HasOne(a => a.Team)
                       .WithMany()
                       .HasForeignKey(a => a.TeamId)
@@ -500,6 +516,36 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                       .WithMany()
                       .HasForeignKey(c => c.CompanyId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CustomerAddress>(entity =>
+            {
+                entity.ToTable("CustomerAddresses");
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.Label).HasMaxLength(100);
+                entity.Property(x => x.AddressLine1).IsRequired();
+                entity.Property(x => x.AddressLine2);
+
+                entity.Property(x => x.City).IsRequired();
+                entity.Property(x => x.State).HasMaxLength(2).IsRequired();
+                entity.Property(x => x.ZipCode);
+                entity.Property(x => x.Observations);
+
+                entity.Property(x => x.Ticket).HasPrecision(18, 2);
+                entity.Property(x => x.Frequency).HasMaxLength(50);
+                entity.Property(x => x.PaymentMethod).HasMaxLength(50);
+
+                entity.Property(x => x.CreatedDate).HasDefaultValueSql("now()");
+                entity.Property(x => x.UpdatedDate).HasDefaultValueSql("now()");
+
+                entity.HasOne(x => x.Customer)
+                      .WithMany(c => c.Addresses)
+                      .HasForeignKey(x => x.CustomerId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(x => x.CustomerId);
+                entity.HasIndex(x => new { x.CustomerId, x.IsPrimary });
             });
 
             // CheckRecords
@@ -675,13 +721,20 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                 entity.Property(p => p.PlanId).IsRequired(false);
                 entity.Property(p => p.PlanName);
                 entity.Property(p => p.CustomerId).IsRequired(false);
+                entity.Property(p => p.CustomerAddressId).IsRequired(false);
 
                 entity.HasOne(p => p.Customer)
                       .WithMany(c => c.Payments)
                       .HasForeignKey(p => p.CustomerId)
                       .OnDelete(DeleteBehavior.SetNull);
 
+                entity.HasOne(p => p.CustomerAddress)
+                      .WithMany()
+                      .HasForeignKey(p => p.CustomerAddressId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
                 entity.HasIndex(p => p.CustomerId);
+                entity.HasIndex(p => p.CustomerAddressId);
                 entity.Property(p => p.CreatedDate).HasDefaultValueSql("now()");
                 entity.Property(p => p.UpdatedDate).HasDefaultValueSql("now()");
             });

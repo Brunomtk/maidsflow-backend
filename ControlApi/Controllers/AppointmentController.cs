@@ -1,12 +1,15 @@
 ﻿using Core.DTO.Appointment;
 using Infrastructure;
+using Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services;
 using Services.Integrations.Twilio;
 using Services.Security;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace ControlApi.Controllers
 {
@@ -30,6 +33,23 @@ namespace ControlApi.Controllers
             _db = db;
             _scope = scope;
             _sms = sms;
+        }
+
+        private static string BuildCustomerAddressLine(CustomerAddress addr)
+        {
+            var parts = new List<string>();
+            var line1 = addr.AddressLine1?.Trim();
+            var line2 = addr.AddressLine2?.Trim();
+            if (!string.IsNullOrWhiteSpace(line1)) parts.Add(line1!);
+            if (!string.IsNullOrWhiteSpace(line2)) parts.Add(line2!);
+
+            var cityState = string.Join(", ", new[] { addr.City?.Trim(), addr.State?.Trim() }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            if (!string.IsNullOrWhiteSpace(cityState)) parts.Add(cityState);
+
+            var zip = addr.ZipCode?.Trim();
+            if (!string.IsNullOrWhiteSpace(zip)) parts.Add(zip!);
+
+            return string.Join(" - ", parts);
         }
 
         /// <summary>
@@ -111,6 +131,7 @@ namespace ControlApi.Controllers
             var appt = await _db.Appointments
                 .Include(a => a.Company)
                 .Include(a => a.Customer)
+                .Include(a => a.CustomerAddress)
                 .FirstOrDefaultAsync(a => a.Id == id, ct);
 
             if (appt == null)
@@ -125,7 +146,9 @@ namespace ControlApi.Controllers
 
             var address = !string.IsNullOrWhiteSpace(appt.Address)
                 ? appt.Address
-                : (appt.Customer?.Address ?? string.Empty);
+                : (!string.IsNullOrWhiteSpace(appt.CustomerAddress?.AddressLine1)
+                    ? BuildCustomerAddressLine(appt.CustomerAddress)
+                    : (appt.Customer?.Address ?? string.Empty));
 
             var eta = request?.EtaMinutes ?? etaMinutes ?? 15;
 
@@ -133,7 +156,9 @@ namespace ControlApi.Controllers
                 return BadRequest("etaMinutes deve estar entre 1 e 240 minutos.");
 
             if (string.IsNullOrWhiteSpace(address))
-                address = appt.Customer?.Address ?? string.Empty;
+                address = !string.IsNullOrWhiteSpace(appt.CustomerAddress?.AddressLine1)
+                    ? BuildCustomerAddressLine(appt.CustomerAddress)
+                    : (appt.Customer?.Address ?? string.Empty);
 
             if (string.IsNullOrWhiteSpace(address))
                 return BadRequest("Não foi possível determinar o endereço do agendamento.");
@@ -151,5 +176,7 @@ var (sid, raw) = await _sms.SendSmsAsync(to, body, ct);
                 body
             });
         }
+
+
     }
 }

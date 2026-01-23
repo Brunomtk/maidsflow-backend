@@ -17,12 +17,14 @@ namespace ControlApi.Controllers
     public class CustomerController : ControllerBase
     {
         private readonly ICustomerService _customerService;
+        private readonly ICustomerAddressService _customerAddressService;
         private readonly IAppointmentService _appointmentService;
         private readonly IPaymentService _paymentService;
 
-        public CustomerController(ICustomerService customerService, IAppointmentService appointmentService, IPaymentService paymentService)
+        public CustomerController(ICustomerService customerService, ICustomerAddressService customerAddressService, IAppointmentService appointmentService, IPaymentService paymentService)
         {
             _customerService = customerService;
+            _customerAddressService = customerAddressService;
             _appointmentService = appointmentService;
             _paymentService = paymentService;
         }
@@ -47,6 +49,46 @@ namespace ControlApi.Controllers
 
             var customer = await _customerService.GetByIdAsync(id);
             return customer != null ? Ok(customer) : NotFound();
+        }
+
+        [HttpGet("{id}/addresses")]
+        public async Task<IActionResult> GetAddresses(int id)
+        {
+            if (id <= 0) return BadRequest("ID inválido.");
+            var addresses = await _customerAddressService.GetByCustomerAsync(id);
+            return Ok(addresses.OrderByDescending(a => a.IsPrimary).ThenBy(a => a.Id));
+        }
+
+        [HttpPost("{id}/addresses")]
+        public async Task<IActionResult> CreateAddress(int id, [FromBody] CreateCustomerAddressDTO dto)
+        {
+            if (id <= 0) return BadRequest("ID inválido.");
+            var created = await _customerAddressService.CreateAsync(id, dto);
+            return created != null ? Ok(created) : NotFound();
+        }
+
+        [HttpPut("{id}/addresses/{addressId}")]
+        public async Task<IActionResult> UpdateAddress(int id, int addressId, [FromBody] UpdateCustomerAddressDTO dto)
+        {
+            if (id <= 0 || addressId <= 0) return BadRequest("ID inválido.");
+            var updated = await _customerAddressService.UpdateAsync(id, addressId, dto);
+            return updated != null ? Ok(updated) : NotFound();
+        }
+
+        [HttpDelete("{id}/addresses/{addressId}")]
+        public async Task<IActionResult> DeleteAddress(int id, int addressId)
+        {
+            if (id <= 0 || addressId <= 0) return BadRequest("ID inválido.");
+            var ok = await _customerAddressService.DeleteAsync(id, addressId);
+            return ok ? NoContent() : NotFound();
+        }
+
+        [HttpPost("{id}/addresses/{addressId}/set-primary")]
+        public async Task<IActionResult> SetPrimaryAddress(int id, int addressId)
+        {
+            if (id <= 0 || addressId <= 0) return BadRequest("ID inválido.");
+            var ok = await _customerAddressService.SetPrimaryAsync(id, addressId);
+            return ok ? Ok() : NotFound();
         }
 
         /// <summary>
@@ -159,7 +201,7 @@ namespace ControlApi.Controllers
         /// Dica: se você preferir paginação/filtros avançados, também dá pra usar GET /api/Appointment?CustomerId=...
         /// </summary>
         [HttpGet("{id}/appointments")]
-        public async Task<IActionResult> GetAppointmentsByCustomer(int id, [FromQuery] DateTime? start = null, [FromQuery] DateTime? end = null)
+        public async Task<IActionResult> GetAppointmentsByCustomer(int id, [FromQuery] int? customerAddressId = null, [FromQuery] DateTime? start = null, [FromQuery] DateTime? end = null)
         {
             if (id <= 0) return BadRequest("ID inválido.");
 
@@ -167,6 +209,9 @@ namespace ControlApi.Controllers
             if (customer == null) return NotFound();
 
             var appointments = await _appointmentService.GetByCustomer(id);
+
+            if (customerAddressId.HasValue)
+                appointments = appointments.Where(a => a.CustomerAddressId == customerAddressId.Value).ToList();
 
             if (start.HasValue)
                 appointments = appointments.Where(a => a.Start >= start.Value).ToList();
@@ -176,12 +221,50 @@ namespace ControlApi.Controllers
             return Ok(appointments);
         }
 
+        [HttpGet("{id}/addresses/{addressId}/appointments")]
+        public async Task<IActionResult> GetAppointmentsByCustomerAddress(int id, int addressId, [FromQuery] DateTime? start = null, [FromQuery] DateTime? end = null)
+        {
+            if (id <= 0 || addressId <= 0) return BadRequest("ID inválido.");
+
+            var addresses = await _customerAddressService.GetByCustomerAsync(id);
+            if (!addresses.Any(a => a.Id == addressId)) return NotFound();
+
+            var appointments = await _appointmentService.GetByCustomer(id);
+            appointments = appointments.Where(a => a.CustomerAddressId == addressId).ToList();
+
+            if (start.HasValue)
+                appointments = appointments.Where(a => a.Start >= start.Value).ToList();
+            if (end.HasValue)
+                appointments = appointments.Where(a => a.End <= end.Value).ToList();
+
+            return Ok(appointments);
+        }
+
+        [HttpGet("{id}/addresses/{addressId}/payments")]
+        public async Task<IActionResult> GetPaymentsByCustomerAddress(int id, int addressId, [FromQuery] DateTime? start = null, [FromQuery] DateTime? end = null)
+        {
+            if (id <= 0 || addressId <= 0) return BadRequest("ID inválido.");
+
+            var addresses = await _customerAddressService.GetByCustomerAsync(id);
+            if (!addresses.Any(a => a.Id == addressId)) return NotFound();
+
+            var payments = await _paymentService.GetByCustomer(id);
+            payments = payments.Where(p => p.CustomerAddressId == addressId).ToList();
+
+            if (start.HasValue)
+                payments = payments.Where(p => p.DueDate >= start.Value).ToList();
+            if (end.HasValue)
+                payments = payments.Where(p => p.DueDate <= end.Value).ToList();
+
+            return Ok(payments);
+        }
+
         /// <summary>
         /// Lista todos os pagamentos (Payments) vinculados a um cliente.
         /// Dica: também dá pra usar GET /api/Payments?CustomerId=...
         /// </summary>
         [HttpGet("{id}/payments")]
-        public async Task<IActionResult> GetPaymentsByCustomer(int id, [FromQuery] DateTime? start = null, [FromQuery] DateTime? end = null)
+        public async Task<IActionResult> GetPaymentsByCustomer(int id, [FromQuery] int? customerAddressId = null, [FromQuery] DateTime? start = null, [FromQuery] DateTime? end = null)
         {
             if (id <= 0) return BadRequest("ID inválido.");
 
@@ -189,6 +272,9 @@ namespace ControlApi.Controllers
             if (customer == null) return NotFound();
 
             var payments = await _paymentService.GetByCustomer(id);
+
+            if (customerAddressId.HasValue)
+                payments = payments.Where(p => p.CustomerAddressId == customerAddressId.Value).ToList();
 
             if (start.HasValue)
                 payments = payments.Where(p => p.DueDate >= start.Value).ToList();

@@ -103,9 +103,32 @@ namespace Services
                 if (professional != null) professionalId = dto.ProfessionalId.Value;
             }
 
+            int? customerAddressId = dto.CustomerAddressId;
+            if (customerAddressId.HasValue)
+            {
+                var addr = await _uow.CustomerAddresses.GetByIdAsync(customerAddressId.Value);
+                if (addr == null || addr.CustomerId != dto.CustomerId)
+                    throw new NotFoundException("Endereço do cliente não encontrado.");
+            }
+            else
+            {
+                if (appointmentId.HasValue)
+                {
+                    var appt = await _uow.Appointments.GetById(appointmentId.Value);
+                    customerAddressId = appt?.CustomerAddressId;
+                }
+
+                if (!customerAddressId.HasValue)
+                {
+                    var primary = await _uow.CustomerAddresses.GetPrimaryByCustomerAsync(dto.CustomerId);
+                    customerAddressId = primary?.Id;
+                }
+            }
+
             var ck = new Checklist
             {
                 CustomerId = dto.CustomerId,
+                CustomerAddressId = customerAddressId,
                 CompanyId = dto.CompanyId,
                 ObservacoesGerais = dto.ObservacoesGerais,
                 AppointmentId = appointmentId,
@@ -242,6 +265,14 @@ namespace Services
                 ck.ProfessionalId = dto.ProfessionalId;
             }
 
+            if (dto.CustomerAddressId.HasValue)
+            {
+                var addr = await _uow.CustomerAddresses.GetByIdAsync(dto.CustomerAddressId.Value);
+                if (addr == null || addr.CustomerId != ck.CustomerId)
+                    throw new NotFoundException("Endereço do cliente não encontrado.");
+                ck.CustomerAddressId = dto.CustomerAddressId;
+            }
+
             _uow.Checklists.Update(ck);
             return await _uow.SaveAsync() > 0;
         }
@@ -254,6 +285,7 @@ namespace Services
 
             var area = await _uow.CustomerAreas.GetByIdAsync(dto.CustomerAreaId);
             if (area == null || !area.Active || area.CustomerId != ck.CustomerId) return 0;
+            if (area.CustomerAddressId != ck.CustomerAddressId) return 0;
 
             var existing = ck.Items.FirstOrDefault(i => i.CustomerAreaId == area.Id);
             if (existing != null) return existing.Id;
@@ -277,7 +309,7 @@ namespace Services
             await EnsureChecklistScopedAsync(ck);
 
             var existingAreaIds = ck.Items.Select(i => i.CustomerAreaId).ToHashSet();
-            var areas = await _uow.CustomerAreas.QueryByCustomer(ck.CustomerId, onlyActive: true).ToListAsync();
+            var areas = await _uow.CustomerAreas.QueryByCustomer(ck.CustomerId, ck.CustomerAddressId, onlyActive: true).ToListAsync();
 
             int created = 0;
             foreach (var area in areas)

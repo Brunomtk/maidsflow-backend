@@ -515,6 +515,7 @@ public async Task<IActionResult> GetCalendar(
 
                     CompanyId = anchor.CompanyId,
                     CustomerId = anchor.CustomerId,
+                        CustomerAddressId = ex?.OverrideCustomerAddressId ?? anchor.CustomerAddressId,
                     TeamId = anchor.TeamId,
                     Status = ex.OverrideStatus ?? anchor.Status,
                     Type = ex.OverrideType ?? anchor.Type,
@@ -810,6 +811,8 @@ public async Task<IActionResult> DeleteInstance(
 
             if (dto.Title != null) ex.OverrideTitle = dto.Title;
             if (dto.Address != null) ex.OverrideAddress = dto.Address;
+            if (dto.CustomerAddressId.HasValue)
+                ex.OverrideCustomerAddressId = dto.CustomerAddressId.Value <= 0 ? null : dto.CustomerAddressId.Value;
             if (dto.Notes != null) ex.OverrideNotes = dto.Notes;
 
             if (dto.Start.HasValue && dto.End.HasValue)
@@ -881,6 +884,7 @@ public async Task<IActionResult> DeleteInstance(
                 TimeZoneId = tz.Id,
                 CompanyId = dto.CompanyId,
                 CustomerId = dto.CustomerId,
+                CustomerAddressId = dto.CustomerAddressId,
                 TeamId = dto.TeamId,
                 Status = dto.Status ?? Core.Enums.Appointment.AppointmentStatus.Scheduled,
                 Type   = dto.Type   ?? Core.Enums.Appointment.AppointmentType.Regular,
@@ -1238,6 +1242,7 @@ public async Task<IActionResult> DeleteInstance(
 
             // Relationships / Professionals
             if (dto.CustomerId.HasValue) current.CustomerId = dto.CustomerId.Value;
+            if (dto.CustomerAddressId.HasValue) current.CustomerAddressId = dto.CustomerAddressId.Value <= 0 ? null : dto.CustomerAddressId.Value;
             if (dto.TeamId.HasValue) current.TeamId = dto.TeamId.Value;
             if (dto.ProfessionalIds != null) current.ProfessionalIds = dto.ProfessionalIds.Distinct().ToList();
             if (dto.Start.HasValue && dto.End.HasValue)
@@ -1441,12 +1446,18 @@ private async Task RecordCompletionSnapshotIfNeededAsync(Appointment anchor, Dat
     if (exists) return;
 
     decimal sourceAmount = 0m;
+    Customer? customer = null;
     if (anchor.CustomerId.HasValue)
-    {
-        var customer = await _db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.Id == anchor.CustomerId.Value);
-        if (customer != null)
-            sourceAmount = customer.Ticket ?? 0m;
-    }
+        customer = await _db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.Id == anchor.CustomerId.Value);
+
+    CustomerAddress? addr = null;
+    if (anchor.CustomerAddressId.HasValue)
+        addr = await _db.CustomerAddresses.AsNoTracking().FirstOrDefaultAsync(a => a.Id == anchor.CustomerAddressId.Value);
+    if (addr == null && anchor.CustomerId.HasValue)
+        addr = await _db.CustomerAddresses.AsNoTracking().FirstOrDefaultAsync(a => a.CustomerId == anchor.CustomerId.Value && a.IsPrimary);
+
+    if (addr != null) sourceAmount = addr.Ticket ?? 0m;
+    else if (customer != null) sourceAmount = customer.Ticket ?? 0m;
 
     var completion = new AppointmentCompletion
     {
@@ -1457,10 +1468,14 @@ private async Task RecordCompletionSnapshotIfNeededAsync(Appointment anchor, Dat
         OccurrenceEnd = occurrenceEnd,
         CompletedAt = DateTime.UtcNow,
         CustomerIdSnapshot = anchor.CustomerId,
+        CustomerAddressIdSnapshot = addr?.Id,
         TeamIdSnapshot = anchor.TeamId,
         CategorySnapshot = anchor.Category ?? anchor.Type.ToString(),
         ServiceTypeIdSnapshot = anchor.ServiceTypeId,
         SourceAmountSnapshot = sourceAmount,
+        CustomerAddressSnapshot = addr != null ? $"{addr.AddressLine1} - {addr.City}/{addr.State}" : null,
+        PaymentMethodSnapshot = addr?.PaymentMethod,
+        FrequencySnapshot = addr?.Frequency,
         ProfessionalIdsSnapshot = effectiveProfessionalIds
     };
 

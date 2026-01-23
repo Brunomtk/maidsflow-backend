@@ -6,6 +6,7 @@ namespace Core.DTO.Checklist
     public class ChecklistFiltersDTO
     {
         public int? CustomerId { get; set; }
+        public int? CustomerAddressId { get; set; }
         public int? CompanyId { get; set; }
         public DateTime? From { get; set; }
         public DateTime? To { get; set; }
