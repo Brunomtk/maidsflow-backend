@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\Infrastructure\\Infrastructure.csproj": {}
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix6_no_shadow_fk\\Infrastructure\\Infrastructure.csproj": {}
   },
   "projects": {
-    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\Core\\Core.csproj": {
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix6_no_shadow_fk\\Core\\Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\Core\\Core.csproj",
+        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix6_no_shadow_fk\\Core\\Core.csproj",
         "projectName": "Core",
-        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\Core\\Core.csproj",
+        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix6_no_shadow_fk\\Core\\Core.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\Core\\obj\\",
+        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix6_no_shadow_fk\\Core\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -153,14 +153,14 @@
         }
       }
     },
-    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\Infrastructure\\Infrastructure.csproj": {
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix6_no_shadow_fk\\Infrastructure\\Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\Infrastructure\\Infrastructure.csproj",
+        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix6_no_shadow_fk\\Infrastructure\\Infrastructure.csproj",
         "projectName": "Infrastructure",
-        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\Infrastructure\\Infrastructure.csproj",
+        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix6_no_shadow_fk\\Infrastructure\\Infrastructure.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\Infrastructure\\obj\\",
+        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix6_no_shadow_fk\\Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -181,8 +181,8 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\Core\\Core.csproj": {
-                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix4\\Core\\Core.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix6_no_shadow_fk\\Core\\Core.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_customer_addresses_address_scoped_v2_fix6_no_shadow_fk\\Core\\Core.csproj"
               }
             }
           }

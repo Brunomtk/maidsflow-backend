@@ -72,7 +72,7 @@ namespace Infrastructure
                       .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(a => a.CustomerAddress)
-                      .WithMany()
+                      .WithMany(ca => ca.Areas)
                       .HasForeignKey(a => a.CustomerAddressId)
                       .OnDelete(DeleteBehavior.Cascade);
                 entity.HasIndex(a => new { a.CustomerId, a.CustomerAddressId, a.Name, a.Active }).IsUnique();
@@ -89,7 +89,7 @@ namespace Infrastructure
                       .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(c => c.CustomerAddress)
-                      .WithMany()
+                      .WithMany(ca => ca.Checklists)
                       .HasForeignKey(c => c.CustomerAddressId)
                       .OnDelete(DeleteBehavior.SetNull);
             
@@ -729,7 +729,7 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                       .OnDelete(DeleteBehavior.SetNull);
 
                 entity.HasOne(p => p.CustomerAddress)
-                      .WithMany()
+                      .WithMany(ca => ca.Payments)
                       .HasForeignKey(p => p.CustomerAddressId)
                       .OnDelete(DeleteBehavior.SetNull);
 
