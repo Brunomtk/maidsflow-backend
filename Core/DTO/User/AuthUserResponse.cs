@@ -16,6 +16,7 @@ public class AuthUserResponse
 
     public int? CompanyId { get; set; }
     public int? ProfessionalId { get; set; }
+    public int? CustomerId { get; set; }
 
     public string? Language { get; set; }
     public string? Theme { get; set; }

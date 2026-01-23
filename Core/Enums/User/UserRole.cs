@@ -5,6 +5,7 @@ namespace Core.Enums.User
     {
         Admin,
         Company,
+        PropertyManager,
         Professional,
         Customer
     }

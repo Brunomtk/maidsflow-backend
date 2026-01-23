@@ -102,6 +102,13 @@ namespace Services
     if (_currentUser.IsProfessional)
         throw new ForbiddenException("Profissional não pode listar agendamentos por cliente.");
 
+    // Property Manager can only list appointments of its scoped customer
+    if (_currentUser.IsPropertyManager)
+    {
+        await _scope.EnsureCustomerInCompanyAsync(customerId);
+        return await _unitOfWork.Appointments.GetAppointmentsByCustomerAsync(customerId);
+    }
+
     if (!_currentUser.IsAdmin)
     {
         var customer = await _unitOfWork.Customers.GetByIdAsync(customerId);

@@ -40,6 +40,14 @@ namespace Services
 
         public async Task<Customer?> GetByIdAsync(int id)
         {
+            // Property Manager can only access its own Customer
+            if (_currentUser.IsPropertyManager)
+            {
+                var scopedCustomerId = await _scope.GetScopedCustomerIdAsync();
+                if (!scopedCustomerId.HasValue || scopedCustomerId.Value != id)
+                    throw new ForbiddenException("Você não tem permissão para acessar este cliente.");
+            }
+
             var customer = await _unitOfWork.Customers.GetByIdAsync(id);
             if (customer == null) return null;
 
@@ -49,6 +57,39 @@ namespace Services
 
         public async Task<PagedResult<Customer>> GetPagedAsync(CustomerFiltersDTO filters)
         {
+            // Property Manager: return only the single scoped customer
+            if (_currentUser.IsPropertyManager)
+            {
+                var scopedCustomerId = await _scope.GetScopedCustomerIdAsync();
+                if (!scopedCustomerId.HasValue)
+                    throw new ForbiddenException("Escopo de cliente inválido.");
+
+                var c = await _unitOfWork.Customers.GetByIdAsync(scopedCustomerId.Value);
+                if (c == null)
+                {
+                    return new PagedResult<Customer>
+                    {
+                        CurrentPage = 1,
+                        PageCount = 0,
+                        PageSize = filters.PageSize,
+                        TotalItems = 0,
+                        Results = new List<Customer>()
+                    };
+                }
+
+                // still enforce company scope
+                await _scope.EnsureCompanyAccessAsync(c.CompanyId);
+
+                return new PagedResult<Customer>
+                {
+                    CurrentPage = 1,
+                    PageCount = 1,
+                    PageSize = 1,
+                    TotalItems = 1,
+                    Results = new List<Customer> { c }
+                };
+            }
+
             if (!_currentUser.IsAdmin)
             {
                 var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();

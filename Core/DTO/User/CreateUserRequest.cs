@@ -8,10 +8,11 @@ namespace Core.DTO.User
         public required string Name { get; set; }
         public required string Email { get; set; }
         public required string Password { get; set; }
-        public required string Role { get; set; } // "admin", "company", "professional"
+        public required string Role { get; set; } // "admin", "company", "professional", "propertyManager"
         public StatusEnum Status { get; set; } = StatusEnum.Active;
         public int? CompanyId { get; set; }
         public int? ProfessionalId { get; set; }
+        public int? CustomerId { get; set; }
         
         // Preferências opcionais
         public string? Language { get; set; } // "pt-br" ou "english"

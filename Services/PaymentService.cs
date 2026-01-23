@@ -47,6 +47,14 @@ namespace Services
             var payment = await _unitOfWork.Payments.GetByIdAsync(id);
             if (payment == null) return null;
 
+            if (_currentUser.IsPropertyManager)
+            {
+                if (!payment.CustomerId.HasValue)
+                    throw new ForbiddenException("Pagamento sem cliente vinculado.");
+
+                await _scope.EnsureCustomerInCompanyAsync(payment.CustomerId.Value);
+            }
+
             if (!_currentUser.IsAdmin)
                 await _scope.EnsureCompanyAccessAsync(payment.CompanyId);
 
@@ -57,6 +65,12 @@ namespace Services
         {
             if (_currentUser.IsProfessional)
                 throw new ForbiddenException("Profissional não tem permissão para acessar pagamentos.");
+
+            if (_currentUser.IsPropertyManager)
+            {
+                await _scope.EnsureCustomerInCompanyAsync(customerId);
+                return await _unitOfWork.Payments.GetByCustomerIdAsync(customerId);
+            }
 
             if (!_currentUser.IsAdmin)
             {

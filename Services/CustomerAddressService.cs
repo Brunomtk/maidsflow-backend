@@ -34,6 +34,10 @@ namespace Services
 
         public async Task<List<CustomerAddress>> GetByCustomerAsync(int customerId)
         {
+            // Property Manager can only read addresses from its scoped customer
+            if (_currentUser.IsPropertyManager)
+                await _scope.EnsureCustomerInCompanyAsync(customerId);
+
             var customer = await _uow.Customers.GetByIdAsync(customerId);
             if (customer == null) return new List<CustomerAddress>();
 

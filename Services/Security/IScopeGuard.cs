@@ -6,6 +6,7 @@ namespace Services.Security
     {
         Task<int?> GetScopedCompanyIdAsync();
         Task<int?> GetScopedProfessionalIdAsync();
+        Task<int?> GetScopedCustomerIdAsync();
 
         Task EnsureCompanyAccessAsync(int companyId);
         Task EnsureProfessionalAccessAsync(int professionalId);

@@ -46,6 +46,9 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<int?>("CustomerAddressId")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("CustomerId")
                         .HasColumnType("integer");
 
@@ -115,6 +118,8 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("CompanyId");
 
+                    b.HasIndex("CustomerAddressId");
+
                     b.HasIndex("CustomerId");
 
                     b.HasIndex("ServiceTypeId");
@@ -147,14 +152,26 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("CustomerAddressIdSnapshot")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CustomerAddressSnapshot")
+                        .HasColumnType("text");
+
                     b.Property<int?>("CustomerIdSnapshot")
                         .HasColumnType("integer");
+
+                    b.Property<string>("FrequencySnapshot")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("OccurrenceEnd")
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("OccurrenceStart")
                         .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("PaymentMethodSnapshot")
+                        .HasColumnType("text");
 
                     b.Property<string>("ProfessionalIdsDataSnapshot")
                         .HasColumnType("text");
@@ -210,6 +227,9 @@ namespace Infrastructure.Migrations
                     b.Property<string>("OverrideAddress")
                         .HasColumnType("text");
 
+                    b.Property<int?>("OverrideCustomerAddressId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("OverrideEnd")
                         .HasColumnType("timestamp with time zone");
 
@@ -218,6 +238,9 @@ namespace Infrastructure.Migrations
 
                     b.Property<string>("OverrideProfessionalIdsData")
                         .HasColumnType("text");
+
+                    b.Property<int?>("OverrideServiceTypeId")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("OverrideStart")
                         .HasColumnType("timestamp with time zone");
@@ -229,9 +252,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<int?>("OverrideType")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("OverrideServiceTypeId")
                         .HasColumnType("integer");
 
                     b.Property<Guid>("SeriesId")
@@ -421,6 +441,9 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("CustomerAddressId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("CustomerId")
                         .HasColumnType("integer");
 
@@ -442,6 +465,8 @@ namespace Infrastructure.Migrations
                     b.HasIndex("AppointmentId");
 
                     b.HasIndex("CompanyId");
+
+                    b.HasIndex("CustomerAddressId");
 
                     b.HasIndex("CustomerId");
 
@@ -663,6 +688,77 @@ namespace Infrastructure.Migrations
                     b.ToTable("Customers", (string)null);
                 });
 
+            modelBuilder.Entity("Core.Models.CustomerAddress", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AddressLine1")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("AddressLine2")
+                        .HasColumnType("text");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Frequency")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Observations")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PaymentMethod")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)");
+
+                    b.Property<decimal?>("Ticket")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("ZipCode")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("CustomerId", "IsPrimary");
+
+                    b.ToTable("CustomerAddresses", (string)null);
+                });
+
             modelBuilder.Entity("Core.Models.CustomerArea", b =>
                 {
                     b.Property<int>("Id")
@@ -679,6 +775,9 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("CustomerAddressId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("CustomerId")
                         .HasColumnType("integer");
 
@@ -692,7 +791,9 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CustomerId", "Name", "Active")
+                    b.HasIndex("CustomerAddressId");
+
+                    b.HasIndex("CustomerId", "CustomerAddressId", "Name", "Active")
                         .IsUnique();
 
                     b.ToTable("CustomerAreas", (string)null);
@@ -978,6 +1079,9 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<int?>("CustomerAddressId")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("CustomerId")
                         .HasColumnType("integer");
 
@@ -1010,6 +1114,8 @@ namespace Infrastructure.Migrations
                         .HasDefaultValueSql("now()");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CustomerAddressId");
 
                     b.HasIndex("CustomerId");
 
@@ -1744,6 +1850,9 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1789,6 +1898,8 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyId");
+
+                    b.HasIndex("CustomerId");
 
                     b.ToTable("Users", (string)null);
                 });
@@ -1837,6 +1948,11 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Core.Models.CustomerAddress", "CustomerAddress")
+                        .WithMany()
+                        .HasForeignKey("CustomerAddressId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Core.Models.Customer", "Customer")
                         .WithMany("Appointments")
                         .HasForeignKey("CustomerId")
@@ -1855,6 +1971,8 @@ namespace Infrastructure.Migrations
                     b.Navigation("Company");
 
                     b.Navigation("Customer");
+
+                    b.Navigation("CustomerAddress");
 
                     b.Navigation("ServiceType");
 
@@ -1893,6 +2011,11 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Core.Models.CustomerAddress", "CustomerAddress")
+                        .WithMany("Checklists")
+                        .HasForeignKey("CustomerAddressId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Core.Models.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
@@ -1909,6 +2032,8 @@ namespace Infrastructure.Migrations
                     b.Navigation("Company");
 
                     b.Navigation("Customer");
+
+                    b.Navigation("CustomerAddress");
 
                     b.Navigation("Professional");
                 });
@@ -1964,8 +2089,24 @@ namespace Infrastructure.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("Core.Models.CustomerAddress", b =>
+                {
+                    b.HasOne("Core.Models.Customer", "Customer")
+                        .WithMany("Addresses")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+                });
+
             modelBuilder.Entity("Core.Models.CustomerArea", b =>
                 {
+                    b.HasOne("Core.Models.CustomerAddress", "CustomerAddress")
+                        .WithMany("Areas")
+                        .HasForeignKey("CustomerAddressId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("Core.Models.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
@@ -1973,6 +2114,8 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Customer");
+
+                    b.Navigation("CustomerAddress");
                 });
 
             modelBuilder.Entity("Core.Models.GpsTracking", b =>
@@ -2033,12 +2176,19 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Models.Payment", b =>
                 {
+                    b.HasOne("Core.Models.CustomerAddress", "CustomerAddress")
+                        .WithMany("Payments")
+                        .HasForeignKey("CustomerAddressId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Core.Models.Customer", "Customer")
                         .WithMany("Payments")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Customer");
+
+                    b.Navigation("CustomerAddress");
                 });
 
             modelBuilder.Entity("Core.Models.PayrollItem", b =>
@@ -2249,6 +2399,11 @@ namespace Infrastructure.Migrations
                         .WithMany("Users")
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Core.Models.Customer", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("Core.Models.UserPermission", b =>
@@ -2279,7 +2434,18 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Models.Customer", b =>
                 {
+                    b.Navigation("Addresses");
+
                     b.Navigation("Appointments");
+
+                    b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("Core.Models.CustomerAddress", b =>
+                {
+                    b.Navigation("Areas");
+
+                    b.Navigation("Checklists");
 
                     b.Navigation("Payments");
                 });

@@ -24,6 +24,12 @@ namespace Core.Models
         public int? CompanyId { get; set; }
 
         public int? ProfessionalId { get; set; }
+
+        /// <summary>
+        /// When Role == "propertyManager", this links the user to a specific Customer.
+        /// Property Managers must be scoped to a single Customer.
+        /// </summary>
+        public int? CustomerId { get; set; }
         
         // Explicit permissions granted to this user
         public ICollection<UserPermission> Permissions { get; set; } = new List<UserPermission>();

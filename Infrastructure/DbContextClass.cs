@@ -142,6 +142,14 @@ namespace Infrastructure
                 entity.ToTable("Users");
                 entity.HasKey(u => u.Id);
 
+                entity.HasIndex(u => u.CustomerId);
+
+                // Optional link for Property Manager users
+                entity.HasOne<Customer>()
+                      .WithMany()
+                      .HasForeignKey(u => u.CustomerId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
                 entity.Property(u => u.Onboarding)
                       .HasDefaultValue(false);
             });

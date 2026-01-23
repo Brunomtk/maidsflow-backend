@@ -49,6 +49,8 @@ namespace Infrastructure.Authenticate
                 authClaims.Add(new Claim("companyId", user.CompanyId.Value.ToString()));
             if (user.ProfessionalId.HasValue)
                 authClaims.Add(new Claim("professionalId", user.ProfessionalId.Value.ToString()));
+            if (user.CustomerId.HasValue)
+                authClaims.Add(new Claim("customerId", user.CustomerId.Value.ToString()));
 
             var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
 

@@ -21,6 +21,13 @@ namespace Services.Security
 
             if (_currentUser.CompanyId.HasValue) return _currentUser.CompanyId.Value;
 
+            // Property Manager fallback: resolve CompanyId from the scoped Customer
+            if (_currentUser.CustomerId.HasValue)
+            {
+                var c = await _uow.Customers.GetByIdAsync(_currentUser.CustomerId.Value);
+                if (c != null) return c.CompanyId;
+            }
+
             // Fallback: resolve from DB using UserId
             if (_currentUser.UserId <= 0) return null;
 
@@ -35,7 +42,25 @@ namespace Services.Security
                 return prof?.CompanyId;
             }
 
+            if (user.CustomerId.HasValue)
+            {
+                var c = await _uow.Customers.GetByIdAsync(user.CustomerId.Value);
+                return c?.CompanyId;
+            }
+
             return null;
+        }
+
+        public async Task<int?> GetScopedCustomerIdAsync()
+        {
+            if (_currentUser.IsAdmin) return null;
+
+            if (_currentUser.CustomerId.HasValue) return _currentUser.CustomerId.Value;
+
+            if (_currentUser.UserId <= 0) return null;
+
+            var user = await _uow.Users.GetById(_currentUser.UserId);
+            return user?.CustomerId;
         }
 
         public async Task<int?> GetScopedProfessionalIdAsync()
@@ -111,6 +136,15 @@ namespace Services.Security
         public async Task EnsureCustomerInCompanyAsync(int customerId)
         {
             if (_currentUser.IsAdmin) return;
+
+            // Property Manager: must match the single scoped customer
+            if (_currentUser.IsPropertyManager)
+            {
+                var scopedCustomerId = await GetScopedCustomerIdAsync();
+                if (!scopedCustomerId.HasValue || scopedCustomerId.Value != customerId)
+                    throw new ForbiddenException("Você não tem permissão para acessar este cliente.");
+                return;
+            }
 
             var scopedCompanyId = await GetScopedCompanyIdAsync();
             if (!scopedCompanyId.HasValue)

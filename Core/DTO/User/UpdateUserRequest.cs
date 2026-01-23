@@ -12,6 +12,7 @@ namespace Core.DTO.User
         public StatusEnum? Status { get; set; }
         public int? CompanyId { get; set; }
         public int? ProfessionalId { get; set; }
+        public int? CustomerId { get; set; }
 
         public bool? Onboarding { get; set; }
 

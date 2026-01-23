@@ -8,8 +8,10 @@ namespace Services.Security
         string Role { get; }
         int? CompanyId { get; }
         int? ProfessionalId { get; }
+        int? CustomerId { get; }
         bool IsAdmin { get; }
         bool IsCompany { get; }
+        bool IsPropertyManager { get; }
         bool IsProfessional { get; }
     }
 }

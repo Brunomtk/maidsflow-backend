@@ -43,8 +43,18 @@ namespace Services.Security
             }
         }
 
+        public int? CustomerId
+        {
+            get
+            {
+                var v = Principal?.FindFirstValue("customerId");
+                return int.TryParse(v, out var id) ? id : null;
+            }
+        }
+
         public bool IsAdmin => string.Equals(Role, "admin", System.StringComparison.OrdinalIgnoreCase);
         public bool IsCompany => string.Equals(Role, "company", System.StringComparison.OrdinalIgnoreCase);
+        public bool IsPropertyManager => string.Equals(Role, "propertyManager", System.StringComparison.OrdinalIgnoreCase);
         public bool IsProfessional => string.Equals(Role, "professional", System.StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -103,8 +103,36 @@ namespace Services
                 if (!string.IsNullOrWhiteSpace(user.Role) && user.Role.Equals("admin", StringComparison.OrdinalIgnoreCase))
                     throw new ForbiddenException("Company não pode criar usuário admin.");
 
+                // Property Manager: must be tied to a single customer within the same company
+                if (!string.IsNullOrWhiteSpace(user.Role) && user.Role.Equals("propertyManager", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!user.CustomerId.HasValue || user.CustomerId.Value <= 0)
+                        throw new BadRequestException("Para role 'propertyManager', CustomerId é obrigatório.");
+
+                    // must belong to this company
+                    await _scope.EnsureCustomerInCompanyAsync(user.CustomerId.Value);
+
+                    // property managers should not be linked to professionals
+                    user.ProfessionalId = null;
+                }
+
                 if (user.ProfessionalId.HasValue)
                     await _scope.EnsureProfessionalInCompanyAsync(user.ProfessionalId.Value);
+            }
+
+            // Admin validations for Property Manager
+            if (_currentUser.IsAdmin && !string.IsNullOrWhiteSpace(user.Role) && user.Role.Equals("propertyManager", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!user.CustomerId.HasValue || user.CustomerId.Value <= 0)
+                    throw new BadRequestException("Para role 'propertyManager', CustomerId é obrigatório.");
+
+                var customer = await _unitOfWork.Customers.GetByIdAsync(user.CustomerId.Value);
+                if (customer == null)
+                    throw new NotFoundException("Cliente não encontrado.");
+
+                // Ensure the user is always in the same company as the linked customer
+                user.CompanyId = customer.CompanyId;
+                user.ProfessionalId = null;
             }
 
             user.Password = Encrypt.EncryptPassword(user.Password);
@@ -269,6 +297,29 @@ namespace Services
                     user.ProfessionalId = userParam.ProfessionalId;
                 }
 
+                // CustomerId: only used for Property Manager role
+                if (userParam.CustomerId.HasValue)
+                {
+                    // can only assign customer when role is propertyManager (current or being set)
+                    var effectiveRole = userParam.Role ?? user.Role;
+                    if (!string.Equals(effectiveRole, "propertyManager", StringComparison.OrdinalIgnoreCase))
+                        throw new BadRequestException("CustomerId só pode ser definido para role 'propertyManager'.");
+
+                    await _scope.EnsureCustomerInCompanyAsync(userParam.CustomerId.Value);
+                    user.CustomerId = userParam.CustomerId;
+                    user.ProfessionalId = null;
+                }
+
+                // If role is propertyManager ensure CustomerId exists (either existing or provided)
+                if (string.Equals(user.Role, "propertyManager", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!user.CustomerId.HasValue || user.CustomerId.Value <= 0)
+                        throw new BadRequestException("Para role 'propertyManager', CustomerId é obrigatório.");
+
+                    await _scope.EnsureCustomerInCompanyAsync(user.CustomerId.Value);
+                    user.ProfessionalId = null;
+                }
+
                 // Permissions: allowed for company
                 if (userParam.Permissions != null)
                 {
@@ -293,7 +344,38 @@ namespace Services
 
                 if (userParam.CompanyId.HasValue) user.CompanyId = userParam.CompanyId;
                 if (userParam.ProfessionalId.HasValue) user.ProfessionalId = userParam.ProfessionalId;
+
+                // CustomerId: only meaningful for Property Manager role
+                if (userParam.CustomerId.HasValue)
+                {
+                    var effectiveRole = userParam.Role ?? user.Role;
+                    if (!string.Equals(effectiveRole, "propertyManager", StringComparison.OrdinalIgnoreCase))
+                        throw new BadRequestException("CustomerId só pode ser definido para role 'propertyManager'.");
+
+                    user.CustomerId = userParam.CustomerId;
+                }
                 if (userParam.Onboarding.HasValue) user.Onboarding = userParam.Onboarding.Value;
+
+                // Admin validations for Property Manager
+                if (string.Equals(user.Role, "propertyManager", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!user.CustomerId.HasValue || user.CustomerId.Value <= 0)
+                        throw new BadRequestException("Para role 'propertyManager', CustomerId é obrigatório.");
+
+                    var customer = await _unitOfWork.Customers.GetByIdAsync(user.CustomerId.Value);
+                    if (customer == null)
+                        throw new NotFoundException("Cliente não encontrado.");
+
+                    // Ensure the user is always in the same company as the linked customer
+                    user.CompanyId = customer.CompanyId;
+                    user.ProfessionalId = null;
+                }
+                else
+                {
+                    // If role changed away from propertyManager, keep data clean
+                    if (userParam.Role != null && !string.Equals(userParam.Role, "propertyManager", StringComparison.OrdinalIgnoreCase))
+                        user.CustomerId = null;
+                }
 
                 if (!string.IsNullOrEmpty(userParam.Password))
                     user.Password = Encrypt.EncryptPassword(userParam.Password);
@@ -311,6 +393,7 @@ namespace Services
                         });
                     }
                 }
+
             }
             else
             {
