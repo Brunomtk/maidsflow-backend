@@ -12,6 +12,10 @@ namespace Core.DTO.Review
         public int ReviewId { get; set; }
         public int AppointmentId { get; set; }
 
+
+        public int CustomerId { get; set; }
+        public int? CustomerAddressId { get; set; }
+
         public int CompanyId { get; set; }
         public string? CompanyName { get; set; }
 

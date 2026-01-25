@@ -10,6 +10,15 @@ namespace Core.Models
         public string Title { get; set; } = null!;
         public int ProfessionalId { get; set; }
         public int TeamId { get; set; }
+
+        public int? AppointmentId { get; set; }
+        public Appointment? Appointment { get; set; }
+
+        public int? CustomerId { get; set; }
+        public Customer? Customer { get; set; }
+
+        public int? CustomerAddressId { get; set; }
+        public CustomerAddress? CustomerAddress { get; set; }
         public string Category { get; set; } = null!;
         public InternalFeedbackStatus Status { get; set; }
         public DateTime Date { get; set; }

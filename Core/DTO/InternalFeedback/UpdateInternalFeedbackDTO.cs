@@ -10,6 +10,9 @@ namespace Core.DTO.InternalFeedback
         public string? Title { get; set; }
         public int? ProfessionalId { get; set; }
         public int? TeamId { get; set; }
+        public int? AppointmentId { get; set; }
+        public int? CustomerId { get; set; }
+        public int? CustomerAddressId { get; set; }
         public string? Category { get; set; }
         public InternalFeedbackStatus? Status { get; set; }
         public DateTime? Date { get; set; }

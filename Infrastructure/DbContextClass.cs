@@ -361,6 +361,11 @@ namespace Infrastructure
             {
                 entity.ToTable("PayrollItems");
                 entity.HasKey(i => i.Id);
+
+                // Shadow properties (DB columns) for scoping/filtering without changing the CLR model.
+                // Keep them mapped so the EF model stays consistent with the existing schema/snapshot.
+                entity.Property<int?>("CustomerId");
+                entity.Property<int?>("CustomerAddressId");
                 entity.Property(i => i.TeamRole).HasConversion<int>();
                 entity.Property(i => i.RateType).HasConversion<int>();
                 entity.Property(i => i.RateValue).HasPrecision(18, 2);
@@ -401,6 +406,9 @@ namespace Infrastructure
                       .WithMany()
                       .HasForeignKey(i => i.AppointmentCompletionId)
                       .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex("CustomerId");
+                entity.HasIndex("CustomerAddressId");
 
                 entity.HasIndex(i => new { i.PayrollRunId, i.ProfessionalId, i.AppointmentId, i.OccurrenceStart }).IsUnique();
             });
@@ -650,6 +658,12 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                 entity.HasKey(r => r.Id);
                 entity.Property(r => r.CustomerId).IsRequired();
                 entity.Property(r => r.CustomerName);
+                entity.Property(r => r.CustomerAddressId);
+                entity.HasIndex(r => r.CustomerAddressId);
+                entity.HasOne(r => r.CustomerAddress)
+                      .WithMany()
+                      .HasForeignKey(r => r.CustomerAddressId)
+                      .OnDelete(DeleteBehavior.SetNull);
                 entity.Property(r => r.ProfessionalId);
                 entity.Property(r => r.ProfessionalName);
                 entity.Property(r => r.TeamId);
@@ -680,6 +694,24 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                 entity.Property(f => f.Title).IsRequired();
                 entity.Property(f => f.ProfessionalId).IsRequired();
                 entity.Property(f => f.TeamId).IsRequired();
+                entity.Property(f => f.AppointmentId);
+                entity.Property(f => f.CustomerId);
+                entity.Property(f => f.CustomerAddressId);
+                entity.HasIndex(f => f.AppointmentId);
+                entity.HasIndex(f => f.CustomerId);
+                entity.HasIndex(f => f.CustomerAddressId);
+                entity.HasOne(f => f.Appointment)
+                      .WithMany()
+                      .HasForeignKey(f => f.AppointmentId)
+                      .OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(f => f.Customer)
+                      .WithMany()
+                      .HasForeignKey(f => f.CustomerId)
+                      .OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(f => f.CustomerAddress)
+                      .WithMany()
+                      .HasForeignKey(f => f.CustomerAddressId)
+                      .OnDelete(DeleteBehavior.SetNull);
                 entity.Property(f => f.Category).IsRequired();
                 entity.Property(f => f.Status).HasConversion<string>().IsRequired();
                 entity.Property(f => f.Date).IsRequired();

@@ -22,6 +22,9 @@ namespace Core.DTO.Review
 
         public int AppointmentId { get; set; }
 
+
+        public int? CustomerAddressId { get; set; }
+
         public Guid? PublicToken { get; set; }
         public DateTime? SubmittedAt { get; set; }
 

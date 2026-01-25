@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DbContextClass))]
-    [Migration("20260123202333_CostumerID")]
-    partial class CostumerID
+    [Migration("20260125193223_AddReviewFeedbackCustomerScope")]
+    partial class AddReviewFeedbackCustomerScope
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -867,6 +867,9 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AppointmentId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("AssignedToId")
                         .HasColumnType("integer");
 
@@ -878,6 +881,12 @@ namespace Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
+
+                    b.Property<int?>("CustomerAddressId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp with time zone");
@@ -909,6 +918,12 @@ namespace Infrastructure.Migrations
                         .HasDefaultValueSql("now()");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AppointmentId");
+
+                    b.HasIndex("CustomerAddressId");
+
+                    b.HasIndex("CustomerId");
 
                     b.ToTable("InternalFeedbacks", (string)null);
                 });
@@ -1154,6 +1169,12 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<int?>("CustomerAddressId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("MissingRule")
                         .HasColumnType("boolean");
 
@@ -1197,6 +1218,10 @@ namespace Infrastructure.Migrations
                     b.HasIndex("AppointmentCompletionId");
 
                     b.HasIndex("AppointmentId");
+
+                    b.HasIndex("CustomerAddressId");
+
+                    b.HasIndex("CustomerId");
 
                     b.HasIndex("PayrollRuleId");
 
@@ -1629,6 +1654,9 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<int?>("CustomerAddressId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("CustomerId")
                         .HasColumnType("integer");
 
@@ -1680,6 +1708,8 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AppointmentId");
+
+                    b.HasIndex("CustomerAddressId");
 
                     b.HasIndex("PublicToken")
                         .IsUnique();
@@ -2157,6 +2187,30 @@ namespace Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Core.Models.InternalFeedback", b =>
+                {
+                    b.HasOne("Core.Models.Appointment", "Appointment")
+                        .WithMany()
+                        .HasForeignKey("AppointmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Core.Models.CustomerAddress", "CustomerAddress")
+                        .WithMany()
+                        .HasForeignKey("CustomerAddressId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Core.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Appointment");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("CustomerAddress");
+                });
+
             modelBuilder.Entity("Core.Models.InternalFeedbackComment", b =>
                 {
                     b.HasOne("Core.Models.InternalFeedback", null)
@@ -2339,6 +2393,16 @@ namespace Infrastructure.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("Core.Models.Review", b =>
+                {
+                    b.HasOne("Core.Models.CustomerAddress", "CustomerAddress")
+                        .WithMany()
+                        .HasForeignKey("CustomerAddressId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CustomerAddress");
                 });
 
             modelBuilder.Entity("Core.Models.ServiceType", b =>

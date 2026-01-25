@@ -12,6 +12,9 @@ namespace Core.DTO.InternalFeedback
         public int? CompanyId { get; set; }
         public int? ProfessionalId { get; set; }
         public int? TeamId { get; set; }
+        public int? CustomerId { get; set; }
+        public int? CustomerAddressId { get; set; }
+        public int? AppointmentId { get; set; }
         public string? Search { get; set; }
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 10;

@@ -85,11 +85,35 @@ namespace Services
                 if (companyId.HasValue) dto.CompanyId = companyId.Value;
             }
 
-            // garantir que o appointment pertence à company
+            // garantir que o appointment pertence à company + normalizar CustomerAddressId
+            Appointment? apptForAddress = null;
             if (!_currentUser.IsAdmin)
             {
-                var appt = await _unitOfWork.Appointments.GetById(dto.AppointmentId);
-                if (appt != null) await _scope.EnsureCompanyAccessAsync(appt.CompanyId);
+                apptForAddress = await _unitOfWork.Appointments.GetById(dto.AppointmentId);
+                if (apptForAddress != null) await _scope.EnsureCompanyAccessAsync(apptForAddress.CompanyId);
+            }
+
+            if (apptForAddress != null && apptForAddress.CustomerAddressId.HasValue)
+            {
+                if (!dto.CustomerAddressId.HasValue)
+                {
+                    dto.CustomerAddressId = apptForAddress.CustomerAddressId.Value;
+                }
+                else if (dto.CustomerAddressId.Value != apptForAddress.CustomerAddressId.Value)
+                {
+                    throw new BadRequestException("CustomerAddressId não bate com o endereço do appointment.");
+                }
+            }
+
+            if (dto.CustomerAddressId.HasValue)
+            {
+                await _scope.EnsureCustomerAddressAccessAsync(dto.CustomerAddressId.Value);
+
+                var addr = await _unitOfWork.CustomerAddresses.GetByIdAsync(dto.CustomerAddressId.Value);
+                if (addr == null)
+                    throw new BadRequestException("CustomerAddressId inválido.");
+                if (addr.CustomerId != dto.CustomerId)
+                    throw new BadRequestException("CustomerAddressId não pertence ao CustomerId informado.");
             }
 
             var review = new Review
@@ -103,6 +127,7 @@ namespace Services
                 CompanyId = dto.CompanyId,
                 CompanyName = dto.CompanyName,
                 AppointmentId = dto.AppointmentId,
+                CustomerAddressId = dto.CustomerAddressId,
                 Rating = dto.Rating,
                 Comment = dto.Comment,
                 Date = dto.Date,
@@ -140,6 +165,18 @@ namespace Services
             if (_currentUser.IsAdmin && dto.CompanyId.HasValue) review.CompanyId = dto.CompanyId.Value;
             if (!string.IsNullOrEmpty(dto.CompanyName)) review.CompanyName = dto.CompanyName;
             if (dto.AppointmentId.HasValue) review.AppointmentId = dto.AppointmentId.Value;
+            if (dto.CustomerAddressId.HasValue)
+            {
+                await _scope.EnsureCustomerAddressAccessAsync(dto.CustomerAddressId.Value);
+
+                var targetCustomerId = dto.CustomerId ?? review.CustomerId;
+                var addr = await _unitOfWork.CustomerAddresses.GetByIdAsync(dto.CustomerAddressId.Value);
+                if (addr == null) throw new BadRequestException("CustomerAddressId inválido.");
+                if (addr.CustomerId != targetCustomerId)
+                    throw new BadRequestException("CustomerAddressId não pertence ao CustomerId do review.");
+                review.CustomerAddressId = dto.CustomerAddressId.Value;
+            }
+
             if (dto.Rating.HasValue) review.Rating = dto.Rating.Value;
             if (!string.IsNullOrEmpty(dto.Comment)) review.Comment = dto.Comment;
             if (dto.Date.HasValue) review.Date = dto.Date.Value;
@@ -242,6 +279,7 @@ namespace Services
             var review = new Review
             {
                 CustomerId = appt.CustomerId.Value,
+                CustomerAddressId = appt.CustomerAddressId,
                 CustomerName = customer?.Name,
                 ProfessionalId = professionalId,
                 ProfessionalName = professionalName,
@@ -282,6 +320,8 @@ namespace Services
                 Token = token,
                 ReviewId = review.Id,
                 AppointmentId = review.AppointmentId,
+                CustomerId = review.CustomerId,
+                CustomerAddressId = review.CustomerAddressId,
                 CompanyId = review.CompanyId,
                 CompanyName = review.CompanyName,
                 CustomerName = review.CustomerName,

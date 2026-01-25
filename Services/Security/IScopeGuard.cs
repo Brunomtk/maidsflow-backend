@@ -23,6 +23,7 @@ namespace Services.Security
 
         Task EnsureUserInCompanyAsync(int userId);
         Task EnsureCustomerInCompanyAsync(int customerId);
+        Task EnsureCustomerAddressAccessAsync(int customerAddressId);
         Task EnsureTeamInCompanyAsync(int teamId);
         Task EnsureAppointmentAccessAsync(int appointmentId);
         Task EnsureUserSelfOrAdminAsync(int userId);

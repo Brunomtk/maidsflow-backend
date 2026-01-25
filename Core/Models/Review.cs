@@ -10,6 +10,9 @@ namespace Core.Models
         public int CustomerId { get; set; }
         public string? CustomerName { get; set; }
 
+        public int? CustomerAddressId { get; set; }
+        public CustomerAddress? CustomerAddress { get; set; }
+
         public int? ProfessionalId { get; set; }
         public string? ProfessionalName { get; set; }
 

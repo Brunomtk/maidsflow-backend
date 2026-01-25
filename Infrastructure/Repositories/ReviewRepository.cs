@@ -81,6 +81,9 @@ namespace Infrastructure.Repositories
             if (filters.AppointmentId.HasValue)
                 q = q.Where(x => x.AppointmentId == filters.AppointmentId.Value);
 
+            if (filters.CustomerAddressId.HasValue)
+                q = q.Where(x => x.CustomerAddressId == filters.CustomerAddressId.Value);
+
             // Ordenação e paginação
             return await q
                 .OrderByDescending(x => x.CreatedDate)

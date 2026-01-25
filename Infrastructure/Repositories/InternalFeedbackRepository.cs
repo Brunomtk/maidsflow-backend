@@ -62,15 +62,22 @@ namespace Infrastructure.Repositories
                 query = query.Where(f => f.Category == filters.Category);
             }
 
-            // Company filter (via Professional.CompanyId)
+            // Company filter (via Professional.CompanyId) + Customer.CompanyId
 if (filters.CompanyId.HasValue)
 {
     var companyId = filters.CompanyId.Value;
+
     var professionalIds = _context.Professionals
         .Where(p => p.CompanyId == companyId)
         .Select(p => p.Id);
 
-    query = query.Where(f => professionalIds.Contains(f.ProfessionalId));
+    var customerIds = _context.Customers
+        .Where(c => c.CompanyId == companyId)
+        .Select(c => c.Id);
+
+    query = query.Where(f =>
+        professionalIds.Contains(f.ProfessionalId) ||
+        (f.CustomerId.HasValue && customerIds.Contains(f.CustomerId.Value)));
 }
 
 // Professional filter
@@ -85,13 +92,28 @@ if (filters.CompanyId.HasValue)
                 query = query.Where(f => f.TeamId == filters.TeamId.Value);
             }
 
+            if (filters.CustomerId.HasValue)
+            {
+                query = query.Where(f => f.CustomerId == filters.CustomerId.Value);
+            }
+
+            if (filters.CustomerAddressId.HasValue)
+            {
+                query = query.Where(f => f.CustomerAddressId == filters.CustomerAddressId.Value);
+            }
+
+            if (filters.AppointmentId.HasValue)
+            {
+                query = query.Where(f => f.AppointmentId == filters.AppointmentId.Value);
+            }
+
             // Text search
             if (!string.IsNullOrWhiteSpace(filters.Search))
             {
                 var txt = filters.Search.ToLower();
                 query = query.Where(f =>
                     f.Title.ToLower().Contains(txt) ||
-                    f.Description.ToLower().Contains(txt));
+                    (f.Description ?? string.Empty).ToLower().Contains(txt));
             }
 
             // Order and paginate

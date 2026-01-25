@@ -3063,6 +3063,30 @@
             }
           },
           {
+            "name": "CustomerId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "CustomerAddressId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "AppointmentId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
             "name": "Search",
             "in": "query",
             "schema": {
@@ -5832,6 +5856,14 @@
             }
           },
           {
+            "name": "CustomerAddressId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
             "name": "PageNumber",
             "in": "query",
             "schema": {
@@ -8183,6 +8215,21 @@
             "type": "integer",
             "format": "int32"
           },
+          "appointmentId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "customerId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "customerAddressId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
           "category": {
             "type": "string",
             "nullable": true
@@ -8553,6 +8600,11 @@
           "appointmentId": {
             "type": "integer",
             "format": "int32"
+          },
+          "customerAddressId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           },
           "publicToken": {
             "type": "string",
@@ -10718,6 +10770,21 @@
             "format": "int32",
             "nullable": true
           },
+          "appointmentId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "customerId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "customerAddressId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
           "category": {
             "type": "string",
             "nullable": true
@@ -11100,6 +11167,11 @@
             "nullable": true
           },
           "appointmentId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "customerAddressId": {
             "type": "integer",
             "format": "int32",
             "nullable": true

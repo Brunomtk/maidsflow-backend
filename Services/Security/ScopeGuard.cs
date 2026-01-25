@@ -155,7 +155,19 @@ namespace Services.Security
                 throw new ForbiddenException("Cliente não pertence à sua company.");
         }
 
-        public async Task EnsureTeamInCompanyAsync(int teamId)
+        
+public async Task EnsureCustomerAddressAccessAsync(int customerAddressId)
+{
+    if (_currentUser.IsAdmin) return;
+
+    var addr = await _uow.CustomerAddresses.GetByIdAsync(customerAddressId);
+    if (addr == null)
+        throw new ForbiddenException("Endereço do cliente não encontrado.");
+
+    await EnsureCustomerInCompanyAsync(addr.CustomerId);
+}
+
+public async Task EnsureTeamInCompanyAsync(int teamId)
         {
             if (_currentUser.IsAdmin) return;
 

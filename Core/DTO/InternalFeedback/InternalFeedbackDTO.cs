@@ -14,6 +14,9 @@ namespace Core.DTO.InternalFeedback
         public string Professional { get; set; } = string.Empty;
         public int TeamId { get; set; }
         public string Team { get; set; } = string.Empty;
+        public int? AppointmentId { get; set; }
+        public int? CustomerId { get; set; }
+        public int? CustomerAddressId { get; set; }
         public string Category { get; set; } = string.Empty;
         public InternalFeedbackStatus Status { get; set; }
         public DateTime Date { get; set; }

@@ -19,6 +19,9 @@ namespace Core.DTO.Review
 
         public int AppointmentId { get; set; }
 
+
+        public int? CustomerAddressId { get; set; }
+
         /// <summary>
         /// Public identifier used to generate a shareable review link.
         /// If omitted, the backend will generate one.
