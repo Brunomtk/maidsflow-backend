@@ -7,5 +7,10 @@ namespace Core.DTO.Appointment
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Cor (hex) da equipe, ex: "#d50707".
+        /// </summary>
+        public string? Color { get; set; }
     }
 }

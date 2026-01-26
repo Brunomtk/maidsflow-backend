@@ -287,6 +287,7 @@ public async Task<IActionResult> GetCalendar(
     var normalQuery = _db.Set<Appointment>().AsNoTracking()
         .Include(a => a.Company)
         .Include(a => a.Customer)
+        .Include(a => a.CustomerAddress)
         .Include(a => a.Team)
         .Include(a => a.ServiceType)
         .Where(a => !a.IsRecurring && a.Start < rangeEnd && a.End > rangeStart);
@@ -311,6 +312,7 @@ public async Task<IActionResult> GetCalendar(
     var anchorsQuery = _db.Set<Appointment>().AsNoTracking()
         .Include(a => a.Company)
         .Include(a => a.Customer)
+        .Include(a => a.CustomerAddress)
         .Include(a => a.Team)
         .Include(a => a.ServiceType)
         .Where(a => a.IsRecurring
@@ -369,11 +371,56 @@ public async Task<IActionResult> GetCalendar(
             .Where(s => serviceTypeIds.Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, s => s.Name);
 
+    // CustomerAddress lookup (evita N+1 e evita que o front tenha que chamar outros endpoints)
+    var customerAddressIds = new HashSet<int>();
+    foreach (var a in normals)
+        if (a.CustomerAddressId.HasValue) customerAddressIds.Add(a.CustomerAddressId.Value);
+    foreach (var a in anchors)
+        if (a.CustomerAddressId.HasValue) customerAddressIds.Add(a.CustomerAddressId.Value);
+    foreach (var e in exceptions)
+        if (e.OverrideCustomerAddressId.HasValue) customerAddressIds.Add(e.OverrideCustomerAddressId.Value);
+
+    var customerAddressMap = customerAddressIds.Count == 0
+        ? new Dictionary<int, CustomerAddress>()
+        : await _db.Set<CustomerAddress>().AsNoTracking()
+            .Where(ca => customerAddressIds.Contains(ca.Id))
+            .ToDictionaryAsync(ca => ca.Id, ca => ca);
+
+    string ResolveAddressString(
+        string? overrideAddress,
+        int? finalCustomerAddressId,
+        string? snapshotAddress,
+        CustomerAddress? navCustomerAddress,
+        string? legacyCustomerAddress)
+    {
+        if (!string.IsNullOrWhiteSpace(overrideAddress))
+            return overrideAddress!;
+
+        if (finalCustomerAddressId.HasValue && customerAddressMap.TryGetValue(finalCustomerAddressId.Value, out var addr))
+            return BuildCustomerAddressLine(addr);
+
+        if (!string.IsNullOrWhiteSpace(snapshotAddress))
+            return snapshotAddress!;
+
+        if (navCustomerAddress != null && !string.IsNullOrWhiteSpace(navCustomerAddress.AddressLine1))
+            return BuildCustomerAddressLine(navCustomerAddress);
+
+        return legacyCustomerAddress ?? string.Empty;
+    }
+
     var outList = new List<CalendarOccurrenceDTO>();
 
     // Normal -> Calendar DTO
     foreach (var a in normals)
     {
+        var finalCustomerAddressId = a.CustomerAddressId;
+        var resolvedAddress = ResolveAddressString(
+            overrideAddress: null,
+            finalCustomerAddressId: finalCustomerAddressId,
+            snapshotAddress: a.Address,
+            navCustomerAddress: a.CustomerAddress,
+            legacyCustomerAddress: a.Customer?.Address);
+
         var customerMini = a.Customer != null
             ? new CalendarCustomerMiniDTO
             {
@@ -381,13 +428,13 @@ public async Task<IActionResult> GetCalendar(
                 Name = a.Customer.Name,
                 Email = a.Customer.Email,
                 Phone = a.Customer.Phone,
-                Address = a.Customer.Address,
+                Address = string.IsNullOrWhiteSpace(resolvedAddress) ? a.Customer.Address : resolvedAddress,
                 ReceiveSms = a.Customer.ReceiveSms,
                 ReceiveEmail = a.Customer.ReceiveEmail,
             }
             : null;
         var teamMini = a.Team != null
-            ? new CalendarTeamMiniDTO { Id = a.Team.Id, Name = a.Team.Name }
+            ? new CalendarTeamMiniDTO { Id = a.Team.Id, Name = a.Team.Name, Color = a.Team.Color }
             : null;
 
         var title = !string.IsNullOrWhiteSpace(a.Title)
@@ -404,12 +451,12 @@ public async Task<IActionResult> GetCalendar(
             Start = a.Start,
             End = a.End,
             Title = title,
-            Address = a.Address,
+            Address = resolvedAddress,
             Notes = a.Notes,
 
             CustomerEmail = a.Customer?.Email,
             CustomerPhone = a.Customer?.Phone,
-            CustomerAddress = a.Customer?.Address,
+            CustomerAddress = string.IsNullOrWhiteSpace(resolvedAddress) ? a.Customer?.Address : resolvedAddress,
 
             CompanyName = a.Company?.Name,
 
@@ -420,6 +467,7 @@ public async Task<IActionResult> GetCalendar(
 
             CompanyId = a.CompanyId,
             CustomerId = a.CustomerId,
+            CustomerAddressId = finalCustomerAddressId,
             TeamId = a.TeamId,
             Status = a.Status,
             Type = a.Type,
@@ -439,21 +487,35 @@ public async Task<IActionResult> GetCalendar(
     // Recorrentes -> expand + apply exceptions
     foreach (var anchor in anchors)
     {
-        var customerMini = anchor.Customer != null
-            ? new CalendarCustomerMiniDTO
-            {
-                Id = anchor.Customer.Id,
-                Name = anchor.Customer.Name,
-                Email = anchor.Customer.Email,
-                Phone = anchor.Customer.Phone,
-                Address = anchor.Customer.Address,
-                ReceiveSms = anchor.Customer.ReceiveSms,
-                ReceiveEmail = anchor.Customer.ReceiveEmail,
-            }
-            : null;
+        var customerBase = anchor.Customer;
+
         var teamMini = anchor.Team != null
-            ? new CalendarTeamMiniDTO { Id = anchor.Team.Id, Name = anchor.Team.Name }
+            ? new CalendarTeamMiniDTO { Id = anchor.Team.Id, Name = anchor.Team.Name, Color = anchor.Team.Color }
             : null;
+
+        CalendarCustomerMiniDTO? MakeCustomerMini(string resolvedAddress)
+        {
+            if (customerBase == null) return null;
+
+            return new CalendarCustomerMiniDTO
+            {
+                Id = customerBase.Id,
+                Name = customerBase.Name,
+                Email = customerBase.Email,
+                Phone = customerBase.Phone,
+                Address = string.IsNullOrWhiteSpace(resolvedAddress) ? customerBase.Address : resolvedAddress,
+                ReceiveSms = customerBase.ReceiveSms,
+                ReceiveEmail = customerBase.ReceiveEmail,
+            };
+        }
+
+        var anchorFinalCustomerAddressId = anchor.CustomerAddressId;
+        var anchorResolvedAddress = ResolveAddressString(
+            overrideAddress: null,
+            finalCustomerAddressId: anchorFinalCustomerAddressId,
+            snapshotAddress: anchor.Address,
+            navCustomerAddress: anchor.CustomerAddress,
+            legacyCustomerAddress: customerBase?.Address);
 
         var tz = ResolveTimeZone(anchor.TimeZoneId);
 
@@ -493,7 +555,7 @@ public async Task<IActionResult> GetCalendar(
                     ? ex.OverrideTitle
                     : (!string.IsNullOrWhiteSpace(anchor.Title)
                         ? anchor.Title
-                        : (customerMini?.Name ?? "No Customer"));
+                        : (customerBase?.Name ?? "No Customer"));
 
                 // ProfessionalIds: só usa override se tiver pelo menos 1 id, senão mantém o da âncora
                 var finalProfessionalIds = (ex.OverrideProfessionalIds != null && ex.OverrideProfessionalIds.Any())
@@ -503,6 +565,14 @@ public async Task<IActionResult> GetCalendar(
                 // Aplica filtro do ProfessionalId após o merge (override pode mudar profissionais)
                 if (professionalId.HasValue && !finalProfessionalIds.Contains(professionalId.Value))
                     continue;
+
+                var finalCustomerAddressId = ex.OverrideCustomerAddressId ?? anchor.CustomerAddressId;
+                var resolvedAddress = ResolveAddressString(
+                    overrideAddress: ex.OverrideAddress,
+                    finalCustomerAddressId: finalCustomerAddressId,
+                    snapshotAddress: anchor.Address,
+                    navCustomerAddress: anchor.CustomerAddress,
+                    legacyCustomerAddress: anchor.Customer?.Address);
 
                 outList.Add(new CalendarOccurrenceDTO
                 {
@@ -517,12 +587,12 @@ public async Task<IActionResult> GetCalendar(
                     Start = startFinal,
                     End = endFinal,
                     Title = title,
-                    Address = ex.OverrideAddress ?? anchor.Address,
+                    Address = resolvedAddress,
                     Notes = ex.OverrideNotes ?? anchor.Notes,
 
                     CustomerEmail = anchor.Customer?.Email,
                     CustomerPhone = anchor.Customer?.Phone,
-                    CustomerAddress = anchor.Customer?.Address,
+                    CustomerAddress = string.IsNullOrWhiteSpace(resolvedAddress) ? anchor.Customer?.Address : resolvedAddress,
 
                     CompanyName = anchor.Company?.Name,
 
@@ -533,7 +603,7 @@ public async Task<IActionResult> GetCalendar(
 
                     CompanyId = anchor.CompanyId,
                     CustomerId = anchor.CustomerId,
-                        CustomerAddressId = ex?.OverrideCustomerAddressId ?? anchor.CustomerAddressId,
+                    CustomerAddressId = finalCustomerAddressId,
                     TeamId = anchor.TeamId,
                     Status = ex.OverrideStatus ?? anchor.Status,
                     Type = ex.OverrideType ?? anchor.Type,
@@ -543,7 +613,7 @@ public async Task<IActionResult> GetCalendar(
                         ? serviceTypeNameMap.GetValueOrDefault((ex.OverrideServiceTypeId ?? anchor.ServiceTypeId)!.Value)
                         : null,
 
-                    Customer = customerMini,
+                    Customer = MakeCustomerMini(resolvedAddress),
                     Team = teamMini,
 
                     ProfessionalIds = finalProfessionalIds,
@@ -561,11 +631,18 @@ public async Task<IActionResult> GetCalendar(
 
             var baseTitle = !string.IsNullOrWhiteSpace(anchor.Title)
                 ? anchor.Title
-                : (customerMini?.Name ?? "No Customer");
+                : (customerBase?.Name ?? "No Customer");
 
             var baseProfessionalIds = anchor.ProfessionalIds?.Distinct().ToList() ?? new List<int>();
             if (professionalId.HasValue && !baseProfessionalIds.Contains(professionalId.Value))
                 continue;
+
+            var resolvedAddressNoEx = ResolveAddressString(
+                overrideAddress: null,
+                finalCustomerAddressId: anchor.CustomerAddressId,
+                snapshotAddress: anchor.Address,
+                navCustomerAddress: anchor.CustomerAddress,
+                legacyCustomerAddress: anchor.Customer?.Address);
 
             outList.Add(new CalendarOccurrenceDTO
             {
@@ -581,12 +658,12 @@ public async Task<IActionResult> GetCalendar(
                 End = occEnd,
 
                 Title = baseTitle,
-                Address = anchor.Address,
+                Address = resolvedAddressNoEx,
                 Notes = anchor.Notes,
 
                 CustomerEmail = anchor.Customer?.Email,
                 CustomerPhone = anchor.Customer?.Phone,
-                CustomerAddress = anchor.Customer?.Address,
+                CustomerAddress = string.IsNullOrWhiteSpace(resolvedAddressNoEx) ? anchor.Customer?.Address : resolvedAddressNoEx,
 
                 CompanyName = anchor.Company?.Name,
 
@@ -597,6 +674,7 @@ public async Task<IActionResult> GetCalendar(
 
                 CompanyId = anchor.CompanyId,
                 CustomerId = anchor.CustomerId,
+                CustomerAddressId = anchor.CustomerAddressId,
                 TeamId = anchor.TeamId,
                 Status = anchor.Status,
                 Type = anchor.Type,
@@ -606,7 +684,7 @@ public async Task<IActionResult> GetCalendar(
                     ? serviceTypeNameMap.GetValueOrDefault(anchor.ServiceTypeId.Value)
                     : null,
 
-                Customer = customerMini,
+                Customer = MakeCustomerMini(resolvedAddressNoEx),
                 Team = teamMini,
 
                 ProfessionalIds = baseProfessionalIds,
