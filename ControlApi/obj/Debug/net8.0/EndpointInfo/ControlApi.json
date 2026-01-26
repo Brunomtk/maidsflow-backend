@@ -8695,6 +8695,10 @@
             "type": "string",
             "nullable": true
           },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
           "region": {
             "type": "string",
             "nullable": true
@@ -10074,6 +10078,10 @@
             "type": "string",
             "nullable": true
           },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
           "region": {
             "type": "string",
             "nullable": true
@@ -11245,6 +11253,10 @@
         "type": "object",
         "properties": {
           "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "color": {
             "type": "string",
             "nullable": true
           },

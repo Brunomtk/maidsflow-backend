@@ -10,6 +10,10 @@ namespace Core.DTO.Teams
     public class UpdateTeamDTO
     {
         public string Name { get; set; } = string.Empty;
+        /// <summary>
+        /// Optional UI color for the team. Recommended format: hex (#RRGGBB or #RRGGBBAA).
+        /// </summary>
+        public string? Color { get; set; }
         public string Region { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public int CompanyId { get; set; }

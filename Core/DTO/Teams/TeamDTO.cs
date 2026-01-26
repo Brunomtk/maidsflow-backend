@@ -6,6 +6,7 @@ namespace Core.DTO.Teams
     {
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
+        public string? Color { get; set; }
         public string? Region { get; set; }
         public string? Description { get; set; }
         public string Status { get; set; } = "active";

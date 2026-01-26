@@ -8,6 +8,7 @@ using System.Linq;
 using System.Collections.Generic;
 using Core.Exceptions;
 using Services.Security;
+using System.Text.RegularExpressions;
 
 namespace Services
 {
@@ -82,6 +83,9 @@ namespace Services
             if (_currentUser.IsProfessional)
                 throw new ForbiddenException("Profissional não pode criar equipes.");
 
+            // Normalize/validate color (optional)
+            team.Color = NormalizeTeamColor(team.Color);
+
             if (!_currentUser.IsAdmin)
             {
                 var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
@@ -103,6 +107,9 @@ namespace Services
             if (_currentUser.IsProfessional)
                 throw new ForbiddenException("Profissional não pode atualizar equipes.");
 
+            // Normalize/validate color (optional)
+            updatedTeam.Color = NormalizeTeamColor(updatedTeam.Color);
+
             var team = await _unitOfWork.Teams.GetByIdWithMembersAsync(id);
             if (team == null)
                 return null;
@@ -117,6 +124,7 @@ namespace Services
 
             // Campos principais
             team.Name = updatedTeam.Name;
+            team.Color = updatedTeam.Color;
             team.Region = updatedTeam.Region;
             team.Description = updatedTeam.Description;
             team.CompanyId = updatedTeam.CompanyId;
@@ -188,6 +196,20 @@ namespace Services
                 if (m.UserId.HasValue)
                     await _scope.EnsureUserInCompanyAsync(m.UserId.Value);
             }
+        }
+
+        private static string? NormalizeTeamColor(string? color)
+        {
+            if (string.IsNullOrWhiteSpace(color)) return null;
+
+            var c = color.Trim();
+            if (!c.StartsWith("#")) c = "#" + c;
+
+            // Accept #RRGGBB or #RRGGBBAA
+            if (!Regex.IsMatch(c, "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"))
+                throw new BadRequestException("Cor do time inválida. Use formato hex: #RRGGBB (ou #RRGGBBAA). Ex.: #1D4ED8");
+
+            return c.ToLowerInvariant();
         }
     }
 

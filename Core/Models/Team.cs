@@ -7,6 +7,10 @@ namespace Core.Models
     public class Team : BaseModel
     {
         public string Name { get; set; }
+        /// <summary>
+        /// Optional UI color for the team. Recommended format: hex (#RRGGBB or #RRGGBBAA).
+        /// </summary>
+        public string? Color { get; set; }
         public string Region { get; set; }
         public string Description { get; set; }
         public decimal Rating { get; set; }

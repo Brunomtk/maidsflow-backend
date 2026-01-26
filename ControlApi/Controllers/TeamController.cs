@@ -73,6 +73,7 @@ namespace ControlApi.Controllers
             var team = new Team
             {
                 Name = dto.Name,
+                Color = dto.Color,
                 Region = dto.Region ?? string.Empty,
                 Description = dto.Description ?? string.Empty,
                 CompanyId = dto.CompanyId,
@@ -124,6 +125,7 @@ namespace ControlApi.Controllers
 
             // Atualiza campos principais
             team.Name = dto.Name;
+            team.Color = dto.Color;
             team.Region = dto.Region;
             team.Description = dto.Description;
             team.CompanyId = dto.CompanyId;

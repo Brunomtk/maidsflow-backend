@@ -225,6 +225,9 @@ namespace Infrastructure
                 entity.ToTable("Teams");
                 entity.HasKey(t => t.Id);
                 entity.Property(t => t.Name).IsRequired();
+                entity.Property(t => t.Color)
+                      .HasMaxLength(32)
+                      .IsRequired(false);
                 entity.Property(t => t.Status).HasConversion<string>();
                 entity.Property(t => t.Region);
                 entity.Property(t => t.Description);
