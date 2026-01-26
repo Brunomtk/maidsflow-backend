@@ -463,29 +463,27 @@ namespace Services
             // Limpa registros dependentes antes de apagar o Appointment.
             // Motivação: FK PayrollItems.AppointmentId e AppointmentCompletions.AppointmentId estão com DeleteBehavior.Restrict
             // e estouram erro 23503 quando o appointment já foi marcado como completed.
-            var payrollItems = await _db.PayrollItems
+            // IMPORTANT:
+            // Some installations may have a DB schema behind the current EF model (e.g. missing new columns
+            // such as CustomerAddressId). Doing a ToListAsync() would SELECT all mapped columns and can fail
+            // with "column does not exist".
+            // ExecuteDeleteAsync() performs a direct DELETE and avoids selecting unmigrated columns.
+            await _db.PayrollItems
                 .Where(i => i.AppointmentId == id)
-                .ToListAsync();
-            if (payrollItems.Count > 0)
-                _db.PayrollItems.RemoveRange(payrollItems);
+                .ExecuteDeleteAsync();
 
-            var completions = await _db.AppointmentCompletions
+            await _db.AppointmentCompletions
                 .Where(c => c.AppointmentId == id)
-                .ToListAsync();
-            if (completions.Count > 0)
-                _db.AppointmentCompletions.RemoveRange(completions);
+                .ExecuteDeleteAsync();
 
             // Series cleanup: when deleting a recurring appointment anchor, also delete all
             // recurrence exception records linked to its SeriesId.
             if (appointment.IsRecurring && appointment.SeriesId.HasValue)
             {
                 var seriesId = appointment.SeriesId.Value;
-                var recurrenceExceptions = await _db.AppointmentRecurrenceExceptions
+                await _db.AppointmentRecurrenceExceptions
                     .Where(e => e.SeriesId == seriesId)
-                    .ToListAsync();
-
-                if (recurrenceExceptions.Count > 0)
-                    _db.AppointmentRecurrenceExceptions.RemoveRange(recurrenceExceptions);
+                    .ExecuteDeleteAsync();
             }
 
             _unitOfWork.Appointments.Delete(appointment);
