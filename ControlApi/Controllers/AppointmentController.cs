@@ -165,16 +165,33 @@ namespace ControlApi.Controllers
 
             var body =
                 $"Hi {customerName}, this is {companyName}. Reminder: our team is on the way and will arrive at your location in approximately {eta} minutes at {address}. Reply HELP for help or STOP to unsubscribe.";
-
-var (sid, raw) = await _sms.SendSmsAsync(to, body, ct);
-
-            return Ok(new
+            try
             {
-                appointmentId = id,
-                to,
-                messageSid = sid,
-                body
-            });
+                var (sid, _) = await _sms.SendSmsAsync(to, body, ct);
+
+                return Ok(new
+                {
+                    appointmentId = id,
+                    to,
+                    messageSid = sid,
+                    body
+                });
+            }
+            catch (TwilioValidationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (TwilioConfigurationException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (TwilioRequestException)
+            {
+                // Avoid returning upstream payload; keep it safe/clean.
+                return StatusCode(502, "Falha ao enviar SMS via Twilio. Verifique a configuração e o número do destinatário.");
+            }
+
+        
         }
 
 

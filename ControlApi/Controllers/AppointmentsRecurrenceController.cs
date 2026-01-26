@@ -30,6 +30,24 @@ namespace ControlApi.Controllers
             _currentUser = currentUser;
         }
 
+        private static string BuildCustomerAddressLine(CustomerAddress addr)
+        {
+            var parts = new List<string>();
+            var line1 = addr.AddressLine1?.Trim();
+            var line2 = addr.AddressLine2?.Trim();
+            if (!string.IsNullOrWhiteSpace(line1)) parts.Add(line1!);
+            if (!string.IsNullOrWhiteSpace(line2)) parts.Add(line2!);
+
+            var cityState = string.Join(", ", new[] { addr.City?.Trim(), addr.State?.Trim() }
+                .Where(s => !string.IsNullOrWhiteSpace(s)));
+            if (!string.IsNullOrWhiteSpace(cityState)) parts.Add(cityState);
+
+            var zip = addr.ZipCode?.Trim();
+            if (!string.IsNullOrWhiteSpace(zip)) parts.Add(zip!);
+
+            return string.Join(" - ", parts);
+        }
+
         // CREATE (single or recurring)
                 [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateAppointmentDTO dto)
@@ -641,6 +659,7 @@ public async Task<IActionResult> SendOnMyWaySmsInstance(
     var anchor = await _db.Set<Appointment>()
         .Include(a => a.Company)
         .Include(a => a.Customer)
+        .Include(a => a.CustomerAddress)
         .FirstOrDefaultAsync(a => a.IsRecurring && a.SeriesId == seriesId, ct);
 
     if (anchor == null) return NotFound("Série recorrente não encontrada.");
@@ -684,11 +703,33 @@ public async Task<IActionResult> SendOnMyWaySmsInstance(
     if (string.IsNullOrWhiteSpace(to))
         return BadRequest("Customer não possui telefone para envio de SMS.");
 
-    var address = !string.IsNullOrWhiteSpace(ex?.OverrideAddress)
-        ? ex!.OverrideAddress!
-        : (!string.IsNullOrWhiteSpace(anchor.Address)
+    // Address resolution order:
+    // 1) Exception OverrideAddress
+    // 2) Exception OverrideCustomerAddressId
+    // 3) Anchor.Address (snapshot/string)
+    // 4) Anchor.CustomerAddress (FK)
+    // 5) Customer.Address (legacy)
+    string address = string.Empty;
+    if (!string.IsNullOrWhiteSpace(ex?.OverrideAddress))
+    {
+        address = ex!.OverrideAddress!;
+    }
+    else if (ex?.OverrideCustomerAddressId != null)
+    {
+        var overrideAddr = await _db.Set<CustomerAddress>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(ca => ca.Id == ex.OverrideCustomerAddressId.Value && ca.CustomerId == anchor.CustomerId, ct);
+
+        if (overrideAddr != null)
+            address = BuildCustomerAddressLine(overrideAddr);
+    }
+
+    if (string.IsNullOrWhiteSpace(address))
+        address = !string.IsNullOrWhiteSpace(anchor.Address)
             ? anchor.Address
-            : (anchor.Customer?.Address ?? string.Empty));
+            : (!string.IsNullOrWhiteSpace(anchor.CustomerAddress?.AddressLine1)
+                ? BuildCustomerAddressLine(anchor.CustomerAddress)
+                : (anchor.Customer?.Address ?? string.Empty));
 
     var eta = request?.EtaMinutes ?? etaMinutes ?? 15;
 
@@ -701,16 +742,31 @@ public async Task<IActionResult> SendOnMyWaySmsInstance(
     var body =
         $"Hi {customerName}, this is {companyName}. Reminder: our team is on the way and will arrive at your location in approximately {eta} minutes at {address}. Reply HELP for help or STOP to unsubscribe.";
 
-    var (sid, raw) = await _sms.SendSmsAsync(to, body, ct);
-
-    return Ok(new
+    try
     {
-        instanceId,
-        appointmentId = anchor.Id,
-        to,
-        messageSid = sid,
-        body
-    });
+        var (sid, _) = await _sms.SendSmsAsync(to, body, ct);
+
+        return Ok(new
+        {
+            instanceId,
+            appointmentId = anchor.Id,
+            to,
+            messageSid = sid,
+            body
+        });
+    }
+    catch (TwilioValidationException twEx)
+    {
+        return BadRequest(twEx.Message);
+    }
+    catch (TwilioConfigurationException cfgEx)
+    {
+        return StatusCode(500, cfgEx.Message);
+    }
+    catch (TwilioRequestException)
+    {
+        return StatusCode(502, "Falha ao enviar SMS via Twilio. Verifique a configuração e o número do destinatário.");
+    }
 }
 /// <summary>
 /// Deleta uma ocorrência recorrente por InstanceId (sem o front precisar calcular OccurrenceStart).

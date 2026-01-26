@@ -21,10 +21,11 @@ public class TwilioSmsSender : ITwilioSmsSender
         if (string.IsNullOrWhiteSpace(_opt.AccountSid) ||
             string.IsNullOrWhiteSpace(_opt.AuthToken) ||
             string.IsNullOrWhiteSpace(_opt.FromNumber))
-            throw new InvalidOperationException("Twilio não configurado (Twilio:AccountSid/AuthToken/FromNumber).");
+            throw new TwilioConfigurationException("Twilio não configurado (Twilio:AccountSid/AuthToken/FromNumber). Configure via appsettings ou variáveis de ambiente.");
 
-        if (string.IsNullOrWhiteSpace(to))
-            throw new ArgumentException("Número de destino (To) é obrigatório.", nameof(to));
+        // Normalize to E.164 (Twilio requirement)
+        var toE164 = PhoneNumberUtils.NormalizeToE164OrThrow(to, nameof(to));
+        var fromE164 = PhoneNumberUtils.NormalizeToE164OrThrow(_opt.FromNumber, "FromNumber");
 
         var url = $"https://api.twilio.com/2010-04-01/Accounts/{_opt.AccountSid}/Messages.json";
 
@@ -35,8 +36,8 @@ public class TwilioSmsSender : ITwilioSmsSender
         req.Headers.Authorization = new AuthenticationHeaderValue("Basic", basic);
         req.Content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["To"] = to,
-            ["From"] = _opt.FromNumber,
+            ["To"] = toE164,
+            ["From"] = fromE164,
             ["Body"] = body ?? string.Empty
         });
 
@@ -44,7 +45,7 @@ public class TwilioSmsSender : ITwilioSmsSender
         var raw = await res.Content.ReadAsStringAsync(ct);
 
         if (!res.IsSuccessStatusCode)
-            throw new Exception($"Twilio error {(int)res.StatusCode}: {raw}");
+            throw new TwilioRequestException((int)res.StatusCode, $"Twilio returned {(int)res.StatusCode}.", raw);
 
         // Response JSON has "sid"
         string sid = string.Empty;
