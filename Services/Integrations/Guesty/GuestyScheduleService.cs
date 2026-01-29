@@ -1,11 +1,15 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Core.DTO.Guesty;
 using Core.Exceptions;
+using Microsoft.Extensions.Caching.Memory;
+using Services.Security;
 
 namespace Services.Integrations.Guesty
 {
@@ -13,11 +17,21 @@ namespace Services.Integrations.Guesty
     {
         private readonly IGuestyIntegrationService _integration;
         private readonly IGuestyOpenApiClient _client;
+        private readonly IMemoryCache _cache;
+        private readonly ICurrentUser _currentUser;
 
-        public GuestyScheduleService(IGuestyIntegrationService integration, IGuestyOpenApiClient client)
+        private static readonly ConcurrentDictionary<string, SemaphoreSlim> _refreshLocks = new();
+
+        public GuestyScheduleService(
+            IGuestyIntegrationService integration,
+            IGuestyOpenApiClient client,
+            IMemoryCache cache,
+            ICurrentUser currentUser)
         {
             _integration = integration;
             _client = client;
+            _cache = cache;
+            _currentUser = currentUser;
         }
 
         public async Task<GuestyScheduleResponse> GetScheduleAsync(
@@ -31,7 +45,119 @@ namespace Services.Integrations.Guesty
             if (string.IsNullOrWhiteSpace(startDate) || string.IsNullOrWhiteSpace(endDate))
                 throw new BadRequestException("startDate e endDate são obrigatórios (YYYY-MM-DD).");
 
+            // Cache strategy (fast + resilient):
+            // - Fresh TTL: 5 minutes
+            // - Stale window: 2 hours (serve stale while a refresh happens in background)
+            var companyId = _currentUser.CompanyId;
+            var listKey = NormalizeListKey(listingIds);
+            var cacheKey = companyId.HasValue
+                ? $"guesty:schedule:v2:{companyId.Value}:{startDate}:{endDate}:{listKey}:{Math.Clamp(listingsLimit, 1, 100)}:{city ?? ""}:{status ?? ""}"
+                : null;
+
+            if (cacheKey != null && _cache.TryGetValue(cacheKey, out CacheEnvelope cachedEnv))
+            {
+                var age = DateTime.UtcNow - cachedEnv.FetchedAtUtc;
+                if (age <= TimeSpan.FromMinutes(5))
+                    return cachedEnv.Response;
+
+                if (age <= TimeSpan.FromHours(2))
+                {
+                    _ = RefreshInBackgroundAsync(cacheKey, startDate, endDate, listingIds, listingsLimit, city, status);
+                    return cachedEnv.Response;
+                }
+            }
+
+            var response = await ComputeScheduleUncachedAsync(startDate, endDate, listingIds, listingsLimit, city, status);
+
+            if (cacheKey != null)
+            {
+                _cache.Set(cacheKey, new CacheEnvelope(response, DateTime.UtcNow), new MemoryCacheEntryOptions
+                {
+                    // keep a larger absolute TTL so the stale window can be served
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2)
+                });
+            }
+
+            return response;
+        }
+
+        public async Task WarmupAsync(int days = 30)
+        {
+            var safeDays = Math.Clamp(days, 1, 90);
+            var start = DateTime.UtcNow.Date;
+            var end = start.AddDays(safeDays);
+            var startStr = start.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var endStr = end.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            // This will populate the cache.
+            await GetScheduleAsync(startStr, endStr, null, 100, null, null);
+        }
+
+        private async Task RefreshInBackgroundAsync(
+            string cacheKey,
+            string startDate,
+            string endDate,
+            IEnumerable<string>? listingIds,
+            int listingsLimit,
+            string? city,
+            string? status)
+        {
+            var sem = _refreshLocks.GetOrAdd(cacheKey, _ => new SemaphoreSlim(1, 1));
+
+            // Non-blocking: if another refresh is already running, bail.
+            if (!await sem.WaitAsync(0)) return;
+
+            try
+            {
+                var fresh = await ComputeScheduleUncachedAsync(startDate, endDate, listingIds, listingsLimit, city, status);
+                _cache.Set(cacheKey, new CacheEnvelope(fresh, DateTime.UtcNow), new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2)
+                });
+            }
+            catch
+            {
+                // best-effort: keep serving stale
+            }
+            finally
+            {
+                sem.Release();
+            }
+        }
+
+        private async Task<GuestyScheduleResponse> ComputeScheduleUncachedAsync(
+            string startDate,
+            string endDate,
+            IEnumerable<string>? listingIds,
+            int listingsLimit,
+            string? city,
+            string? status)
+        {
             var token = await _integration.GetAccessTokenOrThrowAsync();
+
+            async Task<List<GuestyListingDTO>> GetListingsCachedAsync()
+            {
+                var companyId = _currentUser.CompanyId;
+                var safeLimit = Math.Clamp(listingsLimit, 1, 100);
+                var key = companyId.HasValue
+                    ? $"guesty:listings:v2:{companyId.Value}:{safeLimit}:{city ?? ""}:{status ?? ""}"
+                    : null;
+
+                if (key != null && _cache.TryGetValue(key, out List<GuestyListingDTO> cached))
+                    return cached;
+
+                var fresh = await _client.GetListingsAsync(token, safeLimit, null, city, status);
+
+                if (key != null)
+                {
+                    _cache.Set(key, fresh, new MemoryCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
+                    });
+                }
+
+                return fresh;
+            }
 
             // 1) Listings
             List<GuestyListingDTO> listings;
@@ -39,13 +165,13 @@ namespace Services.Integrations.Guesty
 
             if (listingIdList == null || listingIdList.Count == 0)
             {
-                listings = await _client.GetListingsAsync(token, listingsLimit, null, city, status);
+                listings = await GetListingsCachedAsync();
                 listingIdList = listings.Where(l => !string.IsNullOrWhiteSpace(l.Id)).Select(l => l.Id).Distinct().ToList();
             }
             else
             {
-                // We still fetch listing metadata so the UI has the left column filled (best-effort).
-                listings = await _client.GetListingsAsync(token, listingsLimit, null, city, status);
+                // Best-effort metadata for left column
+                listings = await GetListingsCachedAsync();
                 listings = listings.Where(l => listingIdList.Contains(l.Id)).ToList();
             }
 
@@ -63,6 +189,22 @@ namespace Services.Integrations.Guesty
                 Events = events
             };
         }
+
+        private static string NormalizeListKey(IEnumerable<string>? listingIds)
+        {
+            if (listingIds == null) return "all";
+
+            var list = listingIds
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(x => x)
+                .ToList();
+
+            return list.Count == 0 ? "all" : string.Join(",", list);
+        }
+
+        private sealed record CacheEnvelope(GuestyScheduleResponse Response, DateTime FetchedAtUtc);
 
         
         private static List<GuestyScheduleEventDTO> NormalizeCalendarEvents(string rawJson)

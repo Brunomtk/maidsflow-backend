@@ -12,10 +12,12 @@ namespace ControlApi.Controllers
     public class GuestyIntegrationController : ControllerBase
     {
         private readonly IGuestyIntegrationService _service;
+        private readonly IGuestyScheduleService _schedule;
 
-        public GuestyIntegrationController(IGuestyIntegrationService service)
+        public GuestyIntegrationController(IGuestyIntegrationService service, IGuestyScheduleService schedule)
         {
             _service = service;
+            _schedule = schedule;
         }
 
         // GET /api/Integrations/guesty
@@ -31,6 +33,13 @@ namespace ControlApi.Controllers
         public async Task<ActionResult<GuestyIntegrationStatusDTO>> UpdateToken([FromBody] UpdateGuestyTokenRequest request)
         {
             var updated = await _service.UpdateTokenAsync(request);
+
+            // Warm cache in the background so the first Schedule view is snappy.
+            _ = Task.Run(async () =>
+            {
+                try { await _schedule.WarmupAsync(30); } catch { /* best-effort */ }
+            });
+
             return Ok(updated);
         }
 

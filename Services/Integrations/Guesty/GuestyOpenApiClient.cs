@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Core.DTO.Guesty;
 using Core.Exceptions;
@@ -16,68 +18,51 @@ namespace Services.Integrations.Guesty
     {
         private readonly HttpClient _http;
         private readonly GuestyOptions _options;
+        private readonly IGuestyRateLimiter _rateLimiter;
 
-        // Guesty Booking Engine API has strict rate limits (e.g., ~5 req/sec).
-        // We apply a lightweight global throttle + 429 retry to avoid flakiness.
-        private static readonly System.Threading.SemaphoreSlim _rateGate = new(1, 1);
-        private static DateTime _lastRequestUtc = DateTime.MinValue;
-        // 260ms ~= 3.8 req/sec (~228 req/min), staying comfortably under Guesty's minute limit.
-        private static readonly TimeSpan _minInterval = TimeSpan.FromMilliseconds(260);
-
-        public GuestyOpenApiClient(HttpClient http, Microsoft.Extensions.Options.IOptions<GuestyOptions> options)
+        public GuestyOpenApiClient(
+            HttpClient http,
+            Microsoft.Extensions.Options.IOptions<GuestyOptions> options,
+            IGuestyRateLimiter rateLimiter)
         {
             _http = http;
             _options = options.Value ?? new GuestyOptions();
+            _rateLimiter = rateLimiter;
         }
 
-        private static async Task ThrottleAsync()
-        {
-            await _rateGate.WaitAsync();
-            try
-            {
-                var now = DateTime.UtcNow;
-                var elapsed = now - _lastRequestUtc;
-                if (elapsed < _minInterval)
-                {
-                    var delay = _minInterval - elapsed;
-                    if (delay > TimeSpan.Zero)
-                        await Task.Delay(delay);
-                }
-                _lastRequestUtc = DateTime.UtcNow;
-            }
-            finally
-            {
-                _rateGate.Release();
-            }
-        }
-
-        private async Task<HttpResponseMessage> SendWithRetryAsync(Func<HttpRequestMessage> requestFactory)
+        private async Task<HttpResponseMessage> SendWithRetryAsync(Func<HttpRequestMessage> requestFactory, CancellationToken ct = default)
         {
             HttpResponseMessage? last = null;
 
             for (var attempt = 0; attempt < 4; attempt++)
             {
-                await ThrottleAsync();
-
+                await _rateLimiter.AcquireAsync(ct);
                 using var req = requestFactory();
-                last = await _http.SendAsync(req);
+                last = await _http.SendAsync(req, ct);
 
-                if (last.StatusCode != (HttpStatusCode)429)
+                if (last.IsSuccessStatusCode)
                     return last;
 
-                // Respect Retry-After if present, otherwise do a small exponential backoff.
-                var retryAfter = last.Headers.RetryAfter?.Delta;
-                if (!retryAfter.HasValue && last.Headers.RetryAfter?.Date.HasValue == true)
+                var status = (int)last.StatusCode;
+                var shouldRetry = status == 429 || (status >= 500 && status <= 599);
+                if (!shouldRetry)
+                    return last;
+
+                TimeSpan? retryAfter = null;
+                if (status == 429)
                 {
-                    var delta = last.Headers.RetryAfter!.Date!.Value - DateTimeOffset.UtcNow;
-                    if (delta > TimeSpan.Zero) retryAfter = delta;
+                    retryAfter = last.Headers.RetryAfter?.Delta;
+                    if (!retryAfter.HasValue && last.Headers.RetryAfter?.Date.HasValue == true)
+                    {
+                        var delta = last.Headers.RetryAfter!.Date!.Value - DateTimeOffset.UtcNow;
+                        if (delta > TimeSpan.Zero) retryAfter = delta;
+                    }
                 }
 
-                var backoff = retryAfter ?? TimeSpan.FromMilliseconds(500 * Math.Pow(2, attempt));
-                // Cap to avoid silly waits.
-                if (backoff > TimeSpan.FromSeconds(10)) backoff = TimeSpan.FromSeconds(10);
+                var backoff = retryAfter ?? TimeSpan.FromMilliseconds(300 * Math.Pow(2, attempt));
+                if (backoff > TimeSpan.FromSeconds(8)) backoff = TimeSpan.FromSeconds(8);
 
-                await Task.Delay(backoff);
+                await Task.Delay(backoff, ct);
             }
 
             return last!;
@@ -112,15 +97,12 @@ namespace Services.Integrations.Guesty
             string? city = null,
             string? status = null)
         {
-            // Booking Engine API uses cursor-based pagination for /listings (no `skip`).
-            // Guesty validates `limit <= 100`.
             var pageSize = Math.Clamp(limit, 1, 100);
 
             var all = new List<GuestyListingDTO>();
             string? next = cursor;
 
-            // Safety valve: if something goes weird with pagination, don't loop forever.
-            const int maxPages = 200; // safety valve (200*100=20k max)
+            const int maxPages = 200;
             for (var page = 0; page < maxPages; page++)
             {
                 var (items, nextCursor) = await GetListingsPageAsync(accessToken, pageSize, next, city, status);
@@ -129,15 +111,12 @@ namespace Services.Integrations.Guesty
 
                 if (string.IsNullOrWhiteSpace(nextCursor))
                     break;
-
-                // If API returns the same cursor again, break to avoid an infinite loop.
                 if (!string.IsNullOrWhiteSpace(next) && string.Equals(next, nextCursor, StringComparison.Ordinal))
                     break;
 
                 next = nextCursor;
             }
 
-            // Distinct by Id (defensive)
             return all
                 .Where(l => !string.IsNullOrWhiteSpace(l.Id))
                 .GroupBy(l => l.Id)
@@ -158,12 +137,11 @@ namespace Services.Integrations.Guesty
                 ["cursor"] = cursor,
             };
 
-            // Optional (best-effort) filters:
             if (!string.IsNullOrWhiteSpace(city)) query["city"] = city;
             if (!string.IsNullOrWhiteSpace(status)) query["status"] = status;
 
-            var req = CreateRequest(HttpMethod.Get, "/listings" + BuildQuery(query), accessToken);
-            var res = await SendWithRetryAsync(() => CreateRequest(HttpMethod.Get, "/listings" + BuildQuery(query), accessToken));
+            var path = "/listings" + BuildQuery(query);
+            var res = await SendWithRetryAsync(() => CreateRequest(HttpMethod.Get, path, accessToken));
             if (!res.IsSuccessStatusCode)
             {
                 var body = await res.Content.ReadAsStringAsync();
@@ -176,9 +154,6 @@ namespace Services.Integrations.Guesty
 
         public async Task<string> GetCalendarRawAsync(string accessToken, string startDate, string endDate, IEnumerable<string>? listingIds = null)
         {
-            // Booking Engine API calendar is per-listing: GET /listings/{listingId}/calendar?from=...&to=...
-            // To keep our backend API stable, we aggregate results into a JSON array:
-            // [ { "listingId": "...", "calendar": <raw calendar json> }, ... ]
             if (listingIds == null)
                 return "[]";
 
@@ -186,51 +161,80 @@ namespace Services.Integrations.Guesty
             if (ids.Count == 0)
                 return "[]";
 
-            // Guesty Booking Engine API uses query params: from/to (YYYY-MM-DD)
-            // Ref: https://booking-api-docs.guesty.com/reference/getcalendarbylistingid
             var query = new Dictionary<string, string?>
             {
                 ["from"] = startDate,
                 ["to"] = endDate,
             };
 
-            var wrapper = new List<Dictionary<string, object?>>();
+            // Parallel fetch with bounded concurrency. The rate limiter keeps us under 5 req/s.
+            var maxConcurrency = 6; // concurrency is OK; limiter governs actual request rate
+            var gate = new SemaphoreSlim(maxConcurrency, maxConcurrency);
+            var wrapper = new ConcurrentBag<Dictionary<string, object?>>();
 
-            // IMPORTANT: do NOT blast hundreds of requests concurrently; Guesty rate limits hard.
-            foreach (var id in ids)
+            await Task.WhenAll(ids.Select(async id =>
             {
-                var path = $"/listings/{Uri.EscapeDataString(id)}/calendar" + BuildQuery(query);
-                var res = await SendWithRetryAsync(() => CreateRequest(HttpMethod.Get, path, accessToken));
-
-                if (!res.IsSuccessStatusCode)
-                {
-                    var body = await res.Content.ReadAsStringAsync();
-                    throw new BadGatewayException($"Guesty API error while fetching calendar for listing '{id}': {(int)res.StatusCode} ({res.ReasonPhrase}). {body}");
-                }
-
-                var calendarJson = await res.Content.ReadAsStringAsync();
-
-                object? calendarObj = null;
+                await gate.WaitAsync();
                 try
                 {
-                    calendarObj = JsonSerializer.Deserialize<object>(calendarJson);
-                }
-                catch
-                {
-                    // fallback to raw string
-                    calendarObj = calendarJson;
-                }
+                    var path = $"/listings/{Uri.EscapeDataString(id)}/calendar" + BuildQuery(query);
+                    var res = await SendWithRetryAsync(() => CreateRequest(HttpMethod.Get, path, accessToken));
 
-                wrapper.Add(new Dictionary<string, object?>
+                    if (!res.IsSuccessStatusCode)
+                    {
+                        var body = await res.Content.ReadAsStringAsync();
+                        wrapper.Add(new Dictionary<string, object?>
+                        {
+                            ["listingId"] = id,
+                            ["error"] = new { status = (int)res.StatusCode, reason = res.ReasonPhrase, body }
+                        });
+                        return;
+                    }
+
+                    var calendarJson = await res.Content.ReadAsStringAsync();
+                    object? calendarObj;
+                    try
+                    {
+                        calendarObj = JsonSerializer.Deserialize<object>(calendarJson);
+                    }
+                    catch
+                    {
+                        calendarObj = calendarJson;
+                    }
+
+                    wrapper.Add(new Dictionary<string, object?>
+                    {
+                        ["listingId"] = id,
+                        ["calendar"] = calendarObj
+                    });
+                }
+                catch (Exception ex)
                 {
-                    ["listingId"] = id,
-                    ["calendar"] = calendarObj
-                });
+                    wrapper.Add(new Dictionary<string, object?>
+                    {
+                        ["listingId"] = id,
+                        ["error"] = ex.Message
+                    });
+                }
+                finally
+                {
+                    gate.Release();
+                }
+            }));
+
+            var anySuccess = wrapper.Any(x => x.ContainsKey("calendar") && x["calendar"] != null);
+            if (!anySuccess)
+            {
+                var firstErr = wrapper.FirstOrDefault(x => x.ContainsKey("error"));
+                throw new BadGatewayException($"Guesty calendar fetch failed for all listings. First error: {JsonSerializer.Serialize(firstErr)}");
             }
 
-            return JsonSerializer.Serialize(wrapper);
-        }
+            var ordered = wrapper
+                .OrderBy(x => x.TryGetValue("listingId", out var v) ? v?.ToString() : "")
+                .ToList();
 
+            return JsonSerializer.Serialize(ordered);
+        }
 
         private static (List<GuestyListingDTO> Items, string? NextCursor) ParseListingsPage(string json)
         {
@@ -248,7 +252,6 @@ namespace Services.Integrations.Guesty
                     foreach (var item in arr.EnumerateArray())
                         result.Add(ParseListingItem(item));
 
-                    // Pagination cursor (best-effort): { pagination: { cursor: { next: "..." } } }
                     if (root.TryGetProperty("pagination", out var pag) && pag.ValueKind == JsonValueKind.Object)
                     {
                         if (pag.TryGetProperty("cursor", out var cur) && cur.ValueKind == JsonValueKind.Object)
@@ -270,7 +273,7 @@ namespace Services.Integrations.Guesty
             }
             catch
             {
-                // ignore and return empty
+                // ignore
             }
 
             return (result, null);

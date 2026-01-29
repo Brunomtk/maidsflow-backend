@@ -75,6 +75,7 @@ builder.Services.AddScoped<IAppointmentCompletionService, AppointmentCompletionS
 // Guesty (Open API) - token is configured per company (Profile > Integrations)
 // -----------------------------
 builder.Services.Configure<GuestyOptions>(builder.Configuration.GetSection(GuestyOptions.SectionName));
+builder.Services.AddSingleton<IGuestyRateLimiter, GuestyRateLimiter>();
 builder.Services.AddHttpClient<IGuestyOpenApiClient, GuestyOpenApiClient>();
 builder.Services.AddHttpClient<IGuestyAuthClient, GuestyAuthClient>();
 builder.Services.AddScoped<IGuestyIntegrationService, GuestyIntegrationService>();
