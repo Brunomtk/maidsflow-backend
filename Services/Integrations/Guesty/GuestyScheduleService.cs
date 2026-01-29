@@ -24,7 +24,7 @@ namespace Services.Integrations.Guesty
             string startDate,
             string endDate,
             IEnumerable<string>? listingIds = null,
-            int listingsLimit = 25,
+            int listingsLimit = 100,
             string? city = null,
             string? status = null)
         {

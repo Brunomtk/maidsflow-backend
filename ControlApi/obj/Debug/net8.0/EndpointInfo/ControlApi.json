@@ -3108,7 +3108,7 @@
             "schema": {
               "type": "integer",
               "format": "int32",
-              "default": 25
+              "default": 100
             }
           },
           {
