@@ -63,6 +63,7 @@ namespace ControlApi.Middleware
                 ForbiddenException => ((int)HttpStatusCode.Forbidden, "Forbidden"),
                 UnauthorizedAccessException => ((int)HttpStatusCode.Unauthorized, "Unauthorized"),
                 BadRequestException => ((int)HttpStatusCode.BadRequest, "Bad Request"),
+                BadGatewayException => ((int)HttpStatusCode.BadGateway, "Bad Gateway"),
                 ArgumentException => ((int)HttpStatusCode.BadRequest, "Bad Request"),
                 NotFoundException => ((int)HttpStatusCode.NotFound, "Not Found"),
                 KeyNotFoundException => ((int)HttpStatusCode.NotFound, "Not Found"),
