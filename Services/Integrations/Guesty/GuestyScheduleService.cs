@@ -64,129 +64,335 @@ namespace Services.Integrations.Guesty
             };
         }
 
+        
         private static List<GuestyScheduleEventDTO> NormalizeCalendarEvents(string rawJson)
-{
-    // rawJson is an aggregated array from GuestyOpenApiClient:
-    // [ { listingId: "...", calendar: { days: [...] } }, ... ]
-    var events = new List<GuestyScheduleEventDTO>();
-
-    try
-    {
-        using var doc = JsonDocument.Parse(rawJson);
-        if (doc.RootElement.ValueKind != JsonValueKind.Array)
-            return events;
-
-        foreach (var wrapper in doc.RootElement.EnumerateArray())
         {
-            var listingId = TryGetString(wrapper, "listingId") ?? "";
-            if (string.IsNullOrWhiteSpace(listingId)) continue;
+            // rawJson is an aggregated array from GuestyOpenApiClient:
+            // [ { listingId: "...", calendar: { days: [...] } }, ... ]
+            var events = new List<GuestyScheduleEventDTO>();
 
-            // Calendar can be an object with `days` array, or directly an array.
-            if (!wrapper.TryGetProperty("calendar", out var cal))
-                continue;
-
-            JsonElement days;
-            if (cal.ValueKind == JsonValueKind.Object && cal.TryGetProperty("days", out days) && days.ValueKind == JsonValueKind.Array)
+            try
             {
-                // ok
-            }
-            else if (cal.ValueKind == JsonValueKind.Array)
-            {
-                days = cal;
-            }
-            else
-            {
-                continue;
-            }
+                using var doc = JsonDocument.Parse(rawJson);
+                if (doc.RootElement.ValueKind != JsonValueKind.Array)
+                    return events;
 
-            // Build "unavailable" blocks by grouping consecutive unavailable days.
-            DateTime? blockStart = null;
-            DateTime? blockEnd = null;
-
-            void FlushBlock()
-            {
-                if (!blockStart.HasValue || !blockEnd.HasValue) return;
-
-                var startStr = blockStart.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-                // end is exclusive (+1 day)
-                var endExclusive = blockEnd.Value.AddDays(1);
-                var endStr = endExclusive.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-
-                var id = $"unavailable:{listingId}:{startStr}";
-                events.Add(new GuestyScheduleEventDTO
+                foreach (var wrapper in doc.RootElement.EnumerateArray())
                 {
-                    Id = id,
-                    ListingId = listingId,
-                    Type = "Block",
-                    BlockType = "unavailable",
-                    StartDate = startStr,
-                    EndDate = endStr,
-                    Status = "unavailable",
-                    Label = "Unavailable"
-                });
+                    var listingId = TryGetString(wrapper, "listingId") ?? "";
+                    if (string.IsNullOrWhiteSpace(listingId)) continue;
 
-                blockStart = null;
-                blockEnd = null;
-            }
+                    if (!wrapper.TryGetProperty("calendar", out var cal))
+                        continue;
 
-            foreach (var day in days.EnumerateArray())
-            {
-                var dateStr = TryGetString(day, "date") ?? TryGetString(day, "day") ?? TryGetString(day, "Date");
-                if (string.IsNullOrWhiteSpace(dateStr) || !TryParseDate(dateStr, out var date))
-                    continue;
-
-                // We treat multiple possible fields as "availability"
-                // Common possibilities: available, isAvailable, availableForReservation, isBookable
-                var available = TryGetBool(day, "available")
-                    ?? TryGetBool(day, "isAvailable")
-                    ?? TryGetBool(day, "availableForReservation")
-                    ?? TryGetBool(day, "isBookable");
-
-                // If API doesn't provide an availability flag, we can't confidently create blocks.
-                if (!available.HasValue)
-                    continue;
-
-                if (available.Value == false)
-                {
-                    if (!blockStart.HasValue)
+                    JsonElement days;
+                    if (cal.ValueKind == JsonValueKind.Object && cal.TryGetProperty("days", out days) && days.ValueKind == JsonValueKind.Array)
                     {
-                        blockStart = date;
-                        blockEnd = date;
+                        // ok
+                    }
+                    else if (cal.ValueKind == JsonValueKind.Array)
+                    {
+                        days = cal;
                     }
                     else
                     {
-                        // if consecutive day
-                        if (blockEnd.Value.AddDays(1) == date)
+                        continue;
+                    }
+
+                    // Parse and sort days
+                    var parsedDays = new List<(DateTime date, JsonElement day)>();
+                    foreach (var day in days.EnumerateArray())
+                    {
+                        var dateStr = TryGetString(day, "date") ?? TryGetString(day, "day") ?? TryGetString(day, "Date");
+                        if (string.IsNullOrWhiteSpace(dateStr) || !TryParseDate(dateStr, out var date))
+                            continue;
+
+                        parsedDays.Add((date, day));
+                    }
+
+                    parsedDays = parsedDays.OrderBy(d => d.date).ToList();
+                    if (parsedDays.Count == 0) continue;
+
+                    // Unavailable block accumulator
+                    DateTime? unStart = null;
+                    DateTime? unEnd = null;
+
+                    // Reservation accumulator
+                    string? resKey = null;
+                    string? resGuest = null;
+                    string? resConf = null;
+                    string? resStatus = null;
+                    DateTime? resStart = null;
+                    DateTime? resEnd = null;
+
+                    void FlushUnavailable()
+                    {
+                        if (!unStart.HasValue || !unEnd.HasValue) return;
+
+                        var startStr = unStart.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                        var endExclusive = unEnd.Value.AddDays(1);
+                        var endStr = endExclusive.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+                        events.Add(new GuestyScheduleEventDTO
                         {
-                            blockEnd = date;
+                            Id = $"unavailable:{listingId}:{startStr}",
+                            ListingId = listingId,
+                            Type = "Block",
+                            BlockType = "unavailable",
+                            StartDate = startStr,
+                            EndDate = endStr,
+                            Status = "unavailable",
+                            Label = "Unavailable"
+                        });
+
+                        unStart = null;
+                        unEnd = null;
+                    }
+
+                    void FlushReservation()
+                    {
+                        if (!resStart.HasValue || !resEnd.HasValue) return;
+
+                        var startStr = resStart.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                        var endExclusive = resEnd.Value.AddDays(1);
+                        var endStr = endExclusive.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+                        var label = !string.IsNullOrWhiteSpace(resGuest)
+                            ? resGuest
+                            : (!string.IsNullOrWhiteSpace(resConf) ? $"Reservation {resConf}" : "Reservation");
+
+                        var idKey = !string.IsNullOrWhiteSpace(resKey) ? resKey : startStr;
+
+                        events.Add(new GuestyScheduleEventDTO
+                        {
+                            Id = $"reservation:{listingId}:{idKey}:{startStr}",
+                            ListingId = listingId,
+                            Type = "Reservation",
+                            BlockType = "reservation",
+                            StartDate = startStr,
+                            EndDate = endStr,
+                            Status = resStatus ?? "reserved",
+                            Label = label,
+                            GuestName = resGuest,
+                            ConfirmationCode = resConf,
+                            Source = "guesty"
+                        });
+
+                        resKey = null;
+                        resGuest = null;
+                        resConf = null;
+                        resStatus = null;
+                        resStart = null;
+                        resEnd = null;
+                    }
+
+                    DateTime? prevDate = null;
+
+                    foreach (var (date, day) in parsedDays)
+                    {
+                        // availability flags (multiple possible fields)
+                        var available = TryGetBool(day, "available")
+                            ?? TryGetBool(day, "isAvailable")
+                            ?? TryGetBool(day, "availableForReservation")
+                            ?? TryGetBool(day, "isBookable");
+
+                        // reservation-ish flags/fields (best-effort)
+                        var reservationId = FindFirstString(day, "reservationId", "reservation_id", "reservation._id", "reservation.id", "reservationId._id", "reservation");
+                        var confirmation = FindFirstString(day, "confirmationCode", "confirmation_code", "reservation.confirmationCode", "reservation.confirmation_code");
+                        var statusStr = FindFirstString(day, "status", "bookingStatus", "reservation.status", "reservation.bookingStatus");
+                        var isReserved = FindFirstBool(day, "isReserved", "reserved", "booked", "isBooked");
+
+                        var guestName =
+                            FindFirstString(day, "guest.fullName", "guest.name", "reservation.guest.fullName", "reservation.guest.name", "guestName", "guest_name")
+                            ?? TryConcatName(TryGetObject(day, "guest"))
+                            ?? TryConcatName(TryGetObject(day, "reservation.guest"));
+
+                        // Determine reservation: if any reservation identifiers exist OR status looks booked OR reserved flags.
+                        var statusLooksBooked = !string.IsNullOrWhiteSpace(statusStr) &&
+                                                new[] { "reserved", "booked", "confirmed", "inquiry" }
+                                                    .Contains(statusStr.Trim().ToLowerInvariant());
+
+                        var isReservation = !string.IsNullOrWhiteSpace(reservationId)
+                                            || !string.IsNullOrWhiteSpace(confirmation)
+                                            || (isReserved.HasValue && isReserved.Value)
+                                            || statusLooksBooked;
+
+                        // Determine unavailable block: available==false and not reservation
+                        var isUnavailable = available.HasValue && available.Value == false && !isReservation;
+
+                        // If day is free/available, flush both accumulators.
+                        if (!isReservation && !isUnavailable)
+                        {
+                            FlushReservation();
+                            FlushUnavailable();
+                            prevDate = date;
+                            continue;
                         }
-                        else
+
+                        // Reservations
+                        if (isReservation)
                         {
-                            FlushBlock();
-                            blockStart = date;
-                            blockEnd = date;
+                            FlushUnavailable();
+
+                            var key = reservationId ?? confirmation ?? guestName ?? (statusStr ?? "reservation");
+                            var consecutive = prevDate.HasValue && prevDate.Value.AddDays(1) == date;
+                            if (!resStart.HasValue)
+                            {
+                                resKey = key;
+                                resGuest = guestName;
+                                resConf = confirmation;
+                                resStatus = statusStr;
+                                resStart = date;
+                                resEnd = date;
+                            }
+                            else if (consecutive && string.Equals(resKey, key, StringComparison.OrdinalIgnoreCase))
+                            {
+                                resEnd = date;
+                                // keep first non-empty values
+                                resGuest ??= guestName;
+                                resConf ??= confirmation;
+                                resStatus ??= statusStr;
+                            }
+                            else
+                            {
+                                FlushReservation();
+                                resKey = key;
+                                resGuest = guestName;
+                                resConf = confirmation;
+                                resStatus = statusStr;
+                                resStart = date;
+                                resEnd = date;
+                            }
+
+                            prevDate = date;
+                            continue;
+                        }
+
+                        // Unavailable blocks
+                        if (isUnavailable)
+                        {
+                            FlushReservation();
+
+                            if (!unStart.HasValue)
+                            {
+                                unStart = date;
+                                unEnd = date;
+                            }
+                            else
+                            {
+                                // if consecutive day
+                                if (unEnd.Value.AddDays(1) == date)
+                                {
+                                    unEnd = date;
+                                }
+                                else
+                                {
+                                    FlushUnavailable();
+                                    unStart = date;
+                                    unEnd = date;
+                                }
+                            }
+
+                            prevDate = date;
+                            continue;
                         }
                     }
+
+                    FlushReservation();
+                    FlushUnavailable();
+                }
+            }
+            catch
+            {
+                return new List<GuestyScheduleEventDTO>();
+            }
+
+            return events
+                .OrderBy(e => e.ListingId)
+                .ThenBy(e => e.StartDate)
+                .ToList();
+        }
+
+        private static string? FindFirstString(JsonElement el, params string[] keys)
+        {
+            foreach (var key in keys)
+            {
+                var found = FindByPathCaseInsensitive(el, key);
+                if (found.HasValue)
+                {
+                    var v = found.Value;
+                    if (v.ValueKind == JsonValueKind.String)
+                    {
+                        var s = v.GetString();
+                        if (!string.IsNullOrWhiteSpace(s)) return s;
+                    }
+                    if (v.ValueKind == JsonValueKind.Number) return v.ToString();
+                }
+            }
+            return null;
+        }
+
+        private static bool? FindFirstBool(JsonElement el, params string[] keys)
+        {
+            foreach (var key in keys)
+            {
+                var found = FindByPathCaseInsensitive(el, key);
+                if (found.HasValue)
+                {
+                    var v = found.Value;
+                    if (v.ValueKind == JsonValueKind.True) return true;
+                    if (v.ValueKind == JsonValueKind.False) return false;
+                    if (v.ValueKind == JsonValueKind.String)
+                    {
+                        var s = v.GetString();
+                        if (bool.TryParse(s, out var b)) return b;
+                        if (int.TryParse(s, out var i)) return i != 0;
+                    }
+                    if (v.ValueKind == JsonValueKind.Number)
+                    {
+                        if (v.TryGetInt32(out var i)) return i != 0;
+                    }
+                }
+            }
+            return null;
+        }
+
+        private static JsonElement? FindByPathCaseInsensitive(JsonElement root, string path)
+        {
+            // Supports dot paths; also tries case-insensitive property match for each segment.
+            var current = root;
+            foreach (var rawPart in path.Split('.'))
+            {
+                if (current.ValueKind != JsonValueKind.Object) return null;
+
+                JsonElement next = default;
+                var found = false;
+
+                // direct match first
+                if (current.TryGetProperty(rawPart, out next))
+                {
+                    found = true;
                 }
                 else
                 {
-                    FlushBlock();
+                    foreach (var prop in current.EnumerateObject())
+                    {
+                        if (string.Equals(prop.Name, rawPart, StringComparison.OrdinalIgnoreCase))
+                        {
+                            next = prop.Value;
+                            found = true;
+                            break;
+                        }
+                    }
                 }
+
+                if (!found) return null;
+                current = next;
             }
 
-            FlushBlock();
+            return current;
         }
-    }
-    catch
-    {
-        return new List<GuestyScheduleEventDTO>();
-    }
 
-    return events
-        .OrderBy(e => e.ListingId)
-        .ThenBy(e => e.StartDate)
-        .ToList();
-}
 
 private static IEnumerable<JsonElement> ExtractCalendars(JsonElement root)
 {
