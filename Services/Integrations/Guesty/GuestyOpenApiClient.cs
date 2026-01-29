@@ -51,6 +51,16 @@ namespace Services.Integrations.Guesty
             }
         }
 
+        private static bool IsRetryable(HttpStatusCode code)
+        {
+            // Guesty can occasionally return transient 5xx for specific listings.
+            // We retry a few times to reduce flakiness.
+            if (code == (HttpStatusCode)429) return true;
+
+            var n = (int)code;
+            return n == 500 || n == 502 || n == 503 || n == 504;
+        }
+
         private async Task<HttpResponseMessage> SendWithRetryAsync(Func<HttpRequestMessage> requestFactory)
         {
             HttpResponseMessage? last = null;
@@ -62,21 +72,23 @@ namespace Services.Integrations.Guesty
                 using var req = requestFactory();
                 last = await _http.SendAsync(req);
 
-                if (last.StatusCode != (HttpStatusCode)429)
+                if (!IsRetryable(last.StatusCode))
                     return last;
 
-                // Respect Retry-After if present, otherwise do a small exponential backoff.
-                var retryAfter = last.Headers.RetryAfter?.Delta;
-                if (!retryAfter.HasValue && last.Headers.RetryAfter?.Date.HasValue == true)
+                // Respect Retry-After if present (mostly for 429), otherwise do a small exponential backoff.
+                TimeSpan? retryAfter = null;
+                if (last.StatusCode == (HttpStatusCode)429)
                 {
-                    var delta = last.Headers.RetryAfter!.Date!.Value - DateTimeOffset.UtcNow;
-                    if (delta > TimeSpan.Zero) retryAfter = delta;
+                    retryAfter = last.Headers.RetryAfter?.Delta;
+                    if (!retryAfter.HasValue && last.Headers.RetryAfter?.Date.HasValue == true)
+                    {
+                        var delta = last.Headers.RetryAfter!.Date!.Value - DateTimeOffset.UtcNow;
+                        if (delta > TimeSpan.Zero) retryAfter = delta;
+                    }
                 }
 
                 var backoff = retryAfter ?? TimeSpan.FromMilliseconds(500 * Math.Pow(2, attempt));
-                // Cap to avoid silly waits.
                 if (backoff > TimeSpan.FromSeconds(10)) backoff = TimeSpan.FromSeconds(10);
-
                 await Task.Delay(backoff);
             }
 
@@ -195,6 +207,7 @@ namespace Services.Integrations.Guesty
             };
 
             var wrapper = new List<Dictionary<string, object?>>();
+            var successCount = 0;
 
             // IMPORTANT: do NOT blast hundreds of requests concurrently; Guesty rate limits hard.
             foreach (var id in ids)
@@ -205,7 +218,21 @@ namespace Services.Integrations.Guesty
                 if (!res.IsSuccessStatusCode)
                 {
                     var body = await res.Content.ReadAsStringAsync();
-                    throw new BadGatewayException($"Guesty API error while fetching calendar for listing '{id}': {(int)res.StatusCode} ({res.ReasonPhrase}). {body}");
+
+                    // Best-effort: a single listing can occasionally fail with 5xx on Guesty.
+                    // We skip it so the whole schedule doesn't fail.
+                    // If *all* listings fail, we will throw at the end.
+                    wrapper.Add(new Dictionary<string, object?>
+                    {
+                        ["listingId"] = id,
+                        ["error"] = new
+                        {
+                            status = (int)res.StatusCode,
+                            reason = res.ReasonPhrase,
+                            body
+                        }
+                    });
+                    continue;
                 }
 
                 var calendarJson = await res.Content.ReadAsStringAsync();
@@ -226,6 +253,17 @@ namespace Services.Integrations.Guesty
                     ["listingId"] = id,
                     ["calendar"] = calendarObj
                 });
+
+                successCount++;
+            }
+
+            if (successCount == 0)
+            {
+                // Preserve previous behavior if nothing could be fetched.
+                // Include the first error body to help debugging.
+                var firstErr = wrapper.FirstOrDefault(w => w.ContainsKey("error"));
+                var errJson = firstErr != null ? JsonSerializer.Serialize(firstErr["error"]) : "unknown";
+                throw new BadGatewayException($"Guesty API error while fetching calendar: all listings failed. {errJson}");
             }
 
             return JsonSerializer.Serialize(wrapper);
