@@ -195,9 +195,11 @@ namespace Services.Integrations.Guesty
                     link.CustomerAddressId = address.Id;
 
                     result.Updated++;
-
-                    if (!request.DryRun)
-                        _unitOfWork.CustomerAddresses.Update(address);
+                    // NOTE:
+                    // We intentionally do NOT call Update() here.
+                    // The entity is already tracked because it comes from GetByCustomerAsync() (tracked query)
+                    // or it was just added in this same DbContext. Calling Update() on an Added entity
+                    // causes EF Core to throw (temporary key -> Modified). SaveAsync() will persist changes.
                 }
 
                 result.Links.Add(link);
@@ -212,12 +214,7 @@ namespace Services.Integrations.Guesty
                     if (first != null)
                     {
                         first.IsPrimary = true;
-                        // IMPORTANT: If this address was just created in this sync, it is still in Added state
-                        // (with a temporary Id) until SaveAsync() runs. Calling Update() would switch it to
-                        // Modified and EF Core will throw: "temporary value while attempting to change state".
-                        // For newly created entities, just set the property and let SaveAsync persist it.
-                        if (!request.DryRun && first.Id > 0)
-                            _unitOfWork.CustomerAddresses.Update(first);
+                        // Same rationale: do NOT call Update() here. Just mutate and SaveAsync().
                     }
                 }
             }
