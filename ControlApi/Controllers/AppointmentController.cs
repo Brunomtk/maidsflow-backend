@@ -89,6 +89,18 @@ namespace ControlApi.Controllers
         }
 
         /// <summary>
+        /// Creates (or returns an existing) appointment linked to a Guesty reservation.
+        /// Used by the Guesty calendar overlay to push reservations/blocks into the MaidsFlow calendar
+        /// (button "Create Appointment" or drag-and-drop).
+        /// </summary>
+        [HttpPost("from-guesty")]
+        public async Task<IActionResult> CreateFromGuesty([FromBody] CreateAppointmentFromGuestyDTO dto)
+        {
+            var appt = await _appointmentService.CreateFromGuestyAsync(dto);
+            return Ok(appt);
+        }
+
+        /// <summary>
         /// Atualiza um agendamento existente.
         /// </summary>
         [HttpPut("{id}")]

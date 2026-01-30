@@ -80,6 +80,7 @@ builder.Services.AddHttpClient<IGuestyOpenApiClient, GuestyOpenApiClient>();
 builder.Services.AddHttpClient<IGuestyAuthClient, GuestyAuthClient>();
 builder.Services.AddScoped<IGuestyIntegrationService, GuestyIntegrationService>();
 builder.Services.AddScoped<IGuestyScheduleService, GuestyScheduleService>();
+builder.Services.AddScoped<IGuestyCustomerAddressSyncService, GuestyCustomerAddressSyncService>();
 
 
             // -----------------------------

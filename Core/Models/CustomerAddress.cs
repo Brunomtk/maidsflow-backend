@@ -23,6 +23,11 @@ namespace Core.Models
         public string? Frequency { get; set; }
         public string? PaymentMethod { get; set; }
 
+        // Guesty integration (optional): when present, this address was created/synced from a Guesty listing.
+        public string? GuestyListingId { get; set; }
+        public string? GuestyListingTitle { get; set; }
+        public DateTime? GuestySyncedAtUtc { get; set; }
+
         public bool IsPrimary { get; set; }
 
         public ICollection<CustomerArea> Areas { get; set; } = new List<CustomerArea>();

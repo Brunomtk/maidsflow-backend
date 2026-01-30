@@ -555,6 +555,10 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                 entity.Property(x => x.Frequency).HasMaxLength(50);
                 entity.Property(x => x.PaymentMethod).HasMaxLength(50);
 
+                entity.Property(x => x.GuestyListingId).HasMaxLength(80);
+                entity.Property(x => x.GuestyListingTitle).HasMaxLength(200);
+                entity.Property(x => x.GuestySyncedAtUtc);
+
                 entity.Property(x => x.CreatedDate).HasDefaultValueSql("now()");
                 entity.Property(x => x.UpdatedDate).HasDefaultValueSql("now()");
 
@@ -565,6 +569,7 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
 
                 entity.HasIndex(x => x.CustomerId);
                 entity.HasIndex(x => new { x.CustomerId, x.IsPrimary });
+                entity.HasIndex(x => new { x.CustomerId, x.GuestyListingId });
             });
 
             // CheckRecords

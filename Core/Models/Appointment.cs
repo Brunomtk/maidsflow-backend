@@ -93,5 +93,12 @@ namespace Core.Models
         public bool IsException { get; set; }                 // instance turned into exception?
         public DateTime? OriginalStart { get; set; }          // UTC
         public DateTime? OriginalEnd { get; set; }            // UTC
+
+        // External integration linkage (optional)
+        // Helps keep idempotency when creating appointments from integrations (e.g. Guesty reservations)
+        public string? ExternalSource { get; set; }           // e.g. "guesty"
+        public string? ExternalReservationId { get; set; }    // reservationId from external system
+        public string? ExternalListingId { get; set; }        // listingId/propertyId from external system
+        public string? ExternalStatus { get; set; }           // optional status snapshot (confirmed/cancelled/etc.)
     }
 }

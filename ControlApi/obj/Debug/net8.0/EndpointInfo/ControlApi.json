@@ -232,6 +232,37 @@
         }
       }
     },
+    "/api/Appointment/from-guesty": {
+      "post": {
+        "tags": [
+          "Appointment"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAppointmentFromGuestyDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAppointmentFromGuestyDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAppointmentFromGuestyDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/Appointment/{id}/on-my-way-sms": {
       "post": {
         "tags": [
@@ -3092,6 +3123,65 @@
         "responses": {
           "200": {
             "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Integrations/guesty/customers/{customerId}/sync-addresses": {
+      "post": {
+        "tags": [
+          "GuestyIntegration"
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuestySyncCustomerAddressesRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuestySyncCustomerAddressesRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuestySyncCustomerAddressesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestySyncCustomerAddressesResultDTO"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestySyncCustomerAddressesResultDTO"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestySyncCustomerAddressesResultDTO"
+                }
+              }
+            }
           }
         }
       }
@@ -7227,6 +7317,22 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "externalSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalReservationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalListingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalStatus": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -8011,6 +8117,106 @@
           "occurrenceCount": {
             "type": "integer",
             "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateAppointmentFromGuestyDTO": {
+        "type": "object",
+        "properties": {
+          "companyId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "customerId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "customerAddressId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "guestyReservationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "guestyListingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "guestyStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/AppointmentStatus"
+          },
+          "type": {
+            "$ref": "#/components/schemas/AppointmentType"
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceTypeId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "teamId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "professionalIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "timeZoneId": {
+            "type": "string",
+            "nullable": true
+          },
+          "checkoutDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "checkoutTime": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -9207,6 +9413,19 @@
             "type": "string",
             "nullable": true
           },
+          "guestyListingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "guestyListingTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "guestySyncedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
           "isPrimary": {
             "type": "boolean"
           },
@@ -9323,6 +9542,33 @@
         },
         "additionalProperties": false
       },
+      "GuestyListingAddressLinkDTO": {
+        "type": "object",
+        "properties": {
+          "listingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "listingTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerAddressId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "action": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "GuestyListingDTO": {
         "type": "object",
         "properties": {
@@ -9338,12 +9584,38 @@
             "type": "string",
             "nullable": true
           },
+          "addressLine1": {
+            "type": "string",
+            "nullable": true
+          },
+          "addressLine2": {
+            "type": "string",
+            "nullable": true
+          },
+          "zipCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
           "city": {
             "type": "string",
             "nullable": true
           },
           "state": {
             "type": "string",
+            "nullable": true
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double",
             "nullable": true
           },
           "pictureUrl": {
@@ -9429,6 +9701,75 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/GuestyScheduleEventDTO"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "GuestySyncCustomerAddressesRequest": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dryRun": {
+            "type": "boolean"
+          },
+          "updateExisting": {
+            "type": "boolean"
+          },
+          "matchByAddress": {
+            "type": "boolean"
+          },
+          "setPrimaryIfNone": {
+            "type": "boolean"
+          },
+          "onlyActiveListings": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GuestySyncCustomerAddressesResultDTO": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dryRun": {
+            "type": "boolean"
+          },
+          "listingsSeen": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "created": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "updated": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skipped": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "generatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GuestyListingAddressLinkDTO"
             },
             "nullable": true
           }

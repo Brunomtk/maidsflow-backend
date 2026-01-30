@@ -289,12 +289,65 @@ namespace Services.Integrations.Guesty
             string? title = item.TryGetProperty("title", out var t) ? t.GetString() : null;
             string? status = item.TryGetProperty("status", out var s) ? s.ToString() : null;
 
+            string? addressLine1 = null;
+            string? addressLine2 = null;
             string? city = null;
             string? state = null;
+            string? zipCode = null;
+            string? country = null;
+
             if (item.TryGetProperty("address", out var addr) && addr.ValueKind == JsonValueKind.Object)
             {
-                if (addr.TryGetProperty("city", out var c)) city = c.GetString();
-                if (addr.TryGetProperty("state", out var st)) state = st.GetString();
+                city = TryGetAnyString(addr, "city", "locality");
+                state = TryGetAnyString(addr, "state", "stateCode", "region");
+                zipCode = TryGetAnyString(addr, "zipcode", "zipCode", "zip", "postalCode", "postCode");
+                country = TryGetAnyString(addr, "country", "countryCode");
+
+                addressLine1 = TryGetAnyString(addr, "street", "street1", "addressLine1", "line1", "address1");
+                addressLine2 = TryGetAnyString(addr, "street2", "addressLine2", "line2", "address2", "apt", "unit");
+
+                // Some payloads split house number/name.
+                var streetName = TryGetAnyString(addr, "streetName", "route");
+                var streetNumber = TryGetAnyString(addr, "streetNumber", "houseNumber", "number");
+                if (string.IsNullOrWhiteSpace(addressLine1) && (!string.IsNullOrWhiteSpace(streetName) || !string.IsNullOrWhiteSpace(streetNumber)))
+                {
+                    addressLine1 = string.Join(" ", new[] { streetNumber, streetName }.Where(x => !string.IsNullOrWhiteSpace(x)));
+                }
+            }
+
+            // Coordinates can be under various shapes.
+            decimal? lat = null;
+            decimal? lng = null;
+            if (item.TryGetProperty("location", out var loc) && loc.ValueKind == JsonValueKind.Object)
+            {
+                lat = TryGetAnyDecimal(loc, "lat", "latitude");
+                lng = TryGetAnyDecimal(loc, "lng", "lon", "longitude");
+            }
+            if (!lat.HasValue || !lng.HasValue)
+            {
+                if (item.TryGetProperty("coordinates", out var coords))
+                {
+                    // Some APIs return [lng, lat]
+                    if (coords.ValueKind == JsonValueKind.Array)
+                    {
+                        var arr = coords.EnumerateArray().ToList();
+                        if (arr.Count >= 2)
+                        {
+                            var a0 = TryGetDecimalFromElement(arr[0]);
+                            var a1 = TryGetDecimalFromElement(arr[1]);
+                            if (a0.HasValue && a1.HasValue)
+                            {
+                                lng ??= a0;
+                                lat ??= a1;
+                            }
+                        }
+                    }
+                    else if (coords.ValueKind == JsonValueKind.Object)
+                    {
+                        lat ??= TryGetAnyDecimal(coords, "lat", "latitude");
+                        lng ??= TryGetAnyDecimal(coords, "lng", "lon", "longitude");
+                    }
+                }
             }
 
             string? pictureUrl = null;
@@ -313,11 +366,64 @@ namespace Services.Integrations.Guesty
                 Id = id,
                 Nickname = nickname,
                 Title = title,
+                AddressLine1 = addressLine1,
+                AddressLine2 = addressLine2,
+                ZipCode = zipCode,
+                Country = country,
                 City = city,
                 State = state,
+                Latitude = lat,
+                Longitude = lng,
                 PictureUrl = pictureUrl,
                 Status = status
             };
+        }
+
+        private static string? TryGetAnyString(JsonElement obj, params string[] keys)
+        {
+            foreach (var k in keys)
+            {
+                if (obj.TryGetProperty(k, out var el))
+                {
+                    if (el.ValueKind == JsonValueKind.String) return el.GetString();
+                    if (el.ValueKind == JsonValueKind.Number) return el.ToString();
+                }
+            }
+            return null;
+        }
+
+        private static decimal? TryGetAnyDecimal(JsonElement obj, params string[] keys)
+        {
+            foreach (var k in keys)
+            {
+                if (obj.TryGetProperty(k, out var el))
+                {
+                    var d = TryGetDecimalFromElement(el);
+                    if (d.HasValue) return d;
+                }
+            }
+            return null;
+        }
+
+        private static decimal? TryGetDecimalFromElement(JsonElement el)
+        {
+            try
+            {
+                if (el.ValueKind == JsonValueKind.Number)
+                {
+                    if (el.TryGetDecimal(out var dec)) return dec;
+                    if (el.TryGetDouble(out var dbl)) return (decimal)dbl;
+                }
+                if (el.ValueKind == JsonValueKind.String)
+                {
+                    var s = el.GetString();
+                    if (decimal.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var dec))
+                        return dec;
+                    if (decimal.TryParse(s, out dec)) return dec;
+                }
+            }
+            catch { /* ignore */ }
+            return null;
         }
     }
 }

@@ -13,11 +13,13 @@ namespace ControlApi.Controllers
     {
         private readonly IGuestyIntegrationService _service;
         private readonly IGuestyScheduleService _schedule;
+        private readonly IGuestyCustomerAddressSyncService _addressSync;
 
-        public GuestyIntegrationController(IGuestyIntegrationService service, IGuestyScheduleService schedule)
+        public GuestyIntegrationController(IGuestyIntegrationService service, IGuestyScheduleService schedule, IGuestyCustomerAddressSyncService addressSync)
         {
             _service = service;
             _schedule = schedule;
+            _addressSync = addressSync;
         }
 
         // GET /api/Integrations/guesty
@@ -50,5 +52,21 @@ namespace ControlApi.Controllers
             await _service.ClearTokenAsync();
             return NoContent();
         }
+
+        // POST /api/Integrations/guesty/customers/{customerId}/sync-addresses
+        // Sync Guesty listings into CustomerAddresses for a given Customer.
+        [HttpPost("customers/{customerId:int}/sync-addresses")]
+        public async Task<ActionResult<GuestySyncCustomerAddressesResultDTO>> SyncCustomerAddresses(
+            int customerId,
+            [FromBody] GuestySyncCustomerAddressesRequest request)
+        {
+            // Allow customerId in route to win (keeps the frontend simple)
+            if (request == null) request = new GuestySyncCustomerAddressesRequest();
+            request.CustomerId = customerId;
+
+            var result = await _addressSync.SyncCustomerAddressesAsync(request);
+            return Ok(result);
+        }
+
     }
 }

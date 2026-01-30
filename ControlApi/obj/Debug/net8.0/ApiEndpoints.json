@@ -171,6 +171,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "ControlApi.Controllers.AppointmentController",
+    "Method": "CreateFromGuesty",
+    "RelativePath": "api/Appointment/from-guesty",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "Core.DTO.Appointment.CreateAppointmentFromGuestyDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "ControlApi.Controllers.AppointmentsRecurrenceController",
     "Method": "Create",
     "RelativePath": "api/AppointmentsRecurrence",
@@ -1989,6 +2005,37 @@
     "Order": 0,
     "Parameters": [],
     "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.GuestyIntegrationController",
+    "Method": "SyncCustomerAddresses",
+    "RelativePath": "api/Integrations/guesty/customers/{customerId}/sync-addresses",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "customerId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "Core.DTO.Guesty.GuestySyncCustomerAddressesRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "Core.DTO.Guesty.GuestySyncCustomerAddressesResultDTO",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
   },
   {
     "ContainingType": "ControlApi.Controllers.InternalFeedbackController",

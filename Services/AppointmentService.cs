@@ -235,6 +235,146 @@ namespace Services
             return await _unitOfWork.SaveAsync() > 0;
         }
 
+        /// <summary>
+        /// Creates (or returns an existing) Appointment linked to a Guesty reservation.
+        /// This enables the Guesty schedule UI to "push" a reservation into the MaidsFlow calendar.
+        /// Idempotency: if ExternalReservationId already exists for the same company, returns the existing appointment.
+        /// </summary>
+        public async Task<Appointment> CreateFromGuestyAsync(CreateAppointmentFromGuestyDTO dto)
+        {
+            // Professional não cria agendamento
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não tem permissão para criar agendamentos.");
+
+            if (dto == null)
+                throw new BadRequestException("Payload inválido.");
+
+            if (string.IsNullOrWhiteSpace(dto.GuestyReservationId))
+                throw new BadRequestException("GuestyReservationId é obrigatório.");
+
+            // Resolve company scope
+            var companyId = dto.CompanyId;
+            if (!_currentUser.IsAdmin)
+            {
+                var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+                if (scopedCompanyId.HasValue) companyId = scopedCompanyId.Value;
+            }
+
+            if (!companyId.HasValue)
+                throw new BadRequestException("CompanyId não informado.");
+
+            // Idempotency check (requires migration applied)
+            var existing = await _db.Appointments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.CompanyId == companyId.Value
+                    && a.ExternalSource == "guesty"
+                    && a.ExternalReservationId == dto.GuestyReservationId);
+
+            if (existing != null)
+                return existing;
+
+            // Build start/end
+            var start = dto.Start;
+            if (!start.HasValue && !string.IsNullOrWhiteSpace(dto.CheckoutDate))
+            {
+                // Build local DateTime (Kind=Unspecified)
+                var timePart = string.IsNullOrWhiteSpace(dto.CheckoutTime) ? "10:00" : dto.CheckoutTime!.Trim();
+                if (!DateTime.TryParse($"{dto.CheckoutDate} {timePart}", out var parsed))
+                    throw new BadRequestException("CheckoutDate/CheckoutTime inválidos.");
+                start = DateTime.SpecifyKind(parsed, DateTimeKind.Unspecified);
+            }
+
+            if (!start.HasValue)
+                throw new BadRequestException("Start é obrigatório (ou forneça CheckoutDate).");
+
+            var end = dto.End;
+            if (!end.HasValue && dto.DurationMinutes.HasValue)
+            {
+                end = start.Value.AddMinutes(dto.DurationMinutes.Value);
+            }
+
+            if (!end.HasValue)
+                throw new BadRequestException("End é obrigatório (ou forneça DurationMinutes).");
+
+            // Resolve Customer / CustomerAddress
+            int? customerId = dto.CustomerId;
+            CustomerAddress? resolvedAddress = null;
+
+            if (customerId.HasValue)
+            {
+                // If customer provided, validate it belongs to scoped company
+                await _scope.EnsureCustomerInCompanyAsync(customerId.Value);
+
+                // Prefer explicit CustomerAddressId; fallback to GuestyListingId; fallback to primary
+                resolvedAddress = await ResolveCustomerAddressAsync(customerId.Value, dto.CustomerAddressId);
+                if (resolvedAddress == null && !string.IsNullOrWhiteSpace(dto.GuestyListingId))
+                    resolvedAddress = await _unitOfWork.CustomerAddresses.GetByGuestyListingIdForCustomerAsync(customerId.Value, dto.GuestyListingId!);
+
+                if (resolvedAddress != null)
+                    customerId = resolvedAddress.CustomerId;
+            }
+            else if (!string.IsNullOrWhiteSpace(dto.GuestyListingId))
+            {
+                // Infer customer/address from listing id across the company
+                resolvedAddress = await _unitOfWork.CustomerAddresses.GetByGuestyListingIdAsync(companyId.Value, dto.GuestyListingId!);
+                if (resolvedAddress != null)
+                    customerId = resolvedAddress.CustomerId;
+            }
+
+            var category = dto.Category;
+            if (string.IsNullOrWhiteSpace(category) && dto.Type.HasValue)
+                category = dto.Type.Value.ToString();
+
+            var appointment = new Appointment
+            {
+                Title = string.IsNullOrWhiteSpace(dto.Title) ? "Guesty" : dto.Title!,
+                Address = dto.Address,
+                Start = start.Value,
+                End = end.Value,
+                Notes = dto.Notes,
+                Status = dto.Status ?? AppointmentStatus.Scheduled,
+                Type = dto.Type ?? AppointmentType.Regular,
+                Category = category,
+                ServiceTypeId = dto.ServiceTypeId,
+                CompanyId = companyId.Value,
+                CustomerId = customerId,
+                TeamId = dto.TeamId,
+                TimeZoneId = dto.TimeZoneId,
+                ExternalSource = "guesty",
+                ExternalReservationId = dto.GuestyReservationId,
+                ExternalListingId = dto.GuestyListingId,
+                ExternalStatus = dto.GuestyStatus
+            };
+
+            if (dto.ProfessionalIds != null)
+                appointment.ProfessionalIds = dto.ProfessionalIds.Distinct().ToList();
+
+            if (resolvedAddress != null)
+            {
+                appointment.CustomerAddressId = resolvedAddress.Id;
+                if (string.IsNullOrWhiteSpace(appointment.Address))
+                    appointment.Address = BuildAddressLine(resolvedAddress);
+            }
+            else if (appointment.CustomerId.HasValue)
+            {
+                // Try primary if customerId resolved but address wasn't
+                var primary = await _unitOfWork.CustomerAddresses.GetPrimaryByCustomerAsync(appointment.CustomerId.Value);
+                if (primary != null)
+                {
+                    appointment.CustomerAddressId = primary.Id;
+                    if (string.IsNullOrWhiteSpace(appointment.Address))
+                        appointment.Address = BuildAddressLine(primary);
+                }
+            }
+
+            await ValidateServiceTypeForCompanyAsync(appointment.CompanyId, appointment.ServiceTypeId);
+
+            await _unitOfWork.Appointments.Add(appointment);
+            await _unitOfWork.SaveAsync();
+
+            return appointment;
+        }
+
         public async Task<bool> Update(int id, UpdateAppointmentDTO dto)
         {
             var appointment = await _unitOfWork.Appointments.GetById(id);
@@ -501,6 +641,7 @@ namespace Services
         Task<List<Appointment>> GetByDateRange(DateTime start, DateTime end, int? companyId = null);
         Task<Appointment?> GetById(int id);
         Task<bool> Create(CreateAppointmentDTO dto);
+        Task<Appointment> CreateFromGuestyAsync(CreateAppointmentFromGuestyDTO dto);
         Task<bool> Update(int id, UpdateAppointmentDTO dto);
         Task<bool> Delete(int id);
     }
