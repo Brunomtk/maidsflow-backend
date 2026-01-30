@@ -46,7 +46,10 @@ namespace Services.Integrations.Guesty
             await _scope.EnsureCompanyAccessAsync(customer.CompanyId);
 
             // Obtain token (or throw with a friendly message)
-            var token = await _guestyIntegration.GetAccessTokenOrThrowAsync(customer.CompanyId);
+            // IMPORTANT: do NOT pass CompanyId as an "override" here.
+            // Passing a value triggers the "only admin can provide CompanyId" protection.
+            // The company scope was already validated above via EnsureCompanyAccessAsync.
+            var token = await _guestyIntegration.GetAccessTokenOrThrowAsync();
 
             var listings = await _guestyClient.GetListingsAsync(token, limit: request.Limit);
 
