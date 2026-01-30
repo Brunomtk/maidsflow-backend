@@ -212,7 +212,11 @@ namespace Services.Integrations.Guesty
                     if (first != null)
                     {
                         first.IsPrimary = true;
-                        if (!request.DryRun)
+                        // IMPORTANT: If this address was just created in this sync, it is still in Added state
+                        // (with a temporary Id) until SaveAsync() runs. Calling Update() would switch it to
+                        // Modified and EF Core will throw: "temporary value while attempting to change state".
+                        // For newly created entities, just set the property and let SaveAsync persist it.
+                        if (!request.DryRun && first.Id > 0)
                             _unitOfWork.CustomerAddresses.Update(first);
                     }
                 }
