@@ -6,6 +6,12 @@ namespace Core.DTO.Guesty
         public string? Nickname { get; set; }
         public string? Title { get; set; }
 
+        /// <summary>
+        /// Stable display name used across Guesty UI and sync.
+        /// Prefer Nickname, fallback to Title, and finally to "Guesty {Id}".
+        /// </summary>
+        public string? DisplayName { get; set; }
+
         // Location / address fields (used to sync into CustomerAddresses)
         public string? AddressLine1 { get; set; }
         public string? AddressLine2 { get; set; }

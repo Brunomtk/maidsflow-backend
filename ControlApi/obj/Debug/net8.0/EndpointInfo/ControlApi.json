@@ -9584,6 +9584,10 @@
             "type": "string",
             "nullable": true
           },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
           "addressLine1": {
             "type": "string",
             "nullable": true
@@ -9640,6 +9644,10 @@
             "type": "string",
             "nullable": true
           },
+          "listingTitle": {
+            "type": "string",
+            "nullable": true
+          },
           "type": {
             "type": "string",
             "nullable": true
@@ -9674,6 +9682,25 @@
           },
           "source": {
             "type": "string",
+            "nullable": true
+          },
+          "guestyReservationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "customerAddressId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "linkedAppointmentId": {
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           }
         },

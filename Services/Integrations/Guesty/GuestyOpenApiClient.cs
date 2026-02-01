@@ -361,11 +361,12 @@ namespace Services.Integrations.Guesty
                 }
             }
 
-            return new GuestyListingDTO
+            var dto = new GuestyListingDTO
             {
                 Id = id,
                 Nickname = nickname,
                 Title = title,
+                DisplayName = null, // computed below
                 AddressLine1 = addressLine1,
                 AddressLine2 = addressLine2,
                 ZipCode = zipCode,
@@ -377,6 +378,9 @@ namespace Services.Integrations.Guesty
                 PictureUrl = pictureUrl,
                 Status = status
             };
+
+            dto.DisplayName = GuestyNameHelper.GetListingDisplayName(dto);
+            return dto;
         }
 
         private static string? TryGetAnyString(JsonElement obj, params string[] keys)

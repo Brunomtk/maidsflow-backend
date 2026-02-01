@@ -8,7 +8,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Core.DTO.Guesty;
 using Core.Exceptions;
+using Infrastructure;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.EntityFrameworkCore;
 using Services.Security;
 
 namespace Services.Integrations.Guesty
@@ -19,6 +21,7 @@ namespace Services.Integrations.Guesty
         private readonly IGuestyOpenApiClient _client;
         private readonly IMemoryCache _cache;
         private readonly ICurrentUser _currentUser;
+        private readonly DbContextClass _db;
 
         private static readonly ConcurrentDictionary<string, SemaphoreSlim> _refreshLocks = new();
 
@@ -26,12 +29,14 @@ namespace Services.Integrations.Guesty
             IGuestyIntegrationService integration,
             IGuestyOpenApiClient client,
             IMemoryCache cache,
-            ICurrentUser currentUser)
+            ICurrentUser currentUser,
+            DbContextClass db)
         {
             _integration = integration;
             _client = client;
             _cache = cache;
             _currentUser = currentUser;
+            _db = db;
         }
 
         public async Task<GuestyScheduleResponse> GetScheduleAsync(
@@ -181,6 +186,98 @@ namespace Services.Integrations.Guesty
             // 3) Normalize blocks to events
             var events = NormalizeCalendarEvents(raw);
 
+            // 4) Enrich events with ListingTitle (same rule used in sync)
+            var listingTitleById = listings
+                .Where(l => !string.IsNullOrWhiteSpace(l.Id))
+                .GroupBy(l => l.Id)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (g.First().DisplayName ?? GuestyNameHelper.GetListingDisplayName(g.First())).Trim(),
+                    StringComparer.OrdinalIgnoreCase);
+
+            foreach (var e in events)
+            {
+                if (string.IsNullOrWhiteSpace(e.ListingTitle) && listingTitleById.TryGetValue(e.ListingId, out var t))
+                    e.ListingTitle = t;
+            }
+
+            // 5) Resolve Customer / CustomerAddress from our DB (by GuestyListingId)
+            if (_currentUser.CompanyId.HasValue)
+            {
+                var cid = _currentUser.CompanyId.Value;
+
+                var uniqueListingIds = events
+                    .Select(e => e.ListingId)
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (uniqueListingIds.Count > 0)
+                {
+                    var addresses = await _db.CustomerAddresses
+                        .Join(
+                            _db.Customers,
+                            addr => addr.CustomerId,
+                            cust => cust.Id,
+                            (addr, cust) => new { addr, cust })
+                        .Where(x => x.cust.CompanyId == cid
+                            && x.addr.GuestyListingId != null
+                            && uniqueListingIds.Contains(x.addr.GuestyListingId))
+                        .Select(x => x.addr)
+                        .OrderByDescending(a => a.IsPrimary)
+                        .ThenByDescending(a => a.CreatedDate)
+                        .ToListAsync();
+
+                    var bestByListing = addresses
+                        .Where(a => !string.IsNullOrWhiteSpace(a.GuestyListingId))
+                        .GroupBy(a => a.GuestyListingId!, StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+                    foreach (var e in events)
+                    {
+                        if (bestByListing.TryGetValue(e.ListingId, out var addr))
+                        {
+                            e.CustomerAddressId = addr.Id;
+                            e.CustomerId = addr.CustomerId;
+                        }
+                    }
+                }
+
+                // 6) Attach LinkedAppointmentId so the UI can mark events that were already converted
+                var reservationIds = events
+                    .Where(e => string.Equals(e.Type, "Reservation", StringComparison.OrdinalIgnoreCase))
+                    .Select(e => e.GuestyReservationId)
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (reservationIds.Count > 0)
+                {
+                    var appts = await _db.Appointments
+                        .AsNoTracking()
+                        .Where(a => a.CompanyId == cid
+                            && a.ExternalSource == "guesty"
+                            && a.ExternalReservationId != null
+                            && reservationIds.Contains(a.ExternalReservationId))
+                        .Select(a => new { a.Id, a.ExternalReservationId })
+                        .ToListAsync();
+
+                    var apptByResId = appts
+                        .Where(a => !string.IsNullOrWhiteSpace(a.ExternalReservationId))
+                        .GroupBy(a => a.ExternalReservationId!, StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
+
+                    foreach (var e in events)
+                    {
+                        if (!string.IsNullOrWhiteSpace(e.GuestyReservationId)
+                            && apptByResId.TryGetValue(e.GuestyReservationId, out var apptId))
+                        {
+                            e.LinkedAppointmentId = apptId;
+                        }
+                    }
+                }
+            }
+
             return new GuestyScheduleResponse
             {
                 StartDate = startDate,
@@ -261,6 +358,7 @@ namespace Services.Integrations.Guesty
 
                     // Reservation accumulator
                     string? resKey = null;
+                    string? resReservationId = null;
                     string? resGuest = null;
                     string? resConf = null;
                     string? resStatus = null;
@@ -317,10 +415,12 @@ namespace Services.Integrations.Guesty
                             Label = label,
                             GuestName = resGuest,
                             ConfirmationCode = resConf,
+                            GuestyReservationId = !string.IsNullOrWhiteSpace(resReservationId) ? resReservationId : resConf,
                             Source = "guesty"
                         });
 
                         resKey = null;
+                        resReservationId = null;
                         resGuest = null;
                         resConf = null;
                         resStatus = null;
@@ -381,6 +481,7 @@ namespace Services.Integrations.Guesty
                             if (!resStart.HasValue)
                             {
                                 resKey = key;
+                                resReservationId = reservationId;
                                 resGuest = guestName;
                                 resConf = confirmation;
                                 resStatus = statusStr;
@@ -391,6 +492,7 @@ namespace Services.Integrations.Guesty
                             {
                                 resEnd = date;
                                 // keep first non-empty values
+                                resReservationId ??= reservationId;
                                 resGuest ??= guestName;
                                 resConf ??= confirmation;
                                 resStatus ??= statusStr;
@@ -399,6 +501,7 @@ namespace Services.Integrations.Guesty
                             {
                                 FlushReservation();
                                 resKey = key;
+                                resReservationId = reservationId;
                                 resGuest = guestName;
                                 resConf = confirmation;
                                 resStatus = statusStr;

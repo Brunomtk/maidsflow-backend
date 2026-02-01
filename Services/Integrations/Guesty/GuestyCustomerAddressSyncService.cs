@@ -91,7 +91,7 @@ namespace Services.Integrations.Guesty
                 var link = new GuestyListingAddressLinkDTO
                 {
                     ListingId = listing.Id,
-                    ListingTitle = listing.Nickname ?? listing.Title
+                    ListingTitle = listing.DisplayName ?? GuestyNameHelper.GetListingDisplayName(listing)
                 };
 
                 // Basic validation: we need at least addressLine1/city/state
@@ -129,7 +129,7 @@ namespace Services.Integrations.Guesty
                     byAddressKey.TryGetValue(key, out address);
                 }
 
-                var title = (listing.Nickname ?? listing.Title ?? $"Guesty {listing.Id}").Trim();
+                var title = (listing.DisplayName ?? GuestyNameHelper.GetListingDisplayName(listing)).Trim();
 
                 if (address == null)
                 {
