@@ -8,6 +8,7 @@ using Core.Exceptions;
 using Core.Options;
 using Infrastructure.Repositories;
 using Microsoft.Extensions.Options;
+using Services.Email;
 using Services.Security;
 
 namespace Services.Integrations.Stripe
@@ -18,13 +19,15 @@ namespace Services.Integrations.Stripe
         private readonly IUnitOfWork _uow;
         private readonly ICurrentUser _currentUser;
         private readonly IScopeGuard _scope;
+        private readonly IPlanPaymentEmailService _planEmail;
 
-        public StripeBillingService(IOptions<StripeOptions> opts, IUnitOfWork uow, ICurrentUser currentUser, IScopeGuard scope)
+        public StripeBillingService(IOptions<StripeOptions> opts, IUnitOfWork uow, ICurrentUser currentUser, IScopeGuard scope, IPlanPaymentEmailService planEmail)
         {
             _opts = opts.Value;
             _uow = uow;
             _currentUser = currentUser;
             _scope = scope;
+            _planEmail = planEmail;
 
             if (!string.IsNullOrWhiteSpace(_opts.SecretKey))
                 global::Stripe.StripeConfiguration.ApiKey = _opts.SecretKey;
@@ -557,8 +560,90 @@ namespace Services.Integrations.Stripe
                 return;
             }
 
+            
+            // 3) Pagamento de fatura (renovação/primeiro pagamento) => email de confirmação
+            if (stripeEvent.Type == global::Stripe.Events.InvoicePaymentSucceeded || stripeEvent.Type == global::Stripe.Events.InvoicePaid)
+            {
+                var invoice = stripeEvent.Data.Object as global::Stripe.Invoice;
+                if (invoice != null)
+                    await HandleInvoicePaidAsync(invoice);
+                return;
+            }
+
             // Ignora eventos que nÃ£o nos interessam
             return;
+        }
+
+        private async Task HandleInvoicePaidAsync(global::Stripe.Invoice invoice)
+        {
+            try
+            {
+                // Resolve Stripe customer id (varies a bit across Stripe.NET versions)
+                var customerId = invoice.CustomerId;
+                if (string.IsNullOrWhiteSpace(customerId))
+                    customerId = ReadString(invoice, "CustomerId");
+
+                if (string.IsNullOrWhiteSpace(customerId) && invoice.Customer is global::Stripe.Customer c)
+                    customerId = c.Id;
+
+                if (string.IsNullOrWhiteSpace(customerId))
+                    return;
+
+                var company = await _uow.Companies.GetByStripeCustomerIdAsync(customerId);
+                if (company == null)
+                    return;
+
+                // Amounts come in the smallest currency unit (e.g., cents)
+                var amountPaidMinor = ReadLong(invoice, "AmountPaid") ?? ReadLong(invoice, "Total") ?? 0;
+                var amountPaid = amountPaidMinor / 100m;
+
+                var currency = ReadString(invoice, "Currency") ?? _opts.Currency;
+
+                var invoiceNumber = ReadString(invoice, "Number") ?? ReadString(invoice, "InvoiceNumber");
+                var hostedInvoiceUrl = ReadString(invoice, "HostedInvoiceUrl");
+                var invoicePdfUrl = ReadString(invoice, "InvoicePdf");
+
+                long? periodStartUnix = null;
+                long? periodEndUnix = null;
+                try
+                {
+                    var firstLine = invoice.Lines?.Data?.FirstOrDefault(l => l.Period != null);
+                    if (firstLine?.Period != null)
+                    {
+                        periodStartUnix = ReadLong(firstLine.Period, "Start");
+                        periodEndUnix = ReadLong(firstLine.Period, "End");
+                    }
+                }
+                catch { /* ignore */ }
+
+                long? paidAtUnix = null;
+                try
+                {
+                    var st = invoice.StatusTransitions;
+                    if (st != null)
+                        paidAtUnix = ReadLong(st, "PaidAt");
+                }
+                catch { /* ignore */ }
+
+                // Fallback to invoice creation time if paidAt isn't available
+                paidAtUnix ??= ReadLong(invoice, "Created");
+
+                await _planEmail.SendPlanPaymentSuccessAsync(
+                    companyId: company.Id,
+                    amountPaid: amountPaid,
+                    currency: currency,
+                    invoiceNumber: invoiceNumber,
+                    hostedInvoiceUrl: hostedInvoiceUrl,
+                    invoicePdfUrl: invoicePdfUrl,
+                    periodStartUnix: periodStartUnix,
+                    periodEndUnix: periodEndUnix,
+                    paidAtUnix: paidAtUnix);
+            }
+            catch
+            {
+                // Best-effort: never break the webhook pipeline because of email.
+                return;
+            }
         }
 
         private async Task HandleCheckoutSessionCompletedAsync(string json)

@@ -26,22 +26,14 @@ namespace ControlApi.Controllers
         private readonly IConfiguration _configuration;
         private readonly IS3StorageService _s3;
         private readonly ICredentialsEmailService _credentialsEmail;
-        private readonly IWelcomeEmailService _welcomeEmail;
 
-        public UsersController(
-            IJWTManager jwtManager,
-            IUserService userService,
-            IConfiguration configuration,
-            IS3StorageService s3,
-            ICredentialsEmailService credentialsEmail,
-            IWelcomeEmailService welcomeEmail)
+        public UsersController(IJWTManager jwtManager, IUserService userService, IConfiguration configuration, IS3StorageService s3, ICredentialsEmailService credentialsEmail)
         {
             _jwtManager = jwtManager;
             _userService = userService;
             _configuration = configuration;
             _s3 = s3;
             _credentialsEmail = credentialsEmail;
-            _welcomeEmail = welcomeEmail;
         }
 
         // ===== AUTENTICAÇÃO =====
@@ -236,20 +228,6 @@ namespace ControlApi.Controllers
             var created = await _userService.CreateUser(user);
             if (!created)
                 return BadRequest("Could not create user");
-
-            // Send a beautiful welcome email in English (best-effort).
-            // We intentionally do NOT fail the request if the email provider is unavailable.
-            try
-            {
-                await _welcomeEmail.SendWelcomeEmailAsync(
-                    userId: user.Id,
-                    loginUrl: null,
-                    ct: HttpContext.RequestAborted);
-            }
-            catch
-            {
-                // swallow
-            }
 
             return Ok(user);
         }
