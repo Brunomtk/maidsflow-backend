@@ -25,4 +25,7 @@ public class SendGridOptions
 
     /// <summary>Default subject used for password changed notice emails.</summary>
     public string PasswordChangedSubject { get; set; } = "Your MaidsFlow password was changed";
+
+    /// <summary>Default subject used for welcome emails.</summary>
+    public string WelcomeSubject { get; set; } = "Welcome to MaidsFlow";
 }
