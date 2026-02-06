@@ -51,6 +51,7 @@ namespace Infrastructure
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<PushSubscription> PushSubscriptions { get; set; }
         public DbSet<AppointmentReminderDispatch> AppointmentReminderDispatches { get; set; }
+        public DbSet<AppointmentReviewRequestDispatch> AppointmentReviewRequestDispatches { get; set; }
         
         
 
@@ -692,6 +693,38 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                 entity.Property(r => r.SubmittedAt);
                 entity.Property(r => r.CreatedDate).HasDefaultValueSql("now()");
                 entity.Property(r => r.UpdatedDate).HasDefaultValueSql("now()");
+            });
+
+            // AppointmentReviewRequestDispatches (review request emails)
+            modelBuilder.Entity<AppointmentReviewRequestDispatch>(entity =>
+            {
+                entity.ToTable("AppointmentReviewRequestDispatches");
+                entity.HasKey(d => d.Id);
+                entity.Property(d => d.CompanyId).IsRequired();
+                entity.Property(d => d.AppointmentCompletionId).IsRequired();
+                entity.Property(d => d.ReviewId).IsRequired();
+                entity.Property(d => d.CustomerId).IsRequired();
+                entity.Property(d => d.RecipientEmail).IsRequired();
+                entity.Property(d => d.Status).HasConversion<int>().IsRequired();
+                entity.Property(d => d.AttemptCount).IsRequired();
+                entity.Property(d => d.LastAttemptAtUtc);
+                entity.Property(d => d.SentAtUtc);
+                entity.Property(d => d.LastError);
+
+                entity.HasOne(d => d.AppointmentCompletion)
+                      .WithMany()
+                      .HasForeignKey(d => d.AppointmentCompletionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(d => d.Review)
+                      .WithMany()
+                      .HasForeignKey(d => d.ReviewId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(d => d.AppointmentCompletionId).IsUnique();
+                entity.HasIndex(d => new { d.Status, d.SentAtUtc });
+                entity.Property(d => d.CreatedDate).HasDefaultValueSql("now()");
+                entity.Property(d => d.UpdatedDate).HasDefaultValueSql("now()");
             });
 
             // InternalFeedbacks

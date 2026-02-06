@@ -29,4 +29,14 @@ public class SendGridOptions
 
     /// <summary>Default subject used for plan payment success emails.</summary>
     public string PlanPaymentSuccessSubject { get; set; } = "Payment successful";
+
+    /// <summary>
+    /// Base URL of the public review form on the FRONT-END.
+    /// Example: https://app.maidsflow.com/review
+    /// The token will be appended as: {baseUrl}/{token}
+    /// </summary>
+    public string PublicReviewFormBaseUrl { get; set; } = string.Empty;
+
+    /// <summary>Default subject used for review request emails.</summary>
+    public string ReviewRequestSubject { get; set; } = "How was your service?";
 }

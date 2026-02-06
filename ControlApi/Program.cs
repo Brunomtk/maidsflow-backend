@@ -104,11 +104,13 @@ builder.Services.AddScoped<IGuestyCustomerAddressSyncService, GuestyCustomerAddr
             builder.Services.AddHttpClient<ISendGridEmailSender, SendGridEmailSender>();
             builder.Services.AddScoped<ICredentialsEmailService, CredentialsEmailService>();
             builder.Services.AddScoped<IPlanPaymentEmailService, PlanPaymentEmailService>();
+            builder.Services.AddScoped<Services.Email.IReviewRequestEmailService, Services.Email.ReviewRequestEmailService>();
 
             // -----------------------------
             // Background Jobs
             // -----------------------------
             builder.Services.AddHostedService<AppointmentReminderHostedService>();
+            builder.Services.AddHostedService<ReviewRequestHostedService>();
             builder.Services.AddHostedService<NotificationCleanupHostedService>();
             
             // -----------------------------
