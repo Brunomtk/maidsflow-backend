@@ -1050,21 +1050,21 @@ public async Task<IActionResult> DeleteInstance(
         /// </summary>
         private async Task CleanupAppointmentReferencesAsync(int appointmentId)
         {
-            // PayrollItems (FK Restrict)
-            var payrollItems = await _db.Set<PayrollItem>()
+            // IMPORTANT:
+            // Não materialize PayrollItem aqui.
+            // Em alguns bancos antigos ainda não existe a coluna CustomerAddressId em PayrollItems,
+            // e o EF tenta selecioná-la ao fazer ToListAsync(), causando:
+            // 42703: column p.CustomerAddressId does not exist
+
+            // 1) Remove PayrollItems do appointment (DELETE direto, sem SELECT)
+            await _db.Set<PayrollItem>()
                 .Where(i => i.AppointmentId == appointmentId)
-                .ToListAsync();
+                .ExecuteDeleteAsync();
 
-            if (payrollItems.Count > 0)
-                _db.Set<PayrollItem>().RemoveRange(payrollItems);
-
-            // Completion snapshots (FK Restrict)
-            var completions = await _db.Set<AppointmentCompletion>()
+            // 2) Remove snapshots de completion do appointment (DELETE direto)
+            await _db.Set<AppointmentCompletion>()
                 .Where(c => c.AppointmentId == appointmentId)
-                .ToListAsync();
-
-            if (completions.Count > 0)
-                _db.Set<AppointmentCompletion>().RemoveRange(completions);
+                .ExecuteDeleteAsync();
         }
 
         /// <summary>
@@ -1074,27 +1074,27 @@ public async Task<IActionResult> DeleteInstance(
         private async Task CleanupAppointmentOccurrenceReferencesAsync(int appointmentId, DateTime occurrenceStart)
         {
             // PayrollItems são únicos por (PayrollRunId, ProfessionalId, AppointmentId, OccurrenceStart)
-            var payrollItems = await _db.Set<PayrollItem>()
+            await _db.Set<PayrollItem>()
                 .Where(i => i.AppointmentId == appointmentId && i.OccurrenceStart == occurrenceStart)
-                .ToListAsync();
-
-            if (payrollItems.Count > 0)
-                _db.Set<PayrollItem>().RemoveRange(payrollItems);
+                .ExecuteDeleteAsync();
 
             // Completion snapshot é único por (CompanyId, AppointmentId, OccurrenceStart)
-            var completion = await _db.Set<AppointmentCompletion>()
-                .FirstOrDefaultAsync(c => c.AppointmentId == appointmentId && c.OccurrenceStart == occurrenceStart);
+            // Busca somente o Id (evita SELECT de colunas inexistentes por versões antigas)
+            var completionId = await _db.Set<AppointmentCompletion>()
+                .Where(c => c.AppointmentId == appointmentId && c.OccurrenceStart == occurrenceStart)
+                .Select(c => (int?)c.Id)
+                .FirstOrDefaultAsync();
 
-            if (completion != null)
+            if (completionId.HasValue)
             {
                 // Se houver PayrollItems apontando por AppointmentCompletionId, remove antes.
-                var byCompletion = await _db.Set<PayrollItem>()
-                    .Where(i => i.AppointmentCompletionId == completion.Id)
-                    .ToListAsync();
-                if (byCompletion.Count > 0)
-                    _db.Set<PayrollItem>().RemoveRange(byCompletion);
+                await _db.Set<PayrollItem>()
+                    .Where(i => i.AppointmentCompletionId == completionId.Value)
+                    .ExecuteDeleteAsync();
 
-                _db.Set<AppointmentCompletion>().Remove(completion);
+                await _db.Set<AppointmentCompletion>()
+                    .Where(c => c.Id == completionId.Value)
+                    .ExecuteDeleteAsync();
             }
         }
 
@@ -1104,28 +1104,25 @@ public async Task<IActionResult> DeleteInstance(
         /// </summary>
         private async Task CleanupAppointmentOccurrenceReferencesFromAsync(int appointmentId, DateTime occurrenceStart)
         {
-            var payrollItems = await _db.Set<PayrollItem>()
+            await _db.Set<PayrollItem>()
                 .Where(i => i.AppointmentId == appointmentId && i.OccurrenceStart >= occurrenceStart)
-                .ToListAsync();
+                .ExecuteDeleteAsync();
 
-            if (payrollItems.Count > 0)
-                _db.Set<PayrollItem>().RemoveRange(payrollItems);
-
-            var completions = await _db.Set<AppointmentCompletion>()
+            // Pega somente os IDs das completions
+            var completionIds = await _db.Set<AppointmentCompletion>()
                 .Where(c => c.AppointmentId == appointmentId && c.OccurrenceStart >= occurrenceStart)
+                .Select(c => c.Id)
                 .ToListAsync();
 
-            if (completions.Count > 0)
+            if (completionIds.Count > 0)
             {
-                var completionIds = completions.Select(x => x.Id).ToList();
-                var byCompletion = await _db.Set<PayrollItem>()
+                await _db.Set<PayrollItem>()
                     .Where(i => i.AppointmentCompletionId.HasValue && completionIds.Contains(i.AppointmentCompletionId.Value))
-                    .ToListAsync();
+                    .ExecuteDeleteAsync();
 
-                if (byCompletion.Count > 0)
-                    _db.Set<PayrollItem>().RemoveRange(byCompletion);
-
-                _db.Set<AppointmentCompletion>().RemoveRange(completions);
+                await _db.Set<AppointmentCompletion>()
+                    .Where(c => c.AppointmentId == appointmentId && c.OccurrenceStart >= occurrenceStart)
+                    .ExecuteDeleteAsync();
             }
         }
 

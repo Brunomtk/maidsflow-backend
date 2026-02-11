@@ -603,27 +603,27 @@ namespace Services
             // Limpa registros dependentes antes de apagar o Appointment.
             // Motivação: FK PayrollItems.AppointmentId e AppointmentCompletions.AppointmentId estão com DeleteBehavior.Restrict
             // e estouram erro 23503 quando o appointment já foi marcado como completed.
-            //
             // IMPORTANT:
-            // Algumas instalações podem estar com o schema do banco atrás do modelo atual do EF (ex.: coluna nova ainda não existe).
-            // Se fizermos ToListAsync()/RemoveRange o EF tenta SELECT de todas as colunas mapeadas e pode quebrar com:
-            // "42703: column ... does not exist".
-            //
-            // Para garantir compatibilidade, aqui usamos DELETE direto via SQL (não depende do mapping de colunas).
-            await _db.Database.ExecuteSqlRawAsync(
-                "DELETE FROM \"PayrollItems\" WHERE \"AppointmentId\" = {0}", id);
+            // Some installations may have a DB schema behind the current EF model (e.g. missing new columns
+            // such as CustomerAddressId). Doing a ToListAsync() would SELECT all mapped columns and can fail
+            // with "column does not exist".
+            // ExecuteDeleteAsync() performs a direct DELETE and avoids selecting unmigrated columns.
+            await _db.PayrollItems
+                .Where(i => i.AppointmentId == id)
+                .ExecuteDeleteAsync();
 
-            await _db.Database.ExecuteSqlRawAsync(
-                "DELETE FROM \"AppointmentCompletions\" WHERE \"AppointmentId\" = {0}", id);
+            await _db.AppointmentCompletions
+                .Where(c => c.AppointmentId == id)
+                .ExecuteDeleteAsync();
 
             // Series cleanup: when deleting a recurring appointment anchor, also delete all
             // recurrence exception records linked to its SeriesId.
             if (appointment.IsRecurring && appointment.SeriesId.HasValue)
             {
                 var seriesId = appointment.SeriesId.Value;
-
-                await _db.Database.ExecuteSqlRawAsync(
-                    "DELETE FROM \"AppointmentRecurrenceExceptions\" WHERE \"SeriesId\" = {0}", seriesId);
+                await _db.AppointmentRecurrenceExceptions
+                    .Where(e => e.SeriesId == seriesId)
+                    .ExecuteDeleteAsync();
             }
 
             _unitOfWork.Appointments.Delete(appointment);
