@@ -67,6 +67,19 @@ namespace ControlApi.Controllers
         }
 
         /// <summary>
+        /// Resumo do Stripe: últimas assinaturas do customer, saldo (wallet/account_balance) e próxima cobrança (upcoming invoice).
+        /// Company: usa a company do token.
+        /// Admin: pode informar companyId.
+        /// </summary>
+        [Authorize]
+        [HttpGet("stripe-summary")]
+        public async Task<IActionResult> GetStripeSummary([FromQuery] int? companyId = null, [FromQuery] int subscriptionsLimit = 10)
+        {
+            var summary = await _stripe.GetStripeBillingSummaryAsync(companyId, subscriptionsLimit);
+            return Ok(summary);
+        }
+
+        /// <summary>
         /// Webhook do Stripe (server-to-server). Não requer autenticação.
         /// Configure o endpoint no Stripe e o segredo em Stripe:WebhookSecret.
         /// </summary>

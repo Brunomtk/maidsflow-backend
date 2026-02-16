@@ -422,6 +422,184 @@ namespace Services.Integrations.Stripe
                 .ToList();
         }
 
+        public async Task<StripeBillingSummaryDTO> GetStripeBillingSummaryAsync(int? companyId = null, int subscriptionsLimit = 10)
+        {
+            EnsureStripeConfigured();
+
+            if (subscriptionsLimit <= 0) subscriptionsLimit = 10;
+            if (subscriptionsLimit > 50) subscriptionsLimit = 50;
+
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode acessar informações de billing.");
+
+            int resolvedCompanyId;
+            if (_currentUser.IsAdmin)
+            {
+                if (!companyId.HasValue || companyId.Value <= 0)
+                    throw new InvalidOperationException("CompanyId é obrigatório para admin.");
+                resolvedCompanyId = companyId.Value;
+            }
+            else
+            {
+                var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+                if (!scopedCompanyId.HasValue)
+                    throw new ForbiddenException("Escopo de company inválido.");
+                resolvedCompanyId = scopedCompanyId.Value;
+            }
+
+            var company = await _uow.Companies.GetById(resolvedCompanyId);
+            if (company == null)
+                throw new InvalidOperationException("Company não encontrada.");
+
+            var summary = new StripeBillingSummaryDTO
+            {
+                CompanyId = resolvedCompanyId,
+                StripeCustomerId = company.StripeCustomerId
+            };
+
+            // Se ainda não existe customer no Stripe, não há dados de Stripe para retornar.
+            if (string.IsNullOrWhiteSpace(company.StripeCustomerId))
+                return summary;
+
+            // 1) Wallet / Customer balance
+            var customerService = new global::Stripe.CustomerService();
+            var customer = await customerService.GetAsync(company.StripeCustomerId);
+            summary.Wallet = new StripeCustomerWalletDTO
+            {
+                CustomerId = customer.Id,
+                Name = customer.Name,
+                Email = customer.Email,
+                AccountBalance = ReadLong(customer, "Balance") ?? ReadLong(customer, "AccountBalance") ?? 0,
+                Currency = customer.Currency ?? _opts.Currency
+            };
+
+            // 2) Latest subscriptions
+            var subscriptionService = new global::Stripe.SubscriptionService();
+            var subs = await subscriptionService.ListAsync(new global::Stripe.SubscriptionListOptions
+            {
+                Customer = company.StripeCustomerId,
+                Limit = subscriptionsLimit,
+                Status = "all",
+                Expand = new List<string>
+                {
+                    "data.items.data.price.product"
+                }
+            });
+
+            summary.LatestSubscriptions = subs
+                .Select(s =>
+                {
+                    var item = s.Items?.Data?.FirstOrDefault();
+                    var price = item?.Price;
+                    var product = price?.Product as global::Stripe.Product;
+
+                    var createdAt = ReadDateTime(s, "Created");
+                    if (createdAt.HasValue)
+                        createdAt = DateTime.SpecifyKind(createdAt.Value, DateTimeKind.Utc);
+
+                    var canceledAt = ReadDateTime(s, "CanceledAt");
+                    if (canceledAt.HasValue)
+                        canceledAt = DateTime.SpecifyKind(canceledAt.Value, DateTimeKind.Utc);
+
+                    return new StripeSubscriptionInfoDTO
+                    {
+                        SubscriptionId = s.Id,
+                        Status = s.Status,
+                        CancelAtPeriodEnd = s.CancelAtPeriodEnd,
+                        CurrentPeriodStartUtc = EnsureUtc(s.CurrentPeriodStart),
+                        CurrentPeriodEndUtc = EnsureUtc(s.CurrentPeriodEnd),
+                        PriceId = price?.Id,
+                        ProductName = product?.Name,
+                        UnitAmount = price?.UnitAmount ?? 0,
+                        Currency = price?.Currency ?? _opts.Currency,
+                        Interval = price?.Recurring?.Interval,
+                        CreatedAtUtc = createdAt,
+                        CanceledAtUtc = canceledAt
+                    };
+                })
+                .OrderByDescending(s => s.CreatedAtUtc ?? DateTime.MinValue)
+                .ToList();
+
+            // 3) Próxima cobrança (Upcoming invoice) - tenta pegar da assinatura ativa mais relevante
+            var activeSub = summary.LatestSubscriptions
+                .FirstOrDefault(s => string.Equals(s.Status, "active", StringComparison.OrdinalIgnoreCase))
+                ?? summary.LatestSubscriptions.FirstOrDefault();
+
+            try
+            {
+                var invoiceService = new global::Stripe.InvoiceService();
+                // Stripe.net v45.x usa UpcomingInvoiceOptions (não InvoiceUpcomingOptions)
+                var upcoming = await invoiceService.UpcomingAsync(new global::Stripe.UpcomingInvoiceOptions
+                {
+                    Customer = company.StripeCustomerId,
+                    Subscription = activeSub?.SubscriptionId
+                });
+
+                if (upcoming != null)
+                {
+                    DateTime? nextAttempt = null;
+                    try
+                    {
+                        // Stripe.NET pode expor NextPaymentAttempt como Unix/date dependendo da versão
+                        nextAttempt = ReadDateTime(upcoming, "NextPaymentAttempt");
+                        if (nextAttempt.HasValue)
+                            nextAttempt = DateTime.SpecifyKind(nextAttempt.Value, DateTimeKind.Utc);
+                    }
+                    catch { /* ignore */ }
+
+                    DateTime? periodStartUtc = null;
+                    DateTime? periodEndUtc = null;
+                    try
+                    {
+                        var firstLine = upcoming.Lines?.Data?.FirstOrDefault(l => l.Period != null);
+                        if (firstLine?.Period != null)
+                        {
+                            periodStartUtc = ReadDateTime(firstLine.Period, "Start");
+                            periodEndUtc = ReadDateTime(firstLine.Period, "End");
+                            if (periodStartUtc.HasValue)
+                                periodStartUtc = DateTime.SpecifyKind(periodStartUtc.Value, DateTimeKind.Utc);
+                            if (periodEndUtc.HasValue)
+                                periodEndUtc = DateTime.SpecifyKind(periodEndUtc.Value, DateTimeKind.Utc);
+                        }
+                    }
+                    catch { /* ignore */ }
+
+                    summary.UpcomingCharge = new StripeUpcomingChargeDTO
+                    {
+                        UpcomingInvoiceId = upcoming.Id,
+                        SubscriptionId = activeSub?.SubscriptionId,
+                        AmountDue = ReadLong(upcoming, "AmountDue") ?? 0,
+                        Currency = ReadString(upcoming, "Currency") ?? _opts.Currency,
+                        NextAttemptUtc = nextAttempt,
+                        PeriodStartUtc = periodStartUtc,
+                        PeriodEndUtc = periodEndUtc
+                    };
+                }
+            }
+            catch
+            {
+                // Upcoming invoice pode falhar em casos específicos (ex.: customer sem invoice próximo);
+                // não quebrar o endpoint.
+            }
+
+            // Fallback: se não deu pra pegar Upcoming, pelo menos exponha a próxima data via CurrentPeriodEnd.
+            if (summary.UpcomingCharge == null && activeSub?.CurrentPeriodEndUtc.HasValue == true)
+            {
+                summary.UpcomingCharge = new StripeUpcomingChargeDTO
+                {
+                    UpcomingInvoiceId = null,
+                    SubscriptionId = activeSub.SubscriptionId,
+                    AmountDue = 0,
+                    Currency = activeSub.Currency ?? _opts.Currency,
+                    NextAttemptUtc = activeSub.CurrentPeriodEndUtc,
+                    PeriodStartUtc = activeSub.CurrentPeriodStartUtc,
+                    PeriodEndUtc = activeSub.CurrentPeriodEndUtc
+                };
+            }
+
+            return summary;
+        }
+
         private static string? ReadString(object obj, string propertyName)
         {
             try

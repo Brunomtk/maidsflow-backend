@@ -17,6 +17,13 @@ namespace Services.Integrations.Stripe
         /// Admin pode informar CompanyId via query.
         /// </summary>
         Task<List<BillingHistoryItemDTO>> GetBillingHistoryAsync(int? companyId = null, int limit = 20);
+
+        /// <summary>
+        /// Retorna um resumo do Stripe para a empresa (últimas assinaturas + saldo do customer + próxima cobrança).
+        /// Company: usa a company do token.
+        /// Admin: pode informar companyId.
+        /// </summary>
+        Task<StripeBillingSummaryDTO> GetStripeBillingSummaryAsync(int? companyId = null, int subscriptionsLimit = 10);
         Task HandleWebhookAsync(string json, string stripeSignatureHeader);
     }
 }

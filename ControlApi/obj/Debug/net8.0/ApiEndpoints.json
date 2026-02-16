@@ -460,6 +460,27 @@
   },
   {
     "ContainingType": "ControlApi.Controllers.BillingController",
+    "Method": "GetStripeSummary",
+    "RelativePath": "api/Billing/stripe-summary",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "companyId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "subscriptionsLimit",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.BillingController",
     "Method": "StripeWebhook",
     "RelativePath": "api/Billing/stripe-webhook",
     "HttpMethod": "POST",
