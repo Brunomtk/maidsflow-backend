@@ -482,16 +482,43 @@ namespace Services.Integrations.Stripe
                 Status = "all",
                 Expand = new List<string>
                 {
-                    "data.items.data.price.product"
+                    // Stripe API limita expand a 4 níveis. "data.items.data.price.product" excede.
+                    // Expandimos até price e resolvemos o product name via chamada separada (com cache).
+                    "data.items.data.price"
                 }
             });
+
+            // Cache local para evitar chamadas repetidas no Stripe
+            var productNameCache = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+            var productService = new global::Stripe.ProductService();
 
             summary.LatestSubscriptions = subs
                 .Select(s =>
                 {
                     var item = s.Items?.Data?.FirstOrDefault();
                     var price = item?.Price;
-                    var product = price?.Product as global::Stripe.Product;
+
+                    // Stripe.net (v45.x): Price.Product é um objeto Product (pode vir apenas com Id quando não expandido)
+                    // e o id também pode estar em Price.ProductId. Para evitar limite de expand, buscamos o nome pelo id.
+                    string? productName = price?.Product?.Name;
+                    var productId = price?.Product?.Id ?? price?.ProductId;
+
+                    if (string.IsNullOrWhiteSpace(productName) && !string.IsNullOrWhiteSpace(productId))
+                    {
+                        if (!productNameCache.TryGetValue(productId!, out productName))
+                        {
+                            try
+                            {
+                                var prod = productService.Get(productId!);
+                                productName = prod?.Name;
+                            }
+                            catch
+                            {
+                                productName = null;
+                            }
+                            productNameCache[productId!] = productName;
+                        }
+                    }
 
                     var createdAt = ReadDateTime(s, "Created");
                     if (createdAt.HasValue)
@@ -509,7 +536,7 @@ namespace Services.Integrations.Stripe
                         CurrentPeriodStartUtc = EnsureUtc(s.CurrentPeriodStart),
                         CurrentPeriodEndUtc = EnsureUtc(s.CurrentPeriodEnd),
                         PriceId = price?.Id,
-                        ProductName = product?.Name,
+                        ProductName = productName,
                         UnitAmount = price?.UnitAmount ?? 0,
                         Currency = price?.Currency ?? _opts.Currency,
                         Interval = price?.Recurring?.Interval,
