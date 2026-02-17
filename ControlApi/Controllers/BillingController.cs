@@ -80,6 +80,19 @@ namespace ControlApi.Controllers
         }
 
         /// <summary>
+        /// Força uma sincronização das datas/status de assinatura locais com o Stripe.
+        /// - Company: sincroniza apenas a própria empresa.
+        /// - Admin: pode informar companyId (uma empresa) ou usar all=true (todas).
+        /// </summary>
+        [Authorize]
+        [HttpPost("sync-stripe-dates")]
+        public async Task<IActionResult> SyncStripeDates([FromQuery] int? companyId = null, [FromQuery] bool all = false)
+        {
+            var result = await _stripe.SyncStripeDatesAsync(companyId, all);
+            return Ok(result);
+        }
+
+        /// <summary>
         /// Webhook do Stripe (server-to-server). Não requer autenticação.
         /// Configure o endpoint no Stripe e o segredo em Stripe:WebhookSecret.
         /// </summary>

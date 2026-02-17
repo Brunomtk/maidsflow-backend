@@ -24,6 +24,15 @@ namespace Services.Integrations.Stripe
         /// Admin: pode informar companyId.
         /// </summary>
         Task<StripeBillingSummaryDTO> GetStripeBillingSummaryAsync(int? companyId = null, int subscriptionsLimit = 10);
+
+        /// <summary>
+        /// Sincroniza datas/status de assinaturas locais com o Stripe.
+        /// - Company: sincroniza apenas a própria empresa.
+        /// - Admin: pode sincronizar uma empresa específica (companyId) ou todas (syncAll=true).
+        /// Objetivo: manter StartDate/EndDate/Status/AutoRenew sempre alinhados ao Stripe.
+        /// </summary>
+        Task<StripeDatesSyncResultDTO> SyncStripeDatesAsync(int? companyId = null, bool syncAll = false);
+
         Task HandleWebhookAsync(string json, string stripeSignatureHeader);
     }
 }

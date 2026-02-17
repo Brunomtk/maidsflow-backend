@@ -627,6 +627,151 @@ namespace Services.Integrations.Stripe
             return summary;
         }
 
+        public async Task<StripeDatesSyncResultDTO> SyncStripeDatesAsync(int? companyId = null, bool syncAll = false)
+        {
+            EnsureStripeConfigured();
+
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode sincronizar billing.");
+
+            var result = new StripeDatesSyncResultDTO();
+
+            // Company: só pode sincronizar a própria empresa
+            if (!_currentUser.IsAdmin)
+            {
+                var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+                if (!scopedCompanyId.HasValue)
+                    throw new ForbiddenException("Escopo de company inválido.");
+
+                companyId = scopedCompanyId.Value;
+                syncAll = false;
+            }
+
+            var subscriptionService = new global::Stripe.SubscriptionService();
+
+            async Task SyncOneCompany(Core.Models.Company c)
+            {
+                if (c == null)
+                {
+                    result.CompaniesSkipped++;
+                    return;
+                }
+
+                // Se não tiver customer id, ainda tentamos sincronizar por StripeSubscriptionId local
+                var processedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(c.StripeCustomerId))
+                    {
+                        var subs = await subscriptionService.ListAsync(new global::Stripe.SubscriptionListOptions
+                        {
+                            Customer = c.StripeCustomerId,
+                            Limit = 25,
+                            Status = "all",
+                            Expand = new List<string> { "data.items.data.price" }
+                        });
+
+                        foreach (var s in subs.Data)
+                        {
+                            processedIds.Add(s.Id);
+                            await SyncSubscriptionFromStripeAsync(s, deletedEvent: false);
+                            result.SubscriptionsSynced++;
+                        }
+                    }
+
+                    // Complemento: sincroniza qualquer StripeSubscriptionId local que não tenha vindo no list
+                    var localSubs = await _uow.PlanSubscriptions.GetByCompanyAsync(c.Id);
+                    foreach (var ls in localSubs)
+                    {
+                        if (string.IsNullOrWhiteSpace(ls.StripeSubscriptionId))
+                            continue;
+
+                        if (processedIds.Contains(ls.StripeSubscriptionId))
+                            continue;
+
+                        try
+                        {
+                            var stripeSub = await subscriptionService.GetAsync(ls.StripeSubscriptionId);
+                            await SyncSubscriptionFromStripeAsync(stripeSub, deletedEvent: false);
+                            result.SubscriptionsSynced++;
+                        }
+                        catch (global::Stripe.StripeException ex)
+                        {
+                            // Não existe mais no Stripe ou sem acesso => trata como deletada/cancelada
+                            try
+                            {
+                                var company = await _uow.Companies.GetById(c.Id);
+                                if (company != null)
+                                {
+                                    ls.Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Inactive;
+                                    ls.AutoRenew = false;
+                                    ls.EndDate = DateTime.UtcNow;
+                                    _uow.PlanSubscriptions.Update(ls);
+
+                                    if (company.PlanId.HasValue && company.PlanId.Value == ls.PlanId)
+                                        company.PlanId = null;
+                                    _uow.Companies.Update(company);
+                                    _uow.Save();
+                                }
+                            }
+                            catch
+                            {
+                                // best-effort
+                            }
+
+                            result.Errors.Add($"StripeSubscriptionId {ls.StripeSubscriptionId}: {ex.Message}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    result.Errors.Add($"CompanyId {c.Id}: {ex.Message}");
+                }
+                finally
+                {
+                    result.CompaniesProcessed++;
+                }
+            }
+
+            if (syncAll)
+            {
+                // Admin: sincroniza todas as empresas que tenham algo relacionado a Stripe
+                var companies = (await _uow.Companies.GetAll()).ToList();
+                foreach (var c in companies)
+                {
+                    // heurística: processa se tiver customerId ou alguma subscription local com StripeSubscriptionId
+                    var hasStripe = !string.IsNullOrWhiteSpace(c.StripeCustomerId);
+                    if (!hasStripe)
+                    {
+                        var localSubs = await _uow.PlanSubscriptions.GetByCompanyAsync(c.Id);
+                        hasStripe = localSubs.Any(s => !string.IsNullOrWhiteSpace(s.StripeSubscriptionId));
+                    }
+
+                    if (!hasStripe)
+                    {
+                        result.CompaniesSkipped++;
+                        continue;
+                    }
+
+                    await SyncOneCompany(c);
+                }
+
+                return result;
+            }
+
+            // Admin(companyId) ou Company(scoped)
+            if (!companyId.HasValue || companyId.Value <= 0)
+                throw new InvalidOperationException("CompanyId é obrigatório (ou use syncAll=true). ");
+
+            var target = await _uow.Companies.GetById(companyId.Value);
+            if (target == null)
+                throw new InvalidOperationException("Company não encontrada.");
+
+            await SyncOneCompany(target);
+            return result;
+        }
+
         private static string? ReadString(object obj, string propertyName)
         {
             try
@@ -775,6 +920,15 @@ namespace Services.Integrations.Stripe
                 return;
             }
 
+            // 4) Falha de pagamento => mantém plano alinhado ao Stripe (past_due/unpaid)
+            if (stripeEvent.Type == global::Stripe.Events.InvoicePaymentFailed)
+            {
+                var invoice = stripeEvent.Data.Object as global::Stripe.Invoice;
+                if (invoice != null)
+                    await HandleInvoicePaymentFailedAsync(invoice);
+                return;
+            }
+
             // Ignora eventos que nÃ£o nos interessam
             return;
         }
@@ -843,10 +997,56 @@ namespace Services.Integrations.Stripe
                     periodStartUnix: periodStartUnix,
                     periodEndUnix: periodEndUnix,
                     paidAtUnix: paidAtUnix);
+
+                // Pagamento OK => renovação automática seguindo as datas oficiais do Stripe.
+                var subscriptionId = invoice.SubscriptionId;
+                if (string.IsNullOrWhiteSpace(subscriptionId))
+                    subscriptionId = ReadString(invoice, "SubscriptionId") ?? ReadString(invoice, "Subscription");
+
+                if (!string.IsNullOrWhiteSpace(subscriptionId))
+                {
+                    try
+                    {
+                        var subscriptionService = new global::Stripe.SubscriptionService();
+                        var stripeSub = await subscriptionService.GetAsync(subscriptionId);
+                        if (stripeSub != null)
+                            await SyncSubscriptionFromStripeAsync(stripeSub, deletedEvent: false);
+                    }
+                    catch
+                    {
+                        // Best-effort: nunca quebrar o webhook.
+                    }
+                }
             }
             catch
             {
                 // Best-effort: never break the webhook pipeline because of email.
+                return;
+            }
+        }
+
+        private async Task HandleInvoicePaymentFailedAsync(global::Stripe.Invoice invoice)
+        {
+            try
+            {
+                // Payment failed => o Stripe move a subscription para past_due/unpaid.
+                // Vamos sincronizar a assinatura para refletir status e datas no banco.
+                var subscriptionId = invoice.SubscriptionId;
+                if (string.IsNullOrWhiteSpace(subscriptionId))
+                    subscriptionId = ReadString(invoice, "SubscriptionId") ?? ReadString(invoice, "Subscription");
+
+                if (string.IsNullOrWhiteSpace(subscriptionId))
+                    return;
+
+                var subscriptionService = new global::Stripe.SubscriptionService();
+                var stripeSub = await subscriptionService.GetAsync(subscriptionId);
+                if (stripeSub == null)
+                    return;
+
+                await SyncSubscriptionFromStripeAsync(stripeSub, deletedEvent: false);
+            }
+            catch
+            {
                 return;
             }
         }
@@ -1106,11 +1306,6 @@ namespace Services.Integrations.Stripe
 
         private static Core.Enums.Plan.PlanSubscriptionStatusEnum MapStripeStatusToLocal(string? stripeStatus, DateTime? periodEndUtc, bool deletedEvent)
         {
-            var now = DateTime.UtcNow;
-
-            if (periodEndUtc.HasValue && periodEndUtc.Value < now)
-                return Core.Enums.Plan.PlanSubscriptionStatusEnum.Expired;
-
             if (deletedEvent)
                 return Core.Enums.Plan.PlanSubscriptionStatusEnum.Cancelled;
 
