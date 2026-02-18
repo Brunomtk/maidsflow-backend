@@ -30,6 +30,9 @@ public class SendGridOptions
     /// <summary>Default subject used for plan payment success emails.</summary>
     public string PlanPaymentSuccessSubject { get; set; } = "Payment successful";
 
+    /// <summary>Default subject used for plan payment failed emails.</summary>
+    public string PlanPaymentFailedSubject { get; set; } = "Payment failed";
+
     /// <summary>
     /// Base URL of the public review form on the FRONT-END.
     /// Example: https://app.maidsflow.com/review

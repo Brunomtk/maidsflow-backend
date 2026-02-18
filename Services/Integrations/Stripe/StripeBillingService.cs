@@ -1030,7 +1030,70 @@ namespace Services.Integrations.Stripe
             try
             {
                 // Payment failed => o Stripe move a subscription para past_due/unpaid.
-                // Vamos sincronizar a assinatura para refletir status e datas no banco.
+                // 1) Envia email de falha (best-effort)
+                // 2) Sincroniza a assinatura para refletir status e datas no banco.
+
+                // Resolve Stripe customer id (varies a bit across Stripe.NET versions)
+                var customerId = invoice.CustomerId;
+                if (string.IsNullOrWhiteSpace(customerId))
+                    customerId = ReadString(invoice, "CustomerId");
+
+                if (string.IsNullOrWhiteSpace(customerId) && invoice.Customer is global::Stripe.Customer c)
+                    customerId = c.Id;
+
+                if (!string.IsNullOrWhiteSpace(customerId))
+                {
+                    var company = await _uow.Companies.GetByStripeCustomerIdAsync(customerId);
+                    if (company != null)
+                    {
+                        var amountDueMinor = ReadLong(invoice, "AmountDue") ?? ReadLong(invoice, "Total") ?? 0;
+                        var amountDue = amountDueMinor / 100m;
+                        var currency = ReadString(invoice, "Currency") ?? _opts.Currency;
+
+                        var invoiceNumber = ReadString(invoice, "Number") ?? ReadString(invoice, "InvoiceNumber");
+                        var hostedInvoiceUrl = ReadString(invoice, "HostedInvoiceUrl");
+                        var invoicePdfUrl = ReadString(invoice, "InvoicePdf");
+
+                        long? periodStartUnix = null;
+                        long? periodEndUnix = null;
+                        try
+                        {
+                            var firstLine = invoice.Lines?.Data?.FirstOrDefault(l => l.Period != null);
+                            if (firstLine?.Period != null)
+                            {
+                                periodStartUnix = ReadLong(firstLine.Period, "Start");
+                                periodEndUnix = ReadLong(firstLine.Period, "End");
+                            }
+                        }
+                        catch { /* ignore */ }
+
+                        // Stripe uses Unix seconds for NextPaymentAttempt
+                        var nextAttemptUnix = ReadLong(invoice, "NextPaymentAttempt");
+
+                        // Best-effort failed timestamp
+                        var failedAtUnix = ReadLong(invoice, "Created");
+
+                        try
+                        {
+                            await _planEmail.SendPlanPaymentFailedAsync(
+                                companyId: company.Id,
+                                amountDue: amountDue,
+                                currency: currency,
+                                invoiceNumber: invoiceNumber,
+                                hostedInvoiceUrl: hostedInvoiceUrl,
+                                invoicePdfUrl: invoicePdfUrl,
+                                periodStartUnix: periodStartUnix,
+                                periodEndUnix: periodEndUnix,
+                                failedAtUnix: failedAtUnix,
+                                nextPaymentAttemptUnix: nextAttemptUnix);
+                        }
+                        catch
+                        {
+                            // Never break webhook pipeline because of email.
+                        }
+                    }
+                }
+
                 var subscriptionId = invoice.SubscriptionId;
                 if (string.IsNullOrWhiteSpace(subscriptionId))
                     subscriptionId = ReadString(invoice, "SubscriptionId") ?? ReadString(invoice, "Subscription");

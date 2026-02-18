@@ -33,7 +33,8 @@ public class PlanPaymentEmailService : IPlanPaymentEmailService
         long? paidAtUnix,
         CancellationToken ct = default)
     {
-        var company = await _uow.Companies.GetById(companyId);
+        // Use repository method that includes Plan navigation for better email content.
+        var company = await _uow.Companies.GetByIdAsync(companyId);
         if (company == null) return;
         if (!company.ReceiveEmail) return;
         if (string.IsNullOrWhiteSpace(company.Email)) return;
@@ -68,6 +69,66 @@ public class PlanPaymentEmailService : IPlanPaymentEmailService
 
         // Our SendGrid sender reads FromEmail/FromName from SendGridOptions.
         // The message object only carries the recipient + content.
+        var msg = new SendGridEmailMessage(
+            ToEmail: company.Email,
+            Subject: subject,
+            PlainText: plain,
+            Html: html,
+            ToName: company.Responsible
+        );
+
+        await _sender.SendAsync(msg, ct);
+    }
+
+    public async Task SendPlanPaymentFailedAsync(
+        int companyId,
+        decimal amountDue,
+        string currency,
+        string? invoiceNumber,
+        string? hostedInvoiceUrl,
+        string? invoicePdfUrl,
+        long? periodStartUnix,
+        long? periodEndUnix,
+        long? failedAtUnix,
+        long? nextPaymentAttemptUnix,
+        CancellationToken ct = default)
+    {
+        // Use repository method that includes Plan navigation for better email content.
+        var company = await _uow.Companies.GetByIdAsync(companyId);
+        if (company == null) return;
+        if (!company.ReceiveEmail) return;
+        if (string.IsNullOrWhiteSpace(company.Email)) return;
+
+        var planName = company.Plan?.Name ?? "Your plan";
+
+        DateTime? periodStartUtc = periodStartUnix.HasValue ? DateTimeOffset.FromUnixTimeSeconds(periodStartUnix.Value).UtcDateTime : null;
+        DateTime? periodEndUtc = periodEndUnix.HasValue ? DateTimeOffset.FromUnixTimeSeconds(periodEndUnix.Value).UtcDateTime : null;
+        var failedAtUtc = failedAtUnix.HasValue ? DateTimeOffset.FromUnixTimeSeconds(failedAtUnix.Value).UtcDateTime : DateTime.UtcNow;
+        DateTime? nextAttemptUtc = nextPaymentAttemptUnix.HasValue ? DateTimeOffset.FromUnixTimeSeconds(nextPaymentAttemptUnix.Value).UtcDateTime : null;
+
+        var model = new PlanPaymentFailedEmailTemplate.Model(
+            CompanyName: company.Name,
+            PlanName: planName,
+            AmountDue: amountDue,
+            Currency: currency,
+            FailedAtUtc: failedAtUtc,
+            PeriodStartUtc: periodStartUtc,
+            PeriodEndUtc: periodEndUtc,
+            NextPaymentAttemptUtc: nextAttemptUtc,
+            InvoiceNumber: invoiceNumber,
+            HostedInvoiceUrl: hostedInvoiceUrl,
+            InvoicePdfUrl: invoicePdfUrl,
+            SupportUrl: _opt.SupportUrl
+        );
+
+        var (suffix, html, plain) = PlanPaymentFailedEmailTemplate.Render(model);
+
+        var subjectBase = string.IsNullOrWhiteSpace(_opt.PlanPaymentFailedSubject)
+            ? "Payment failed"
+            : _opt.PlanPaymentFailedSubject.Trim();
+
+        var subject = string.IsNullOrWhiteSpace(suffix) ? subjectBase : $"{subjectBase} • {suffix}";
+
         var msg = new SendGridEmailMessage(
             ToEmail: company.Email,
             Subject: subject,
