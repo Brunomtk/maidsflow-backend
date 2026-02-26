@@ -32,6 +32,7 @@ public class SendGridOptions
 
     /// <summary>Default subject used for plan payment failed emails.</summary>
     public string PlanPaymentFailedSubject { get; set; } = "Payment failed";
+    public string PasswordResetSubject { get; set; } = "Reset your MaidsFlow password";
 
     /// <summary>
     /// Base URL of the public review form on the FRONT-END.

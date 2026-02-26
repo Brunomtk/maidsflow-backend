@@ -7160,6 +7160,68 @@
         }
       }
     },
+    "/api/Users/forgot-password": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordAnonymousRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordAnonymousRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordAnonymousRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Users/reset-password": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordAnonymousRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordAnonymousRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordAnonymousRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/Users/{id}/send-password-changed-notice": {
       "post": {
         "tags": [
@@ -9559,6 +9621,20 @@
         },
         "additionalProperties": false
       },
+      "ForgotPasswordAnonymousRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "webBaseUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "FrequencyEnum": {
         "enum": [
           1,
@@ -10794,6 +10870,24 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "ResetPasswordAnonymousRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "nullable": true
+          },
+          "newPassword": {
+            "type": "string",
+            "nullable": true
+          },
+          "loginUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "ReviewStatus": {
         "enum": [
@@ -12270,6 +12364,15 @@
             "items": {
               "$ref": "#/components/schemas/UserPermission"
             },
+            "nullable": true
+          },
+          "passwordResetTokenHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "passwordResetTokenExpiresAt": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           },
           "onboarding": {

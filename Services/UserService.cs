@@ -244,6 +244,23 @@ namespace Services
             return user;
         }
 
+        public async Task<User?> GetUserByEmailForUpdate(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return null;
+            return await _unitOfWork.Users.GetUserByEmailForUpdate(email);
+        }
+
+        public async Task<User?> GetByPasswordResetTokenHash(string tokenHash)
+        {
+            if (string.IsNullOrWhiteSpace(tokenHash)) return null;
+            return await _unitOfWork.Users.GetByPasswordResetTokenHash(tokenHash);
+        }
+
+        public async Task SaveAsync()
+        {
+            await _unitOfWork.SaveAsync();
+        }
+
         public async Task<bool> UpdateUser(UpdateUserRequest userParam, int userId)
         {
             // Carrega usuário com permissões incluídas
@@ -435,6 +452,10 @@ namespace Services
         Task<PagedResult<User>> GetAllUsuariosPaged(FiltersDTO filtersDTO);
         Task<User?> GetUserById(int userId);
         Task<User?> GetUserByEmail(string email);
+        Task<User?> GetUserByEmailForUpdate(string email);
+        Task<User?> GetByPasswordResetTokenHash(string tokenHash);
+        Task SaveAsync();
+
         Task<bool> UpdateUser(UpdateUserRequest userParam, int userId);
         Task<bool> DeleteUser(int userId);
         Task<bool> UpdateRefreshToken(int userId, string? refreshToken, DateTime? expiresAt);

@@ -24,7 +24,29 @@ namespace Infrastructure.Repositories
                 .FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower());
         }
 
+        
+
         /// <summary>
+        /// Retorna um usuário pelo e-mail com tracking (para operações de update, ex: reset de senha).
+        /// Obs: este método NÃO usa AsNoTracking.
+        /// </summary>
+        public async Task<User?> GetUserByEmailForUpdate(string email)
+        {
+            // Para updates, não precisamos das Permissions aqui.
+            return await _dbContext.Set<User>()
+                .FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower());
+        }
+
+        /// <summary>
+        /// Retorna um usuário pelo hash do token de reset (tracking), para validar e aplicar reset de senha.
+        /// </summary>
+        public async Task<User?> GetByPasswordResetTokenHash(string tokenHash)
+        {
+            return await _dbContext.Set<User>()
+                .FirstOrDefaultAsync(x => x.PasswordResetTokenHash == tokenHash);
+        }
+
+/// <summary>
         /// Retorna usuários paginados com filtro por nome (opcional)
         /// </summary>
         public async Task<PagedResult<User>> GetAllUsuariosPaged(FiltersDTO filtersDTO)
@@ -60,6 +82,8 @@ namespace Infrastructure.Repositories
 public interface IUserRepository : IGenericRepository<User>
     {
         Task<User?> GetUserByEmail(string email);
+        Task<User?> GetUserByEmailForUpdate(string email);
+        Task<User?> GetByPasswordResetTokenHash(string tokenHash);
         Task<PagedResult<User>> GetAllUsuariosPaged(FiltersDTO filtersDTO);
         Task<User?> GetByRefreshToken(string refreshToken);
         Task<User?> GetByIdWithPermissions(int id);

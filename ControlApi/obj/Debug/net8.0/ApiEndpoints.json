@@ -4392,6 +4392,22 @@
   },
   {
     "ContainingType": "ControlApi.Controllers.UsersController",
+    "Method": "ForgotPassword",
+    "RelativePath": "api/Users/forgot-password",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "ControlApi.Controllers.UsersController\u002BForgotPasswordAnonymousRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.UsersController",
     "Method": "RefreshToken",
     "RelativePath": "api/Users/refresh-token",
     "HttpMethod": "POST",
@@ -4401,6 +4417,22 @@
       {
         "Name": "request",
         "Type": "ControlApi.Controllers.UsersController\u002BRefreshTokenRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.UsersController",
+    "Method": "ResetPassword",
+    "RelativePath": "api/Users/reset-password",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "ControlApi.Controllers.UsersController\u002BResetPasswordAnonymousRequest",
         "IsRequired": true
       }
     ],

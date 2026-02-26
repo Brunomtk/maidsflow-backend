@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Core.DTO;
 using Core.DTO.User;
@@ -12,6 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Services;
 using Services.Email;
+
 using Services.Storage;
 
 namespace ControlApi.Controllers
@@ -26,14 +29,16 @@ namespace ControlApi.Controllers
         private readonly IConfiguration _configuration;
         private readonly IS3StorageService _s3;
         private readonly ICredentialsEmailService _credentialsEmail;
+        private readonly IPasswordResetEmailService _passwordResetEmail;
 
-        public UsersController(IJWTManager jwtManager, IUserService userService, IConfiguration configuration, IS3StorageService s3, ICredentialsEmailService credentialsEmail)
+        public UsersController(IJWTManager jwtManager, IUserService userService, IConfiguration configuration, IS3StorageService s3, ICredentialsEmailService credentialsEmail, IPasswordResetEmailService passwordResetEmail)
         {
             _jwtManager = jwtManager;
             _userService = userService;
             _configuration = configuration;
             _s3 = s3;
             _credentialsEmail = credentialsEmail;
+            _passwordResetEmail = passwordResetEmail;
         }
 
         // ===== AUTENTICAÇÃO =====
@@ -296,7 +301,133 @@ namespace ControlApi.Controllers
             });
         }
 
-        [HttpPost("{id:int}/send-password-changed-notice")]
+        
+// ===== FORGOT / RESET PASSWORD =====
+
+public class ForgotPasswordAnonymousRequest
+{
+    public string Email { get; set; } = string.Empty;
+    public string? WebBaseUrl { get; set; }
+}
+
+[AllowAnonymous]
+[HttpPost("forgot-password")]
+public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordAnonymousRequest request)
+{
+    if (request == null || string.IsNullOrWhiteSpace(request.Email))
+        return Ok(new ForgotPasswordResponse { Ok = true });
+
+    // Always return OK (do not leak whether the email exists)
+    var email = request.Email.Trim();
+
+    var user = await _userService.GetUserByEmail(email);
+    if (user == null)
+        return Ok(new ForgotPasswordResponse { Ok = true });
+
+    // Generate token (store only hash)
+    var tokenBytes = RandomNumberGenerator.GetBytes(32);
+    var token = Base64UrlEncode(tokenBytes);
+
+    var tokenHash = Sha256Hex(token);
+    var expiresAt = DateTime.UtcNow.AddHours(1);
+
+    // Need tracked user to update
+    var tracked = await _userService.GetUserByEmailForUpdate(email);
+    if (tracked != null)
+    {
+        tracked.PasswordResetTokenHash = tokenHash;
+        tracked.PasswordResetTokenExpiresAt = expiresAt;
+        await _userService.SaveAsync();
+    }
+
+    // Build reset URL
+    var baseUrl = request.WebBaseUrl;
+    if (string.IsNullOrWhiteSpace(baseUrl))
+    {
+        // fallback: use the request origin (may be the API domain)
+        baseUrl = $"{Request.Scheme}://{Request.Host}";
+    }
+
+    var resetUrl = $"{baseUrl!.TrimEnd('/')}/reset-password?token={Uri.EscapeDataString(token)}";
+
+    try
+    {
+        await _passwordResetEmail.SendPasswordResetEmailAsync(user.Id, resetUrl, HttpContext.RequestAborted);
+    }
+    catch
+    {
+        // Do not fail the request if email provider fails
+    }
+
+    return Ok(new ForgotPasswordResponse { Ok = true });
+}
+
+public class ResetPasswordAnonymousRequest
+{
+    public string Token { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+    public string? LoginUrl { get; set; }
+}
+
+[AllowAnonymous]
+[HttpPost("reset-password")]
+public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordAnonymousRequest request)
+{
+    if (request == null || string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.NewPassword))
+        return BadRequest("Token and NewPassword are required.");
+
+    if (request.NewPassword.Length < 6)
+        return BadRequest("Password must be at least 6 characters.");
+
+    var tokenHash = Sha256Hex(request.Token.Trim());
+
+    var user = await _userService.GetByPasswordResetTokenHash(tokenHash);
+    if (user == null)
+        return BadRequest("Invalid token.");
+
+    if (!user.PasswordResetTokenExpiresAt.HasValue || user.PasswordResetTokenExpiresAt.Value < DateTime.UtcNow)
+        return BadRequest("Token expired.");
+
+    user.Password = Encrypt.EncryptPassword(request.NewPassword);
+    user.PasswordResetTokenHash = null;
+    user.PasswordResetTokenExpiresAt = null;
+
+    // revoke refresh token to force re-login
+    user.RefreshToken = null;
+    user.RefreshTokenExpiresAt = null;
+
+    await _userService.SaveAsync();
+
+    // Best-effort notice email (reuse existing service)
+    try
+    {
+        await _credentialsEmail.SendPasswordChangedNoticeAsync(
+            userId: user.Id,
+            loginUrl: request.LoginUrl,
+            ct: HttpContext.RequestAborted);
+    }
+    catch
+    {
+    }
+
+    return Ok(new ResetPasswordResponse { Ok = true });
+}
+
+private static string Sha256Hex(string value)
+{
+    var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
+    return Convert.ToHexString(bytes);
+}
+
+private static string Base64UrlEncode(byte[] bytes)
+{
+    return Convert.ToBase64String(bytes)
+        .TrimEnd('=')
+        .Replace('+', '-')
+        .Replace('/', '_');
+}
+
+[HttpPost("{id:int}/send-password-changed-notice")]
         public async Task<IActionResult> SendPasswordChangedNotice(int id, [FromBody] SendPasswordChangedNoticeRequest request)
         {
             request ??= new SendPasswordChangedNoticeRequest();

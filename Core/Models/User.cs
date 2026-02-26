@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Core.Enums;
 
 namespace Core.Models
@@ -33,6 +34,11 @@ namespace Core.Models
         
         // Explicit permissions granted to this user
         public ICollection<UserPermission> Permissions { get; set; } = new List<UserPermission>();
+
+        // Password reset (forgot password)
+        public string? PasswordResetTokenHash { get; set; }
+        public DateTime? PasswordResetTokenExpiresAt { get; set; }
+
         
         
                 // Indica se o usuário já concluiu o fluxo de onboarding inicial
