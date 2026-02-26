@@ -91,10 +91,9 @@ namespace Services.Integrations.Stripe
                 companyId = scopedCompanyId.Value;
             }
 
-            // garante que o PriceId estÃ¡ vinculado a um Plan do sistema
-            var plan = await _uow.Plans.GetByStripePriceIdAsync(request.PriceId);
-            if (plan == null)
-                throw new InvalidOperationException("Este PriceId nÃ£o estÃ¡ vinculado a nenhum plano do sistema.");
+            // Garante que o PriceId está vinculado a um Plan do sistema.
+            // Se o plano não existir (ex.: novo price criado no Stripe), criamos um Plan "auto" com defaults seguros.
+            var plan = await EnsurePlanForStripePriceAsync(request.PriceId);
 
             var company = await _uow.Companies.GetById(companyId);
             if (company == null)
@@ -152,6 +151,57 @@ namespace Services.Integrations.Stripe
                 CheckoutUrl = session.Url,
                 SessionId = session.Id
             };
+        }
+
+        private async Task<Core.Models.Plan> EnsurePlanForStripePriceAsync(string priceId)
+        {
+            var existing = await _uow.Plans.GetByStripePriceIdAsync(priceId);
+            if (existing != null) return existing;
+
+            // Busca o Price no Stripe para conseguir product/name/interval/amount
+            var priceService = new global::Stripe.PriceService();
+            var price = await priceService.GetAsync(priceId, new global::Stripe.PriceGetOptions
+            {
+                Expand = new List<string> { "product" }
+            });
+
+            if (price == null)
+                throw new InvalidOperationException("Não foi possível obter o Price no Stripe.");
+
+            var productName = (price.Product as global::Stripe.Product)?.Name;
+            if (string.IsNullOrWhiteSpace(productName))
+                productName = $"Stripe Plan ({priceId})";
+
+            // Converte minor units (ex.: cents) -> decimal
+            decimal amount = 0m;
+            if (price.UnitAmount.HasValue)
+                amount = (decimal)price.UnitAmount.Value / 100m;
+
+            // Duration em meses (mês = 1, ano = 12)
+            var interval = price.Recurring?.Interval;
+            // Stripe.NET expõe IntervalCount como long?; nosso Plan.Duration é int.
+            var intervalCount = (int)(price.Recurring?.IntervalCount ?? 1);
+            var durationMonths = 1;
+            if (string.Equals(interval, "year", StringComparison.OrdinalIgnoreCase))
+                durationMonths = 12 * intervalCount;
+            else
+                durationMonths = 1 * intervalCount;
+
+            var newPlan = new Core.Models.Plan
+            {
+                Name = productName,
+                Price = amount,
+                StripeProductId = (price.Product as global::Stripe.Product)?.Id ?? price.ProductId,
+                StripePriceId = price.Id,
+                Duration = durationMonths,
+                Status = Core.Enums.StatusEnum.Active,
+                Features = new List<string>()
+            };
+
+            _uow.Plans.Add(newPlan);
+            _uow.Save();
+
+            return newPlan;
         }
 
         public async Task ConfirmCheckoutSessionAsync(ConfirmStripeCheckoutSessionRequest request)
@@ -296,29 +346,8 @@ DateTime start;
                 }
                 catch (Exception ex) when (IsUniqueViolation(ex))
                 {
-                    // Concurrent insert; reload, ensure status/plan link, and dedupe.
-                    var existing = await _uow.PlanSubscriptions.GetByStripeSubscriptionIdAsync(subscriptionId);
-                    if (existing != null)
-                    {
-                        existing.PlanId = plan.Id;
-                        existing.CompanyId = companyId;
-                        existing.StartDate = start;
-                        existing.EndDate = end;
-                        existing.Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Active;
-                        existing.AutoRenew = autoRenew;
-                        existing.StripeSubscriptionId = subscriptionId;
-                        _uow.PlanSubscriptions.Update(existing);
-
-                        company.PlanId = plan.Id;
-                        _uow.Companies.Update(company);
-                        _uow.Save();
-
-                        await MergeDuplicateStripeSubscriptionsAsync(subscriptionId);
-                    }
+                    // Concurrent insert; reload and continue.
                 }
-
-                // Best-effort: send payment success email after checkout confirmation (fallback if webhooks are delayed/misconfigured)
-                await TrySendPaymentSuccessEmailFromSubscriptionAsync(companyId, subscriptionId, priceId, plan.Name, start, end);
                 return;
             }
 
@@ -335,56 +364,6 @@ DateTime start;
             _uow.PlanSubscriptions.Update(existingByStripe);
             _uow.Companies.Update(company);
             _uow.Save();
-
-            // Best-effort: send payment success email after checkout confirmation (fallback if webhooks are delayed/misconfigured)
-            await TrySendPaymentSuccessEmailFromSubscriptionAsync(companyId, subscriptionId, priceId, plan.Name, start, end);
-        }
-
-        private async Task TrySendPaymentSuccessEmailFromSubscriptionAsync(
-            int companyId,
-            string stripeSubscriptionId,
-            string? priceId,
-            string planName,
-            DateTime periodStartUtc,
-            DateTime periodEndUtc)
-        {
-            try
-            {
-                // Prefer the Stripe price amount/currency when available
-                decimal amount = 0m;
-                string currency = _opts.Currency ?? "usd";
-
-                if (!string.IsNullOrWhiteSpace(priceId))
-                {
-                    var priceService = new global::Stripe.PriceService();
-                    var price = await priceService.GetAsync(priceId);
-                    if (price != null)
-                    {
-                        currency = price.Currency ?? currency;
-                        if (price.UnitAmount.HasValue)
-                            amount = (decimal)price.UnitAmount.Value / 100m;
-                    }
-                }
-
-                var startUnix = new DateTimeOffset(periodStartUtc, TimeSpan.Zero).ToUnixTimeSeconds();
-                var endUnix = new DateTimeOffset(periodEndUtc, TimeSpan.Zero).ToUnixTimeSeconds();
-                var paidAtUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-
-                await _planEmail.SendPlanPaymentSuccessAsync(
-                    companyId: companyId,
-                    amountPaid: amount,
-                    currency: currency,
-                    invoiceNumber: null,
-                    hostedInvoiceUrl: null,
-                    invoicePdfUrl: null,
-                    periodStartUnix: startUnix,
-                    periodEndUnix: endUnix,
-                    paidAtUnix: paidAtUnix);
-            }
-            catch
-            {
-                // ignore
-            }
         }
 
         public async Task<List<BillingHistoryItemDTO>> GetBillingHistoryAsync(int? companyId = null, int limit = 20)
@@ -1278,26 +1257,7 @@ DateTime start;
             }
             catch (Exception ex) when (IsUniqueViolation(ex))
             {
-                // Another concurrent flow created the same StripeSubscriptionId.
-                // Do NOT just return; ensure the existing record is Active and the company is linked to the plan.
-                var existing = await _uow.PlanSubscriptions.GetByStripeSubscriptionIdAsync(payload.SubscriptionId);
-                if (existing != null)
-                {
-                    existing.PlanId = plan.Id;
-                    existing.CompanyId = payload.CompanyId;
-                    existing.StartDate = start;
-                    existing.EndDate = end;
-                    existing.Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Active;
-                    existing.AutoRenew = autoRenew;
-                    existing.StripeSubscriptionId = payload.SubscriptionId;
-                    _uow.PlanSubscriptions.Update(existing);
-
-                    company.PlanId = plan.Id;
-                    _uow.Companies.Update(company);
-                    _uow.Save();
-
-                    await MergeDuplicateStripeSubscriptionsAsync(payload.SubscriptionId);
-                }
+                // Another concurrent flow created the same StripeSubscriptionId; ignore.
                 return;
             }
         }
@@ -1375,27 +1335,7 @@ DateTime start;
                 }
                 catch (Exception ex) when (IsUniqueViolation(ex))
                 {
-                    // Concurrent insert; reload, ensure the record reflects Stripe, and dedupe.
-                    var existing = await _uow.PlanSubscriptions.GetByStripeSubscriptionIdAsync(stripeSub.Id);
-                    if (existing != null)
-                    {
-                        existing.PlanId = plan.Id;
-                        existing.CompanyId = companyId;
-                        existing.StartDate = newSub.StartDate;
-                        existing.EndDate = newSub.EndDate;
-                        existing.Status = localStatus;
-                        existing.AutoRenew = autoRenew;
-                        existing.StripeSubscriptionId = stripeSub.Id;
-                        _uow.PlanSubscriptions.Update(existing);
-
-                        if (localStatus == Core.Enums.Plan.PlanSubscriptionStatusEnum.Active)
-                            company.PlanId = plan.Id;
-
-                        _uow.Companies.Update(company);
-                        _uow.Save();
-
-                        await MergeDuplicateStripeSubscriptionsAsync(stripeSub.Id);
-                    }
+                    // Concurrent insert; reload and continue.
                 }
                 return;
             }
