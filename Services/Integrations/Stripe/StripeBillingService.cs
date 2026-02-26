@@ -296,8 +296,29 @@ DateTime start;
                 }
                 catch (Exception ex) when (IsUniqueViolation(ex))
                 {
-                    // Concurrent insert; reload and continue.
+                    // Concurrent insert; reload, ensure status/plan link, and dedupe.
+                    var existing = await _uow.PlanSubscriptions.GetByStripeSubscriptionIdAsync(subscriptionId);
+                    if (existing != null)
+                    {
+                        existing.PlanId = plan.Id;
+                        existing.CompanyId = companyId;
+                        existing.StartDate = start;
+                        existing.EndDate = end;
+                        existing.Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Active;
+                        existing.AutoRenew = autoRenew;
+                        existing.StripeSubscriptionId = subscriptionId;
+                        _uow.PlanSubscriptions.Update(existing);
+
+                        company.PlanId = plan.Id;
+                        _uow.Companies.Update(company);
+                        _uow.Save();
+
+                        await MergeDuplicateStripeSubscriptionsAsync(subscriptionId);
+                    }
                 }
+
+                // Best-effort: send payment success email after checkout confirmation (fallback if webhooks are delayed/misconfigured)
+                await TrySendPaymentSuccessEmailFromSubscriptionAsync(companyId, subscriptionId, priceId, plan.Name, start, end);
                 return;
             }
 
@@ -314,6 +335,56 @@ DateTime start;
             _uow.PlanSubscriptions.Update(existingByStripe);
             _uow.Companies.Update(company);
             _uow.Save();
+
+            // Best-effort: send payment success email after checkout confirmation (fallback if webhooks are delayed/misconfigured)
+            await TrySendPaymentSuccessEmailFromSubscriptionAsync(companyId, subscriptionId, priceId, plan.Name, start, end);
+        }
+
+        private async Task TrySendPaymentSuccessEmailFromSubscriptionAsync(
+            int companyId,
+            string stripeSubscriptionId,
+            string? priceId,
+            string planName,
+            DateTime periodStartUtc,
+            DateTime periodEndUtc)
+        {
+            try
+            {
+                // Prefer the Stripe price amount/currency when available
+                decimal amount = 0m;
+                string currency = _opts.Currency ?? "usd";
+
+                if (!string.IsNullOrWhiteSpace(priceId))
+                {
+                    var priceService = new global::Stripe.PriceService();
+                    var price = await priceService.GetAsync(priceId);
+                    if (price != null)
+                    {
+                        currency = price.Currency ?? currency;
+                        if (price.UnitAmount.HasValue)
+                            amount = (decimal)price.UnitAmount.Value / 100m;
+                    }
+                }
+
+                var startUnix = new DateTimeOffset(periodStartUtc, TimeSpan.Zero).ToUnixTimeSeconds();
+                var endUnix = new DateTimeOffset(periodEndUtc, TimeSpan.Zero).ToUnixTimeSeconds();
+                var paidAtUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+                await _planEmail.SendPlanPaymentSuccessAsync(
+                    companyId: companyId,
+                    amountPaid: amount,
+                    currency: currency,
+                    invoiceNumber: null,
+                    hostedInvoiceUrl: null,
+                    invoicePdfUrl: null,
+                    periodStartUnix: startUnix,
+                    periodEndUnix: endUnix,
+                    paidAtUnix: paidAtUnix);
+            }
+            catch
+            {
+                // ignore
+            }
         }
 
         public async Task<List<BillingHistoryItemDTO>> GetBillingHistoryAsync(int? companyId = null, int limit = 20)
@@ -1207,7 +1278,26 @@ DateTime start;
             }
             catch (Exception ex) when (IsUniqueViolation(ex))
             {
-                // Another concurrent flow created the same StripeSubscriptionId; ignore.
+                // Another concurrent flow created the same StripeSubscriptionId.
+                // Do NOT just return; ensure the existing record is Active and the company is linked to the plan.
+                var existing = await _uow.PlanSubscriptions.GetByStripeSubscriptionIdAsync(payload.SubscriptionId);
+                if (existing != null)
+                {
+                    existing.PlanId = plan.Id;
+                    existing.CompanyId = payload.CompanyId;
+                    existing.StartDate = start;
+                    existing.EndDate = end;
+                    existing.Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Active;
+                    existing.AutoRenew = autoRenew;
+                    existing.StripeSubscriptionId = payload.SubscriptionId;
+                    _uow.PlanSubscriptions.Update(existing);
+
+                    company.PlanId = plan.Id;
+                    _uow.Companies.Update(company);
+                    _uow.Save();
+
+                    await MergeDuplicateStripeSubscriptionsAsync(payload.SubscriptionId);
+                }
                 return;
             }
         }
@@ -1285,7 +1375,27 @@ DateTime start;
                 }
                 catch (Exception ex) when (IsUniqueViolation(ex))
                 {
-                    // Concurrent insert; reload and continue.
+                    // Concurrent insert; reload, ensure the record reflects Stripe, and dedupe.
+                    var existing = await _uow.PlanSubscriptions.GetByStripeSubscriptionIdAsync(stripeSub.Id);
+                    if (existing != null)
+                    {
+                        existing.PlanId = plan.Id;
+                        existing.CompanyId = companyId;
+                        existing.StartDate = newSub.StartDate;
+                        existing.EndDate = newSub.EndDate;
+                        existing.Status = localStatus;
+                        existing.AutoRenew = autoRenew;
+                        existing.StripeSubscriptionId = stripeSub.Id;
+                        _uow.PlanSubscriptions.Update(existing);
+
+                        if (localStatus == Core.Enums.Plan.PlanSubscriptionStatusEnum.Active)
+                            company.PlanId = plan.Id;
+
+                        _uow.Companies.Update(company);
+                        _uow.Save();
+
+                        await MergeDuplicateStripeSubscriptionsAsync(stripeSub.Id);
+                    }
                 }
                 return;
             }

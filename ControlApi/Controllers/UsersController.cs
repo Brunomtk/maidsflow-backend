@@ -26,14 +26,16 @@ namespace ControlApi.Controllers
         private readonly IConfiguration _configuration;
         private readonly IS3StorageService _s3;
         private readonly ICredentialsEmailService _credentialsEmail;
+        private readonly IWelcomeEmailService _welcomeEmail;
 
-        public UsersController(IJWTManager jwtManager, IUserService userService, IConfiguration configuration, IS3StorageService s3, ICredentialsEmailService credentialsEmail)
+        public UsersController(IJWTManager jwtManager, IUserService userService, IConfiguration configuration, IS3StorageService s3, ICredentialsEmailService credentialsEmail, IWelcomeEmailService welcomeEmail)
         {
             _jwtManager = jwtManager;
             _userService = userService;
             _configuration = configuration;
             _s3 = s3;
             _credentialsEmail = credentialsEmail;
+            _welcomeEmail = welcomeEmail;
         }
 
         // ===== AUTENTICAÇÃO =====
@@ -228,6 +230,24 @@ namespace ControlApi.Controllers
             var created = await _userService.CreateUser(user);
             if (!created)
                 return BadRequest("Could not create user");
+
+            // Best-effort welcome email (do not block signup on email provider issues)
+            try
+            {
+                var loginUrl = _configuration.GetValue<string>("Frontend:LoginUrl")
+                              ?? _configuration.GetValue<string>("App:LoginUrl")
+                              ?? "https://app.maidsflow.com/login";
+
+                await _welcomeEmail.SendWelcomeAsync(
+                    toEmail: user.Email,
+                    toName: user.Name,
+                    loginUrl: loginUrl,
+                    ct: HttpContext.RequestAborted);
+            }
+            catch
+            {
+                // ignore
+            }
 
             return Ok(user);
         }

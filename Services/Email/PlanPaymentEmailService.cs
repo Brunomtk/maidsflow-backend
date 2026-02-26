@@ -36,7 +36,6 @@ public class PlanPaymentEmailService : IPlanPaymentEmailService
         // Use repository method that includes Plan navigation for better email content.
         var company = await _uow.Companies.GetByIdAsync(companyId);
         if (company == null) return;
-        if (!company.ReceiveEmail) return;
         if (string.IsNullOrWhiteSpace(company.Email)) return;
 
         var planName = company.Plan?.Name ?? "Your plan";
@@ -96,7 +95,6 @@ public class PlanPaymentEmailService : IPlanPaymentEmailService
         // Use repository method that includes Plan navigation for better email content.
         var company = await _uow.Companies.GetByIdAsync(companyId);
         if (company == null) return;
-        if (!company.ReceiveEmail) return;
         if (string.IsNullOrWhiteSpace(company.Email)) return;
 
         var planName = company.Plan?.Name ?? "Your plan";
