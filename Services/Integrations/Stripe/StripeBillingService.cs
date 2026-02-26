@@ -227,7 +227,10 @@ namespace Services.Integrations.Stripe
             // 5) Idempotência por StripeSubscriptionId
             var existingByStripe = await _uow.PlanSubscriptions.GetByStripeSubscriptionIdAsync(subscriptionId);
 
-            DateTime start;
+            // If any duplicates exist (race between confirm + webhook), merge them now.
+            existingByStripe = await MergeDuplicateStripeSubscriptionsAsync(subscriptionId) ?? existingByStripe;
+
+DateTime start;
             DateTime end;
             bool autoRenew;
 
@@ -1240,6 +1243,9 @@ namespace Services.Integrations.Stripe
             // Local subscription por StripeSubscriptionId
             var localSub = await _uow.PlanSubscriptions.GetByStripeSubscriptionIdAsync(stripeSub.Id);
 
+            // Merge any duplicates that may have been inserted concurrently (e.g., webhook vs confirm endpoint)
+            localSub = await MergeDuplicateStripeSubscriptionsAsync(stripeSub.Id) ?? localSub;
+
             if (localSub == null)
             {
                 // Se por algum motivo nÃ£o tivemos checkout.session.completed (webhook perdido), criamos o registro
@@ -1336,6 +1342,39 @@ private static bool IsUniqueViolation(Exception ex)
     }
     return false;
 }
+
+        private async Task<Core.Models.PlanSubscription?> MergeDuplicateStripeSubscriptionsAsync(string stripeSubscriptionId)
+        {
+            if (string.IsNullOrWhiteSpace(stripeSubscriptionId)) return null;
+
+            var all = await _uow.PlanSubscriptions.GetAllByStripeSubscriptionIdAsync(stripeSubscriptionId);
+            if (all == null || all.Count == 0) return null;
+            if (all.Count == 1) return all[0];
+
+            // Keep the most relevant record: prefer Active, then latest EndDate/StartDate, then highest Id
+            Core.Models.PlanSubscription Choose(IEnumerable<Core.Models.PlanSubscription> subs)
+                => subs.OrderByDescending(s => s.Status == Core.Enums.Plan.PlanSubscriptionStatusEnum.Active)
+                       .ThenByDescending(s => s.EndDate)
+                       .ThenByDescending(s => s.StartDate)
+                       .ThenByDescending(s => s.Id)
+                       .First();
+
+            var keeper = Choose(all);
+            foreach (var s in all)
+            {
+                if (s.Id == keeper.Id) continue;
+                _uow.PlanSubscriptions.Delete(s);
+            }
+
+            // Ensure keeper is Active if any record is Active
+            if (all.Any(s => s.Status == Core.Enums.Plan.PlanSubscriptionStatusEnum.Active))
+                keeper.Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Active;
+
+            _uow.PlanSubscriptions.Update(keeper);
+            _uow.Save();
+            return keeper;
+        }
+
 
 private async Task<int> ResolveCompanyIdFromSubscriptionAsync(global::Stripe.Subscription stripeSub)
         {

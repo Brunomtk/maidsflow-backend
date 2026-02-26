@@ -56,6 +56,20 @@ namespace Infrastructure.Repositories
                 .FirstOrDefaultAsync(s => s.StripeSubscriptionId == stripeSubscriptionId);
         }
 
+        public async Task<List<PlanSubscription>> GetAllByStripeSubscriptionIdAsync(string stripeSubscriptionId)
+        {
+            if (string.IsNullOrWhiteSpace(stripeSubscriptionId)) return new List<PlanSubscription>();
+
+            return await _dbContext.Set<PlanSubscription>()
+                .Include(s => s.Plan)
+                .Include(s => s.Company)
+                .Where(s => s.StripeSubscriptionId == stripeSubscriptionId)
+                .OrderByDescending(s => s.EndDate)
+                .ThenByDescending(s => s.StartDate)
+                .ToListAsync();
+        }
+
+
 
         public async Task<List<PlanSubscription>> GetActivesPastEndDateAsync(DateTime utcNow)
         {
@@ -72,6 +86,8 @@ namespace Infrastructure.Repositories
         Task<PlanSubscription?> GetActiveByCompanyAsync(int companyId);
         Task<List<PlanSubscription>> GetByCompanyAsync(int companyId);
         Task<PlanSubscription?> GetByStripeSubscriptionIdAsync(string stripeSubscriptionId);
-        Task<List<PlanSubscription>> GetActivesPastEndDateAsync(DateTime utcNow);
+        
+        Task<List<PlanSubscription>> GetAllByStripeSubscriptionIdAsync(string stripeSubscriptionId);
+Task<List<PlanSubscription>> GetActivesPastEndDateAsync(DateTime utcNow);
     }
 }

@@ -9225,11 +9225,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_STRIPE_EMAILS_SUCCESS_FAILED_v1_unique_subid_fix_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj",
+      "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_STRIPE_EMAILS_SUCCESS_FAILED_v1_dedupe_runtime_fix_buildfix2\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj",
       "projectName": "Core",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_STRIPE_EMAILS_SUCCESS_FAILED_v1_unique_subid_fix_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_STRIPE_EMAILS_SUCCESS_FAILED_v1_dedupe_runtime_fix_buildfix2\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj",
       "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-      "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_STRIPE_EMAILS_SUCCESS_FAILED_v1_unique_subid_fix_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\obj\\",
+      "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_STRIPE_EMAILS_SUCCESS_FAILED_v1_dedupe_runtime_fix_buildfix2\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
