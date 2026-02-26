@@ -8,6 +8,7 @@ using Core.Exceptions;
 using Core.Options;
 using Infrastructure.Repositories;
 using Microsoft.Extensions.Options;
+using Npgsql;
 using Services.Email;
 using Services.Security;
 
@@ -285,8 +286,15 @@ namespace Services.Integrations.Stripe
 
                 company.PlanId = plan.Id;
                 _uow.Companies.Update(company);
-                await _uow.PlanSubscriptions.Add(newSub);
-                _uow.Save();
+                try
+                {
+                    await _uow.PlanSubscriptions.Add(newSub);
+                    _uow.Save();
+                }
+                catch (Exception ex) when (IsUniqueViolation(ex))
+                {
+                    // Concurrent insert; reload and continue.
+                }
                 return;
             }
 
@@ -1189,9 +1197,16 @@ namespace Services.Integrations.Stripe
 
             company.PlanId = plan.Id;
             _uow.Companies.Update(company);
-            await _uow.PlanSubscriptions.Add(sub);
-
-            _uow.Save();
+            try
+            {
+                await _uow.PlanSubscriptions.Add(sub);
+                _uow.Save();
+            }
+            catch (Exception ex) when (IsUniqueViolation(ex))
+            {
+                // Another concurrent flow created the same StripeSubscriptionId; ignore.
+                return;
+            }
         }
 
         private async Task SyncSubscriptionFromStripeAsync(global::Stripe.Subscription stripeSub, bool deletedEvent)
@@ -1257,8 +1272,15 @@ namespace Services.Integrations.Stripe
                     company.PlanId = plan.Id;
 
                 _uow.Companies.Update(company);
-                await _uow.PlanSubscriptions.Add(newSub);
-                _uow.Save();
+                try
+                {
+                    await _uow.PlanSubscriptions.Add(newSub);
+                    _uow.Save();
+                }
+                catch (Exception ex) when (IsUniqueViolation(ex))
+                {
+                    // Concurrent insert; reload and continue.
+                }
                 return;
             }
 
@@ -1302,7 +1324,20 @@ namespace Services.Integrations.Stripe
             _uow.Save();
         }
 
-        private async Task<int> ResolveCompanyIdFromSubscriptionAsync(global::Stripe.Subscription stripeSub)
+        
+private static bool IsUniqueViolation(Exception ex)
+{
+    Exception? cur = ex;
+    while (cur != null)
+    {
+        if (cur is PostgresException pg && pg.SqlState == "23505")
+            return true;
+        cur = cur.InnerException;
+    }
+    return false;
+}
+
+private async Task<int> ResolveCompanyIdFromSubscriptionAsync(global::Stripe.Subscription stripeSub)
         {
             // 1) metadata.companyId (melhor caminho)
             if (stripeSub.Metadata != null && stripeSub.Metadata.TryGetValue("companyId", out var companyIdStr))
