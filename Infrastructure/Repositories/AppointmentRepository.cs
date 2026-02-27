@@ -14,6 +14,19 @@ namespace Infrastructure.Repositories
     {
         public AppointmentRepository(DbContextClass context) : base(context) { }
 
+        public async Task<Appointment?> GetByIdWithDetailsAsync(int id)
+        {
+            return await _dbContext.Set<Appointment>()
+                .Include(a => a.Company)
+                .Include(a => a.Customer)
+                .Include(a => a.CustomerAddress)
+                .Include(a => a.Team)
+                .Include(a => a.ServiceType)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == id);
+        }
+
+
         public async Task<PagedResult<Appointment>> GetPagedAppointmentsAsync(AppointmentFiltersDTO filters)
         {
             var query = _dbContext.Set<Appointment>()
@@ -162,5 +175,6 @@ namespace Infrastructure.Repositories
         Task<List<Appointment>> GetAppointmentsByProfessionalAsync(int professionalId);
         Task<List<Appointment>> GetAppointmentsByCustomerAsync(int customerId);
         Task<List<Appointment>> GetAppointmentsByDateRangeAsync(DateTime start, DateTime end, int? companyId = null);
+        Task<Appointment?> GetByIdWithDetailsAsync(int id);
     }
 }

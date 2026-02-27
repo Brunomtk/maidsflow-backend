@@ -102,6 +102,93 @@ namespace ControlApi.Controllers
             return Ok(routes);
         }
 
+
+        /// <summary>
+        /// Atalho para relatórios de rota por período (day/week/month).
+        /// - day: 1 dia
+        /// - week: segunda..domingo (semana ISO baseada na data de referência)
+        /// - month: 1º..último dia do mês
+        /// </summary>
+        [HttpGet("professional/{professionalId:int}/routes/period")]
+        public async Task<IActionResult> GetRoutesByProfessionalPeriod(
+            int professionalId,
+            [FromQuery] string period,
+            [FromQuery] string? referenceDate,
+            [FromQuery] string? timeZoneId,
+            [FromQuery] bool includePoints = true,
+            [FromQuery] bool includeStops = true)
+        {
+            var tz = string.IsNullOrWhiteSpace(timeZoneId) ? "America/Sao_Paulo" : timeZoneId.Trim();
+
+            var refDay = ParseDateOnly(referenceDate);
+            if (!refDay.HasValue)
+            {
+                var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, ResolveTimeZone(tz)).Date;
+                refDay = DateOnly.FromDateTime(nowLocal);
+            }
+
+            period = (period ?? string.Empty).Trim().ToLowerInvariant();
+
+            DateOnly from;
+            DateOnly to;
+
+            if (period == "day" || period == "daily")
+            {
+                from = refDay.Value;
+                to = refDay.Value;
+            }
+            else if (period == "week" || period == "weekly")
+            {
+                // Semana começando na segunda-feira
+                var dow = (int)refDay.Value.DayOfWeek;
+                // DayOfWeek: Sunday=0 ... Saturday=6. Queremos Monday=0.
+                var mondayOffset = (dow == 0) ? 6 : (dow - 1);
+                from = refDay.Value.AddDays(-mondayOffset);
+                to = from.AddDays(6);
+            }
+            else if (period == "month" || period == "monthly")
+            {
+                from = new DateOnly(refDay.Value.Year, refDay.Value.Month, 1);
+                var last = DateTime.DaysInMonth(refDay.Value.Year, refDay.Value.Month);
+                to = new DateOnly(refDay.Value.Year, refDay.Value.Month, last);
+            }
+            else
+            {
+                return BadRequest("period inválido. Use: day, week ou month.");
+            }
+
+            var routes = await _gpsTrackingService.GetProfessionalRoutesAsync(
+                professionalId,
+                from,
+                to,
+                tz,
+                includePoints,
+                includeStops);
+
+            return Ok(new
+            {
+                period,
+                referenceDate = refDay.Value.ToString("yyyy-MM-dd"),
+                dateFrom = from.ToString("yyyy-MM-dd"),
+                dateTo = to.ToString("yyyy-MM-dd"),
+                timeZoneId = tz,
+                routes
+            });
+        }
+
+        private static TimeZoneInfo ResolveTimeZone(string timeZoneId)
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            }
+            catch
+            {
+                return TimeZoneInfo.Utc;
+            }
+        }
+
+
         private static DateOnly? ParseDateOnly(string? value)
         {
             if (string.IsNullOrWhiteSpace(value)) return null;

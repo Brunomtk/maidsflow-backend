@@ -643,17 +643,13 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                 entity.Property(g => g.ProfessionalName);
                 entity.Property(g => g.CompanyId).IsRequired();
                 entity.Property(g => g.CompanyName);
-                entity.Property(g => g.Vehicle).IsRequired();
-                entity.OwnsOne(g => g.Location, loc =>
+                                entity.OwnsOne(g => g.Location, loc =>
                 {
                     loc.Property(l => l.Latitude).HasColumnName("Latitude").IsRequired();
                     loc.Property(l => l.Longitude).HasColumnName("Longitude").IsRequired();
                     loc.Property(l => l.Address).HasColumnName("Address");
-                    loc.Property(l => l.Accuracy).HasColumnName("Accuracy").IsRequired();
-                });
-                entity.Property(g => g.Speed).IsRequired();
+                                    });
                 entity.Property(g => g.Status).HasConversion<int>().IsRequired();
-                entity.Property(g => g.Battery).IsRequired();
                 entity.Property(g => g.Notes);
                 entity.Property(g => g.Timestamp).IsRequired();
                 entity.Property(g => g.CreatedDate).HasDefaultValueSql("now()");

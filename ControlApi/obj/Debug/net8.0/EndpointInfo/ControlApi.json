@@ -3103,6 +3103,66 @@
         }
       }
     },
+    "/api/GpsTracking/professional/{professionalId}/routes/period": {
+      "get": {
+        "tags": [
+          "GpsTracking"
+        ],
+        "parameters": [
+          {
+            "name": "professionalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "referenceDate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timeZoneId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includePoints",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          {
+            "name": "includeStops",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/Integrations/guesty": {
       "get": {
         "tags": [
@@ -8713,10 +8773,6 @@
             "format": "int32",
             "nullable": true
           },
-          "vehicle": {
-            "type": "string",
-            "nullable": true
-          },
           "latitude": {
             "type": "number",
             "format": "double",
@@ -8731,20 +8787,23 @@
             "type": "string",
             "nullable": true
           },
-          "accuracy": {
+          "status": {
+            "$ref": "#/components/schemas/GpsTrackingStatus"
+          },
+          "source": {
+            "$ref": "#/components/schemas/GpsTrackingSource"
+          },
+          "appointmentId": {
             "type": "integer",
             "format": "int32",
             "nullable": true
           },
-          "speed": {
-            "type": "number",
-            "format": "double",
+          "customerId": {
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           },
-          "status": {
-            "$ref": "#/components/schemas/GpsTrackingStatus"
-          },
-          "battery": {
+          "checkRecordId": {
             "type": "integer",
             "format": "int32",
             "nullable": true
@@ -9641,6 +9700,15 @@
           2,
           3,
           4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "GpsTrackingSource": {
+        "enum": [
+          0,
+          1,
+          2
         ],
         "type": "integer",
         "format": "int32"
@@ -11624,10 +11692,6 @@
             "format": "int32",
             "nullable": true
           },
-          "vehicle": {
-            "type": "string",
-            "nullable": true
-          },
           "latitude": {
             "type": "number",
             "format": "double",
@@ -11642,20 +11706,23 @@
             "type": "string",
             "nullable": true
           },
-          "accuracy": {
+          "status": {
+            "$ref": "#/components/schemas/GpsTrackingStatus"
+          },
+          "source": {
+            "$ref": "#/components/schemas/GpsTrackingSource"
+          },
+          "appointmentId": {
             "type": "integer",
             "format": "int32",
             "nullable": true
           },
-          "speed": {
-            "type": "number",
-            "format": "double",
+          "customerId": {
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           },
-          "status": {
-            "$ref": "#/components/schemas/GpsTrackingStatus"
-          },
-          "battery": {
+          "checkRecordId": {
             "type": "integer",
             "format": "int32",
             "nullable": true

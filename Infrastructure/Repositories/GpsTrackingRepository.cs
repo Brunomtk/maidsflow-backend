@@ -58,8 +58,7 @@ namespace Infrastructure.Repositories
                 q = q.Where(x =>
                     (!string.IsNullOrEmpty(x.ProfessionalName) && x.ProfessionalName.ToLower().Contains(txt))
                     || (!string.IsNullOrEmpty(x.CompanyName) && x.CompanyName.ToLower().Contains(txt))
-                    || (!string.IsNullOrEmpty(x.Vehicle) && x.Vehicle.ToLower().Contains(txt))
-                    || (!string.IsNullOrEmpty(x.Location.Address) && x.Location.Address.ToLower().Contains(txt)));
+                                        || (!string.IsNullOrEmpty(x.Location.Address) && x.Location.Address.ToLower().Contains(txt)));
             }
 
             if (filters.DateFrom.HasValue)

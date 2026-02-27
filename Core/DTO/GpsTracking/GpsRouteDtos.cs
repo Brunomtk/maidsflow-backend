@@ -1,6 +1,7 @@
 // Core/DTO/GpsTracking/GpsRouteDtos.cs
 using System;
 using System.Collections.Generic;
+using Core.Enums.GpsTracking;
 
 namespace Core.DTO.GpsTracking
 {
@@ -9,9 +10,12 @@ namespace Core.DTO.GpsTracking
         public double Latitude { get; set; }
         public double Longitude { get; set; }
         public string? Address { get; set; }
-        public double Speed { get; set; }
-        public int Battery { get; set; }
         public DateTime TimestampUtc { get; set; }
+
+        public GpsTrackingSource Source { get; set; } = GpsTrackingSource.Gps;
+        public int? AppointmentId { get; set; }
+        public int? CustomerId { get; set; }
+        public int? CheckRecordId { get; set; }
     }
 
     public class GpsRouteStopDTO

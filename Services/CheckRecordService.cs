@@ -1,7 +1,9 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Core.DTO.CheckRecord;
 using Core.Enums.CheckRecord;
+using Core.Enums.GpsTracking;
 using Core.Models;
 using Infrastructure.Repositories;
 using Infrastructure.ServiceExtension;
@@ -95,10 +97,23 @@ namespace Services
             // admin leaves as-is.
 
             // Validate references when present
-            // CustomerId e AppointmentId são obrigatórios no DTO
-            await _scope.EnsureCustomerInCompanyAsync(dto.CustomerId);
-            if (dto.TeamId.HasValue) await _scope.EnsureTeamInCompanyAsync(dto.TeamId.Value);
+            // Appointment é obrigatório. Usamos ele como fonte de verdade para Customer/Address.
             await _scope.EnsureAppointmentAccessAsync(dto.AppointmentId);
+
+            var appointment = await _unitOfWork.Appointments.GetByIdWithDetailsAsync(dto.AppointmentId);
+            if (appointment == null)
+                throw new NotFoundException("Appointment não encontrado.");
+
+            if (appointment.CustomerId.HasValue)
+                dto.CustomerId = appointment.CustomerId.Value;
+
+            // CustomerId é obrigatório no fluxo e precisa estar dentro da company
+            await _scope.EnsureCustomerInCompanyAsync(dto.CustomerId);
+
+            if (dto.TeamId.HasValue) await _scope.EnsureTeamInCompanyAsync(dto.TeamId.Value);
+
+            dto.Address = FormatAppointmentAddress(appointment);
+
 
             var now = DateTime.UtcNow;
             var record = new CheckRecord
@@ -223,10 +238,23 @@ namespace Services
                     await _scope.EnsureProfessionalInCompanyAsync(dto.ProfessionalId);
             }
 
-            // CustomerId e AppointmentId são obrigatórios no DTO
-            await _scope.EnsureCustomerInCompanyAsync(dto.CustomerId);
-            if (dto.TeamId.HasValue) await _scope.EnsureTeamInCompanyAsync(dto.TeamId.Value);
+            // Appointment é obrigatório. Usamos ele como fonte de verdade para Customer/Address.
             await _scope.EnsureAppointmentAccessAsync(dto.AppointmentId);
+
+            var appointment = await _unitOfWork.Appointments.GetByIdWithDetailsAsync(dto.AppointmentId);
+            if (appointment == null)
+                throw new NotFoundException("Appointment não encontrado.");
+
+            if (appointment.CustomerId.HasValue)
+                dto.CustomerId = appointment.CustomerId.Value;
+
+            // CustomerId é obrigatório no fluxo e precisa estar dentro da company
+            await _scope.EnsureCustomerInCompanyAsync(dto.CustomerId);
+
+            if (dto.TeamId.HasValue) await _scope.EnsureTeamInCompanyAsync(dto.TeamId.Value);
+
+            dto.Address = FormatAppointmentAddress(appointment);
+
 
             var now = DateTime.UtcNow;
 
@@ -251,6 +279,9 @@ namespace Services
 
             await _unitOfWork.CheckRecords.Add(record);
             await _unitOfWork.SaveAsync();
+
+            // Cria um ponto de rota baseado no check-in (para relatório do dia/semana/mês)
+            await CreateGpsPointFromCheckInAsync(record);
 
             return record;
         }
@@ -278,6 +309,68 @@ namespace Services
             await _unitOfWork.SaveAsync();
 
             return record;
+        }
+
+        private static string FormatAppointmentAddress(Appointment appointment)
+        {
+            if (appointment.CustomerAddress != null)
+            {
+                var a = appointment.CustomerAddress;
+
+                var line1 = (a.AddressLine1 ?? string.Empty).Trim();
+                var line2 = (a.AddressLine2 ?? string.Empty).Trim();
+                var city = (a.City ?? string.Empty).Trim();
+                var state = (a.State ?? string.Empty).Trim();
+                var zip = (a.ZipCode ?? string.Empty).Trim();
+
+                var firstPart = string.Join(", ", new[] { line1, line2 }.Where(x => !string.IsNullOrWhiteSpace(x)));
+                var secondPart = string.Join(", ", new[] { city, state }.Where(x => !string.IsNullOrWhiteSpace(x)));
+                var thirdPart = string.Join(" ", new[] { zip }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+                var combined = string.Join(", ", new[] { firstPart, secondPart }.Where(x => !string.IsNullOrWhiteSpace(x)));
+                combined = string.Join(" ", new[] { combined, thirdPart }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+                if (!string.IsNullOrWhiteSpace(combined))
+                    return combined;
+            }
+
+            return (appointment.Address ?? string.Empty).Trim();
+        }
+
+        private async Task CreateGpsPointFromCheckInAsync(CheckRecord record)
+        {
+            // Enriquecimento best-effort
+            string? companyName = null;
+            try
+            {
+                var company = await _unitOfWork.Companies.GetByIdAsync(record.CompanyId);
+                companyName = company?.Name;
+            }
+            catch { }
+
+            var gpsPoint = new GpsTracking
+            {
+                ProfessionalId = record.ProfessionalId,
+                ProfessionalName = record.ProfessionalName,
+                CompanyId = record.CompanyId,
+                CompanyName = companyName,
+                TeamId = record.TeamId,
+                Status = GpsTrackingStatus.Active,
+                Source = GpsTrackingSource.CheckIn,
+                AppointmentId = record.AppointmentId,
+                CustomerId = record.CustomerId,
+                CheckRecordId = record.Id,
+                Timestamp = record.CheckInTime ?? record.CreatedDate,
+                Location = new Location
+                {
+                    Latitude = 0,
+                    Longitude = 0,
+                    Address = record.Address ?? string.Empty
+                }
+            };
+
+            await _unitOfWork.GpsTrackings.Add(gpsPoint);
+            await _unitOfWork.SaveAsync();
         }
     }
 }

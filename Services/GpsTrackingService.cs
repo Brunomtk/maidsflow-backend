@@ -110,17 +110,16 @@ namespace Services
                 CompanyId = dto.CompanyId,
                 CompanyName = dto.CompanyName,
                 TeamId = dto.TeamId,
-                Vehicle = dto.Vehicle ?? string.Empty,
                 Location = new Location
                 {
                     Latitude = dto.Latitude ?? 0,
                     Longitude = dto.Longitude ?? 0,
-                    Address = dto.Address ?? string.Empty,
-                    Accuracy = dto.Accuracy.HasValue ? dto.Accuracy.Value : 0
-                },
-                Speed = dto.Speed ?? 0,
+                    Address = dto.Address ?? string.Empty,                },
                 Status = dto.Status ?? GpsTrackingStatus.Active,
-                Battery = dto.Battery ?? 0,
+                Source = dto.Source ?? GpsTrackingSource.Gps,
+                AppointmentId = dto.AppointmentId,
+                CustomerId = dto.CustomerId,
+                CheckRecordId = dto.CheckRecordId,
                 Notes = dto.Notes,
                 Timestamp = dto.Timestamp ?? DateTime.UtcNow,
                 CreatedDate = DateTime.UtcNow,
@@ -163,28 +162,23 @@ namespace Services
                 model.CompanyName = dto.CompanyName;
 
             if (dto.TeamId.HasValue)
-                model.TeamId = dto.TeamId;
-
-            if (!string.IsNullOrWhiteSpace(dto.Vehicle))
-                model.Vehicle = dto.Vehicle;
-
-            if (dto.Latitude.HasValue)
+                model.TeamId = dto.TeamId;            if (dto.Latitude.HasValue)
                 model.Location.Latitude = dto.Latitude.Value;
             if (dto.Longitude.HasValue)
                 model.Location.Longitude = dto.Longitude.Value;
             if (!string.IsNullOrWhiteSpace(dto.Address))
-                model.Location.Address = dto.Address;
-            if (dto.Accuracy.HasValue)
-                model.Location.Accuracy = dto.Accuracy.Value;
-
-            if (dto.Speed.HasValue)
-                model.Speed = dto.Speed.Value;
-
-            if (dto.Status.HasValue)
+                model.Location.Address = dto.Address;if (dto.Status.HasValue)
                 model.Status = dto.Status.Value;
 
-            if (dto.Battery.HasValue)
-                model.Battery = dto.Battery.Value;
+            if (dto.Source.HasValue)
+                model.Source = dto.Source.Value;
+
+            if (_currentUser.IsAdmin)
+            {
+                if (dto.AppointmentId.HasValue) model.AppointmentId = dto.AppointmentId.Value;
+                if (dto.CustomerId.HasValue) model.CustomerId = dto.CustomerId.Value;
+                if (dto.CheckRecordId.HasValue) model.CheckRecordId = dto.CheckRecordId.Value;
+            }
 
             if (dto.Notes != null)
                 model.Notes = dto.Notes;
@@ -330,10 +324,11 @@ namespace Services
                         {
                             Latitude = x.Location?.Latitude ?? 0,
                             Longitude = x.Location?.Longitude ?? 0,
-                            Address = x.Location?.Address,
-                            Speed = x.Speed,
-                            Battery = x.Battery,
-                            TimestampUtc = DateTime.SpecifyKind(x.Timestamp, DateTimeKind.Utc)
+                            Address = x.Location?.Address,                            TimestampUtc = DateTime.SpecifyKind(x.Timestamp, DateTimeKind.Utc),
+                            Source = x.Source,
+                            AppointmentId = x.AppointmentId,
+                            CustomerId = x.CustomerId,
+                            CheckRecordId = x.CheckRecordId
                         }).ToList()
                         : new List<GpsRoutePointDTO>(),
                     Stops = stops

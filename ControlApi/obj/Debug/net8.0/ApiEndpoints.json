@@ -1916,6 +1916,47 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "ControlApi.Controllers.GpsTrackingController",
+    "Method": "GetRoutesByProfessionalPeriod",
+    "RelativePath": "api/GpsTracking/professional/{professionalId}/routes/period",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "professionalId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "period",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "referenceDate",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "timeZoneId",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "includePoints",
+        "Type": "System.Boolean",
+        "IsRequired": false
+      },
+      {
+        "Name": "includeStops",
+        "Type": "System.Boolean",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "ControlApi.Controllers.GuestyScheduleController",
     "Method": "GetSchedule",
     "RelativePath": "api/GuestySchedule",

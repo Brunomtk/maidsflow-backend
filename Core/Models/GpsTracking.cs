@@ -14,15 +14,16 @@ namespace Core.Models
 
         public int? TeamId { get; set; }
 
-        public string Vehicle { get; set; } = string.Empty;
-
-        // Location holds latitude, longitude, address and accuracy
+        // Location holds latitude, longitude and address
         public Location Location { get; set; } = new Location();
 
-        public double Speed { get; set; }
         public GpsTrackingStatus Status { get; set; }
 
-        public int Battery { get; set; }
+        public GpsTrackingSource Source { get; set; } = GpsTrackingSource.Gps;
+
+        public int? AppointmentId { get; set; }
+        public int? CustomerId { get; set; }
+        public int? CheckRecordId { get; set; }
 
         public string? Notes { get; set; }
 
