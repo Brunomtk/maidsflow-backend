@@ -11,6 +11,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Core.Exceptions;
 using Services.Security;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Services
 {
@@ -53,6 +55,10 @@ namespace Services
         {
             if (user == null) return false;
 
+            // Normalize email early (enforce case-insensitive uniqueness)
+            if (!string.IsNullOrWhiteSpace(user.Email))
+                user.Email = user.Email.Trim().ToLower();
+
             // --------------------
             // Anonymous signup support
             // --------------------
@@ -81,10 +87,23 @@ namespace Services
                 if (user.Permissions != null && user.Permissions.Any())
                     throw new ForbiddenException("Permissões não são permitidas no signup.");
 
+                if (string.IsNullOrWhiteSpace(user.Email))
+                    throw new BadRequestException("E-mail é obrigatório.");
+
+                if (await _unitOfWork.Users.EmailExistsAsync(user.Email))
+                    throw new ConflictException("Esse e-mail já está em uso. Faça login ou use outro e-mail.");
+
                 user.Password = Encrypt.EncryptPassword(user.Password);
-                await _unitOfWork.Users.Add(user);
-                var createdRows = _unitOfWork.Save();
-                return createdRows > 0;
+                try
+                {
+                    await _unitOfWork.Users.Add(user);
+                    var createdRows = _unitOfWork.Save();
+                    return createdRows > 0;
+                }
+                catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+                {
+                    throw new ConflictException("Esse e-mail já está em uso. Faça login ou use outro e-mail.");
+                }
             }
 
             if (!_currentUser.IsAdmin && !_currentUser.IsCompany)
@@ -136,10 +155,31 @@ namespace Services
             }
 
             user.Password = Encrypt.EncryptPassword(user.Password);
-            await _unitOfWork.Users.Add(user);
 
-            var result = _unitOfWork.Save();
-            return result > 0;
+            if (string.IsNullOrWhiteSpace(user.Email))
+                throw new BadRequestException("E-mail é obrigatório.");
+
+            if (await _unitOfWork.Users.EmailExistsAsync(user.Email))
+                throw new ConflictException("Esse e-mail já está em uso. Faça login ou use outro e-mail.");
+
+            try
+            {
+                await _unitOfWork.Users.Add(user);
+                var result = _unitOfWork.Save();
+                return result > 0;
+            }
+            catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+            {
+                throw new ConflictException("Esse e-mail já está em uso. Faça login ou use outro e-mail.");
+            }
+        }
+
+        private static bool IsUniqueViolation(DbUpdateException ex)
+        {
+            // Postgres unique violation: 23505
+            if (ex.InnerException is PostgresException pg)
+                return pg.SqlState == PostgresErrorCodes.UniqueViolation;
+            return false;
         }
 
         public async Task<bool> DeleteUser(int userId)

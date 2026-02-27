@@ -1,12 +1,36 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_forgot_password_v1_buildfix_sendgrid_signature\\maidsflow-backend_calendar_teamcolor_address_v1\\ControlApi\\",
-  "Documents": [],
+  "WorkspaceRootPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_forgot_password_v1_buildfix_unique_email_v2_migrationfix\\maidsflow-backend_calendar_teamcolor_address_v1\\ControlApi\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_forgot_password_v1_buildfix_unique_email_v2_migrationfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Infrastructure\\Migrations\\20260227000141_emailiguais.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
       "VerticalTabListWidth": 256,
-      "DocumentGroups": []
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "20260227000141_emailiguais.cs",
+              "DocumentMoniker": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_forgot_password_v1_buildfix_unique_email_v2_migrationfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Infrastructure\\Migrations\\20260227000141_emailiguais.cs",
+              "RelativeDocumentMoniker": "..\\Infrastructure\\Migrations\\20260227000141_emailiguais.cs",
+              "ToolTip": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_forgot_password_v1_buildfix_unique_email_v2_migrationfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Infrastructure\\Migrations\\20260227000141_emailiguais.cs*",
+              "RelativeToolTip": "..\\Infrastructure\\Migrations\\20260227000141_emailiguais.cs*",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-27T00:01:41.598Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
     }
   ]
 }

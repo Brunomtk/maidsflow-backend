@@ -24,6 +24,17 @@ namespace Infrastructure.Repositories
                 .FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower());
         }
 
+        public async Task<bool> EmailExistsAsync(string email)
+        {
+            var normalized = (email ?? string.Empty).Trim().ToLower();
+            if (string.IsNullOrWhiteSpace(normalized))
+                return false;
+
+            return await _dbContext.Set<User>()
+                .AsNoTracking()
+                .AnyAsync(x => x.Email.ToLower() == normalized);
+        }
+
         
 
         /// <summary>
@@ -82,6 +93,7 @@ namespace Infrastructure.Repositories
 public interface IUserRepository : IGenericRepository<User>
     {
         Task<User?> GetUserByEmail(string email);
+        Task<bool> EmailExistsAsync(string email);
         Task<User?> GetUserByEmailForUpdate(string email);
         Task<User?> GetByPasswordResetTokenHash(string tokenHash);
         Task<PagedResult<User>> GetAllUsuariosPaged(FiltersDTO filtersDTO);
