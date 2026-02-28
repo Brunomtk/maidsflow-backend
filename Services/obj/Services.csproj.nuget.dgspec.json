@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj": {}
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj": {}
   },
   "projects": {
-    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj": {
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj",
+        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj",
         "projectName": "Core",
-        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj",
+        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\obj\\",
+        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -153,14 +153,14 @@
         }
       }
     },
-    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Infrastructure\\Infrastructure.csproj": {
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Infrastructure\\Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Infrastructure\\Infrastructure.csproj",
+        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Infrastructure\\Infrastructure.csproj",
         "projectName": "Infrastructure",
-        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Infrastructure\\Infrastructure.csproj",
+        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Infrastructure\\Infrastructure.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Infrastructure\\obj\\",
+        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -181,8 +181,8 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj": {
-                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj"
               }
             }
           }
@@ -328,14 +328,14 @@
         }
       }
     },
-    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj": {
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
         "projectName": "Services",
-        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\obj\\",
+        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -356,11 +356,11 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj": {
-                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Core\\Core.csproj"
               },
-              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Infrastructure\\Infrastructure.csproj": {
-                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v3_buildfix\\maidsflow-backend_calendar_teamcolor_address_v1\\Infrastructure\\Infrastructure.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Infrastructure\\Infrastructure.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v5_robust_maps_ready_googlekey_only\\maidsflow-backend_calendar_teamcolor_address_v1\\Infrastructure\\Infrastructure.csproj"
               }
             }
           }

@@ -9,6 +9,9 @@ using Infrastructure.Repositories;
 using Infrastructure.ServiceExtension;
 using Services.Security;
 using Core.Exceptions;
+using Core.Options;
+using Microsoft.Extensions.Options;
+using Services.Integrations.GoogleMaps;
 
 namespace Services
 {
@@ -38,12 +41,21 @@ namespace Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUser _currentUser;
         private readonly IScopeGuard _scope;
+        private readonly GpsTrackingOptions _opts;
+        private readonly IReverseGeocodingService _reverseGeocoding;
 
-        public GpsTrackingService(IUnitOfWork unitOfWork, ICurrentUser currentUser, IScopeGuard scope)
+        public GpsTrackingService(
+            IUnitOfWork unitOfWork,
+            ICurrentUser currentUser,
+            IScopeGuard scope,
+            IOptions<GpsTrackingOptions> opts,
+            IReverseGeocodingService reverseGeocoding)
         {
             _unitOfWork = unitOfWork;
             _currentUser = currentUser;
             _scope = scope;
+            _opts = opts.Value;
+            _reverseGeocoding = reverseGeocoding;
         }
 
         public async Task<PagedResult<GpsTracking>> GetPagedAsync(GpsTrackingFiltersDTO filters)
@@ -103,6 +115,45 @@ namespace Services
         await _scope.EnsureProfessionalInCompanyAsync(dto.ProfessionalId);
     }
 
+            var nowUtc = DateTime.UtcNow;
+
+            // valida latitude/longitude
+            var lat = dto.Latitude ?? 0;
+            var lng = dto.Longitude ?? 0;
+            if (!IsValidLatLng(lat, lng))
+                throw new BadRequestException("Latitude/Longitude inválidos.");
+
+            // valida timestamp
+            var ts = dto.Timestamp ?? nowUtc;
+            var maxFuture = nowUtc.AddMinutes(Math.Max(1, _opts.MaxFutureMinutes));
+            if (ts > maxFuture)
+                throw new BadRequestException("Timestamp inválido (muito no futuro).");
+
+            var maxPast = nowUtc.AddHours(-Math.Max(1, _opts.MaxPastHours));
+            if (ts < maxPast)
+                throw new BadRequestException("Timestamp inválido (muito antigo).");
+
+            // dedup: ignora pontos repetidos/ruins (melhora performance e rotas)
+            var last = await _unitOfWork.GpsTrackings.GetLastPointAsync(dto.ProfessionalId, dto.CompanyId);
+            if (last != null && last.Location != null)
+            {
+                var lastTs = DateTime.SpecifyKind(last.Timestamp, DateTimeKind.Utc);
+                var window = TimeSpan.FromSeconds(Math.Max(1, _opts.DedupWindowSeconds));
+                if (ts - lastTs <= window)
+                {
+                    var dist = HaversineMeters(last.Location.Latitude, last.Location.Longitude, lat, lng);
+                    if (dist <= Math.Max(0.1, _opts.DedupDistanceMeters))
+                        return last; // retorna o último para evitar flood
+                }
+            }
+
+            // reverse geocoding (opcional): se não veio address, tenta preencher
+            var address = dto.Address;
+            if (_opts.EnableReverseGeocoding && string.IsNullOrWhiteSpace(address))
+            {
+                address = await _reverseGeocoding.ReverseGeocodeAsync(lat, lng);
+            }
+
             var model = new GpsTracking
             {
                 ProfessionalId = dto.ProfessionalId,
@@ -112,18 +163,19 @@ namespace Services
                 TeamId = dto.TeamId,
                 Location = new Location
                 {
-                    Latitude = dto.Latitude ?? 0,
-                    Longitude = dto.Longitude ?? 0,
-                    Address = dto.Address ?? string.Empty,                },
+                    Latitude = lat,
+                    Longitude = lng,
+                    Address = address ?? string.Empty,
+                },
                 Status = dto.Status ?? GpsTrackingStatus.Active,
                 Source = dto.Source ?? GpsTrackingSource.Gps,
                 AppointmentId = dto.AppointmentId,
                 CustomerId = dto.CustomerId,
                 CheckRecordId = dto.CheckRecordId,
                 Notes = dto.Notes,
-                Timestamp = dto.Timestamp ?? DateTime.UtcNow,
-                CreatedDate = DateTime.UtcNow,
-                UpdatedDate = DateTime.UtcNow
+                Timestamp = ts,
+                CreatedDate = nowUtc,
+                UpdatedDate = nowUtc
             };
 
             await _unitOfWork.GpsTrackings.Add(model);
@@ -263,6 +315,11 @@ namespace Services
                 utcToExclusive,
                 scopedCompanyId);
 
+            // Blindagem: remove pontos inválidos (ex.: 0,0 / sem Location / fora de range)
+            points = points
+                .Where(IsValidGpsPoint)
+                .ToList();
+
             // agrupa por dia (no fuso)
             var byDay = new Dictionary<DateOnly, List<GpsTracking>>();
             foreach (var p in points)
@@ -287,6 +344,11 @@ namespace Services
             {
                 var dayPoints = byDay[day].OrderBy(x => x.Timestamp).ToList();
                 if (dayPoints.Count == 0) continue;
+
+                // Robustez/performance: downsampling quando includePoints=true
+                var downsampled = includePoints
+                    ? DownsampleOrderedPoints(dayPoints, _opts.DownsampleMinSeconds, _opts.DownsampleMinMeters)
+                    : dayPoints;
 
                 var first = dayPoints.First();
                 var last = dayPoints.Last();
@@ -320,11 +382,12 @@ namespace Services
                     CompanyId = first.CompanyId,
                     Summary = summary,
                     Points = includePoints
-                        ? dayPoints.Select(x => new GpsRoutePointDTO
+                        ? downsampled.Select(x => new GpsRoutePointDTO
                         {
-                            Latitude = x.Location?.Latitude ?? 0,
-                            Longitude = x.Location?.Longitude ?? 0,
-                            Address = x.Location?.Address,                            TimestampUtc = DateTime.SpecifyKind(x.Timestamp, DateTimeKind.Utc),
+                            Latitude = x.Location!.Latitude,
+                            Longitude = x.Location!.Longitude,
+                            Address = x.Location!.Address,
+                            TimestampUtc = DateTime.SpecifyKind(x.Timestamp, DateTimeKind.Utc),
                             Source = x.Source,
                             AppointmentId = x.AppointmentId,
                             CustomerId = x.CustomerId,
@@ -366,6 +429,9 @@ namespace Services
                 var b = points[i].Location;
                 if (a == null || b == null) continue;
 
+                if (!IsValidLatLng(a.Latitude, a.Longitude) || !IsValidLatLng(b.Latitude, b.Longitude))
+                    continue;
+
                 var d = HaversineMeters(a.Latitude, a.Longitude, b.Latitude, b.Longitude);
 
                 // filtro leve para “saltos absurdos” (ex.: GPS bug). Ajuste se quiser.
@@ -381,6 +447,10 @@ namespace Services
             var stops = new List<GpsRouteStopDTO>();
             if (orderedPoints.Count < 2) return stops;
 
+            // Garante segurança caso a lista venha com dados inconsistentes.
+            orderedPoints = orderedPoints.Where(IsValidGpsPoint).ToList();
+            if (orderedPoints.Count < 2) return stops;
+
             var anchor = orderedPoints[0];
             var anchorTime = DateTime.SpecifyKind(anchor.Timestamp, DateTimeKind.Utc);
 
@@ -389,7 +459,7 @@ namespace Services
                 var curr = orderedPoints[i];
                 var currTime = DateTime.SpecifyKind(curr.Timestamp, DateTimeKind.Utc);
 
-                var dist = HaversineMeters(anchor.Location.Latitude, anchor.Location.Longitude, curr.Location.Latitude, curr.Location.Longitude);
+                var dist = HaversineMeters(anchor.Location!.Latitude, anchor.Location!.Longitude, curr.Location!.Latitude, curr.Location!.Longitude);
 
                 // continua dentro da mesma “bolha”
                 if (dist <= stopRadiusMeters)
@@ -406,9 +476,9 @@ namespace Services
                 {
                     stops.Add(new GpsRouteStopDTO
                     {
-                        Latitude = anchor.Location.Latitude,
-                        Longitude = anchor.Location.Longitude,
-                        Address = anchor.Location.Address,
+                        Latitude = anchor.Location!.Latitude,
+                        Longitude = anchor.Location!.Longitude,
+                        Address = anchor.Location!.Address,
                         StartUtc = anchorTime,
                         EndUtc = prevTime,
                         DurationMinutes = Math.Round(duration, 2)
@@ -428,9 +498,9 @@ namespace Services
             {
                 stops.Add(new GpsRouteStopDTO
                 {
-                    Latitude = anchor.Location.Latitude,
-                    Longitude = anchor.Location.Longitude,
-                    Address = anchor.Location.Address,
+                    Latitude = anchor.Location!.Latitude,
+                    Longitude = anchor.Location!.Longitude,
+                    Address = anchor.Location!.Address,
                     StartUtc = anchorTime,
                     EndUtc = lastTime,
                     DurationMinutes = Math.Round(tailDuration, 2)
@@ -453,6 +523,62 @@ namespace Services
                     Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
             var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
             return R * c;
+        }
+
+        private static List<GpsTracking> DownsampleOrderedPoints(List<GpsTracking> orderedPoints, int minSeconds, double minMeters)
+        {
+            orderedPoints = orderedPoints.Where(IsValidGpsPoint).OrderBy(x => x.Timestamp).ToList();
+            if (orderedPoints.Count <= 2) return orderedPoints;
+
+            var sec = Math.Max(1, minSeconds);
+            var meters = Math.Max(0, minMeters);
+
+            var result = new List<GpsTracking>(Math.Min(orderedPoints.Count, 1000));
+
+            var lastKept = orderedPoints[0];
+            result.Add(lastKept);
+
+            for (var i = 1; i < orderedPoints.Count - 1; i++)
+            {
+                var curr = orderedPoints[i];
+                var dt = (DateTime.SpecifyKind(curr.Timestamp, DateTimeKind.Utc) - DateTime.SpecifyKind(lastKept.Timestamp, DateTimeKind.Utc)).TotalSeconds;
+                if (dt >= sec)
+                {
+                    result.Add(curr);
+                    lastKept = curr;
+                    continue;
+                }
+
+                if (meters > 0)
+                {
+                    var dist = HaversineMeters(lastKept.Location!.Latitude, lastKept.Location!.Longitude, curr.Location!.Latitude, curr.Location!.Longitude);
+                    if (dist >= meters)
+                    {
+                        result.Add(curr);
+                        lastKept = curr;
+                    }
+                }
+            }
+
+            // sempre inclui o último
+            result.Add(orderedPoints[^1]);
+            return result;
+        }
+
+        private static bool IsValidGpsPoint(GpsTracking p)
+        {
+            if (p.Location == null) return false;
+            return IsValidLatLng(p.Location.Latitude, p.Location.Longitude);
+        }
+
+        private static bool IsValidLatLng(double lat, double lng)
+        {
+            if (double.IsNaN(lat) || double.IsNaN(lng)) return false;
+            if (double.IsInfinity(lat) || double.IsInfinity(lng)) return false;
+            if (lat == 0 && lng == 0) return false;
+            if (lat < -90 || lat > 90) return false;
+            if (lng < -180 || lng > 180) return false;
+            return true;
         }
     }
 }

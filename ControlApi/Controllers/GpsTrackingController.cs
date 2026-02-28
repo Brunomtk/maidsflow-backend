@@ -5,6 +5,8 @@ using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Core.DTO.GpsTracking;
+using Core.Options;
+using Microsoft.Extensions.Options;
 using Services;   // ← certifica-se de que este namespace é o correto
 
 namespace ControlApi.Controllers
@@ -15,16 +17,27 @@ namespace ControlApi.Controllers
     public class GpsTrackingController : ControllerBase
     {
         private readonly IGpsTrackingService _gpsTrackingService;
+        private readonly GpsTrackingOptions _gpsOptions;
 
-        public GpsTrackingController(IGpsTrackingService gpsTrackingService)
+        public GpsTrackingController(IGpsTrackingService gpsTrackingService, IOptions<GpsTrackingOptions> gpsOptions)
         {
             _gpsTrackingService = gpsTrackingService;
+            _gpsOptions = gpsOptions.Value;
         }
 
-        [AllowAnonymous]
         [HttpPost("create")]
         public async Task<IActionResult> Create([FromBody] CreateGpsTrackingDTO request)
         {
+            // Robustez: este endpoint não deve aceitar ingestão anônima sem uma chave.
+            // - Se o usuário está autenticado via JWT, ok.
+            // - Se não estiver, exige header X-GPS-INGEST-KEY (config: GpsTracking:IngestApiKey)
+            if (!(User?.Identity?.IsAuthenticated ?? false))
+            {
+                var key = Request.Headers["X-GPS-INGEST-KEY"].ToString();
+                if (string.IsNullOrWhiteSpace(_gpsOptions.IngestApiKey) || !string.Equals(key, _gpsOptions.IngestApiKey, StringComparison.Ordinal))
+                    return Unauthorized("Missing/invalid X-GPS-INGEST-KEY");
+            }
+
             var created = await _gpsTrackingService.CreateAsync(request);
             return created != null
                 ? Ok(created)

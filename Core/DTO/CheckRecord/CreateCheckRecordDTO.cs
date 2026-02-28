@@ -16,6 +16,10 @@ namespace Core.DTO.CheckRecord
 
         public string Address { get; set; } = string.Empty;
 
+        // Coordenadas do check-in (opcional). Se não vier, o sistema não cria ponto GPS automático.
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+
         public int? TeamId { get; set; }
         public string? TeamName { get; set; }
 

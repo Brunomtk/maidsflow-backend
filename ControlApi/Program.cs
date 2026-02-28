@@ -17,6 +17,7 @@ using Services.Integrations.Stripe;
 using Services.Integrations.Guesty;
 using Services.Email;
 using Core.Options;
+using Services.Integrations.GoogleMaps;
 using System.Text.Json.Serialization;
 using System.Net;
 using System.Text;
@@ -100,6 +101,17 @@ builder.Services.AddScoped<IGuestyCustomerAddressSyncService, GuestyCustomerAddr
             // -----------------------------
             builder.Services.Configure<SendGridOptions>(builder.Configuration.GetSection("SendGrid"));
 
+            // -----------------------------
+            // Google Maps (Reverse Geocoding - optional)
+            // -----------------------------
+            builder.Services.Configure<GoogleMapsOptions>(builder.Configuration.GetSection(GoogleMapsOptions.SectionName));
+            builder.Services.AddHttpClient<IReverseGeocodingService, GoogleReverseGeocodingService>();
+
+            // -----------------------------
+            // GPS Tracking options
+            // -----------------------------
+            builder.Services.Configure<GpsTrackingOptions>(builder.Configuration.GetSection(GpsTrackingOptions.SectionName));
+
             builder.Services.Configure<StripeOptions>(builder.Configuration.GetSection(StripeOptions.SectionName));
             builder.Services.AddHttpClient<ISendGridEmailSender, SendGridEmailSender>();
             builder.Services.AddScoped<ICredentialsEmailService, CredentialsEmailService>();
@@ -113,6 +125,7 @@ builder.Services.AddScoped<IGuestyCustomerAddressSyncService, GuestyCustomerAddr
             builder.Services.AddHostedService<AppointmentReminderHostedService>();
             builder.Services.AddHostedService<ReviewRequestHostedService>();
             builder.Services.AddHostedService<NotificationCleanupHostedService>();
+            builder.Services.AddHostedService<GpsTrackingRetentionHostedService>();
             
             // -----------------------------
             // JWT

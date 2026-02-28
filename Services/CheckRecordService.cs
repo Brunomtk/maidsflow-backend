@@ -125,6 +125,8 @@ namespace Services
                 CustomerName = dto.CustomerName,
                 AppointmentId = dto.AppointmentId,
                 Address = dto.Address,
+                Latitude = dto.Latitude,
+                Longitude = dto.Longitude,
                 TeamId = dto.TeamId,
                 TeamName = dto.TeamName,
                 ServiceType = dto.ServiceType,
@@ -177,6 +179,8 @@ namespace Services
             record.CustomerName = dto.CustomerName ?? record.CustomerName;
             record.AppointmentId = dto.AppointmentId ?? record.AppointmentId;
             record.Address = dto.Address ?? record.Address;
+            record.Latitude = dto.Latitude ?? record.Latitude;
+            record.Longitude = dto.Longitude ?? record.Longitude;
             record.TeamId = dto.TeamId ?? record.TeamId;
             record.TeamName = dto.TeamName ?? record.TeamName;
             record.CheckInTime = dto.CheckInTime ?? record.CheckInTime;
@@ -267,6 +271,8 @@ namespace Services
                 CustomerName = dto.CustomerName,
                 AppointmentId = dto.AppointmentId,
                 Address = dto.Address,
+                Latitude = dto.Latitude,
+                Longitude = dto.Longitude,
                 TeamId = dto.TeamId,
                 TeamName = dto.TeamName,
                 ServiceType = dto.ServiceType,
@@ -339,6 +345,10 @@ namespace Services
 
         private async Task CreateGpsPointFromCheckInAsync(CheckRecord record)
         {
+            // Não cria ponto automático se não houver coordenadas válidas.
+            if (!IsValidLatLng(record.Latitude, record.Longitude))
+                return;
+
             // Enriquecimento best-effort
             string? companyName = null;
             try
@@ -363,14 +373,23 @@ namespace Services
                 Timestamp = record.CheckInTime ?? record.CreatedDate,
                 Location = new Location
                 {
-                    Latitude = 0,
-                    Longitude = 0,
+                    Latitude = (double)record.Latitude!.Value,
+                    Longitude = (double)record.Longitude!.Value,
                     Address = record.Address ?? string.Empty
                 }
             };
 
             await _unitOfWork.GpsTrackings.Add(gpsPoint);
             await _unitOfWork.SaveAsync();
+        }
+
+        private static bool IsValidLatLng(decimal? lat, decimal? lng)
+        {
+            if (!lat.HasValue || !lng.HasValue) return false;
+            if (lat.Value == 0m && lng.Value == 0m) return false;
+            if (lat.Value < -90m || lat.Value > 90m) return false;
+            if (lng.Value < -180m || lng.Value > 180m) return false;
+            return true;
         }
     }
 }

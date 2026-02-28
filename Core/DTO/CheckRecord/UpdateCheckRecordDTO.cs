@@ -16,6 +16,9 @@ namespace Core.DTO.CheckRecord
 
         public string? Address { get; set; }
 
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+
         public int? TeamId { get; set; }
         public string? TeamName { get; set; }
 

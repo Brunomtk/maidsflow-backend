@@ -17,6 +17,10 @@ namespace Core.Models
 
         public string Address { get; set; } = string.Empty;
 
+        // Coordenadas capturadas no check-in (best-effort). Nullable para não quebrar fluxos legados.
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+
         public int? TeamId { get; set; }
         public string? TeamName { get; set; }
 
