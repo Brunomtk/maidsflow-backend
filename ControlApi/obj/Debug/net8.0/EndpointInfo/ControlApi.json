@@ -5720,6 +5720,18 @@
         }
       }
     },
+    "/api/PublicConfig/maps": {
+      "get": {
+        "tags": [
+          "PublicConfig"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/PushSubscriptions/public-config": {
       "get": {
         "tags": [

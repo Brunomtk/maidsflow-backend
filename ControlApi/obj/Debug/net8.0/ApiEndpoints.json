@@ -3517,6 +3517,16 @@
     ]
   },
   {
+    "ContainingType": "ControlApi.Controllers.PublicConfigController",
+    "Method": "GetMapsConfig",
+    "RelativePath": "api/PublicConfig/maps",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "ControlApi.Controllers.PushSubscriptionsController",
     "Method": "GetMine",
     "RelativePath": "api/PushSubscriptions/me",
