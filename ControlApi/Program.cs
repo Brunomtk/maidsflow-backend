@@ -62,6 +62,7 @@ builder.Services.AddScoped<IAppointmentCompletionService, AppointmentCompletionS
             builder.Services.AddScoped<ICheckRecordService, CheckRecordService>();
             builder.Services.AddScoped<IRecurrenceService, RecurrenceService>();
             builder.Services.AddScoped<IGpsTrackingService, GpsTrackingService>();
+            builder.Services.AddScoped<IRoutePlanningService, RoutePlanningService>();
             builder.Services.AddScoped<IReviewService, ReviewService>();
             builder.Services.AddScoped<IInternalFeedbackService, InternalFeedbackService>();
             builder.Services.AddScoped<ICancellationService, CancellationService>();
@@ -106,6 +107,7 @@ builder.Services.AddScoped<IGuestyCustomerAddressSyncService, GuestyCustomerAddr
             // -----------------------------
             builder.Services.Configure<GoogleMapsOptions>(builder.Configuration.GetSection(GoogleMapsOptions.SectionName));
             builder.Services.AddHttpClient<IReverseGeocodingService, GoogleReverseGeocodingService>();
+            builder.Services.AddHttpClient<IDirectionsService, GoogleDirectionsService>();
 
             // -----------------------------
             // GPS Tracking options

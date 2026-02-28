@@ -3918,6 +3918,47 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "ControlApi.Controllers.RoutePlanningController",
+    "Method": "GetOptimizedDayRoute",
+    "RelativePath": "api/RoutePlanning/professional/{professionalId}/day",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "professionalId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "date",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "timeZoneId",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "startAddress",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "endAddress",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "mode",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "ControlApi.Controllers.ServiceTypesController",
     "Method": "Create",
     "RelativePath": "api/ServiceTypes",

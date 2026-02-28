@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "/kUZiYqPmyw=",
+  "dgSpecHash": "JPjcdw8qhms=",
   "success": true,
-  "projectFilePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+  "projectFilePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\bruno\\.nuget\\packages\\awssdk.core\\3.7.400\\awssdk.core.3.7.400.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\awssdk.s3\\3.7.400\\awssdk.s3.3.7.400.nupkg.sha512",
@@ -204,9 +204,9 @@
       "code": "NU1603",
       "level": "Warning",
       "message": "Services depende de AWSSDK.S3 (>= 3.7.310.9) mas AWSSDK.S3 3.7.310.9 não foi encontrado. AWSSDK.S3 3.7.400 foi resolvido.",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "libraryId": "AWSSDK.S3",
       "targetGraphs": [
         "net8.0"
@@ -216,9 +216,9 @@
       "code": "NU1902",
       "level": "Warning",
       "message": "O pacote 'BouncyCastle' 1.8.9 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-8xfc-gm6g-vgpv",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "libraryId": "BouncyCastle",
       "targetGraphs": [
         "net8.0"
@@ -228,9 +228,9 @@
       "code": "NU1902",
       "level": "Warning",
       "message": "O pacote 'BouncyCastle' 1.8.9 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-m44j-cfrm-g8qc",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "libraryId": "BouncyCastle",
       "targetGraphs": [
         "net8.0"
@@ -240,9 +240,9 @@
       "code": "NU1902",
       "level": "Warning",
       "message": "O pacote 'BouncyCastle' 1.8.9 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-v435-xc8x-wvr9",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "libraryId": "BouncyCastle",
       "targetGraphs": [
         "net8.0"
@@ -252,9 +252,9 @@
       "code": "NU1701",
       "level": "Warning",
       "message": "O pacote 'BouncyCastle 1.8.9' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net8.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "libraryId": "BouncyCastle",
       "targetGraphs": [
         "net8.0"
@@ -264,9 +264,9 @@
       "code": "NU1701",
       "level": "Warning",
       "message": "O pacote 'iTextSharp 5.5.13.4' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net8.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "libraryId": "iTextSharp",
       "targetGraphs": [
         "net8.0"
@@ -276,9 +276,9 @@
       "code": "NU1701",
       "level": "Warning",
       "message": "O pacote 'itextsharp.xmlworker 5.5.13.4' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net8.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "libraryId": "itextsharp.xmlworker",
       "targetGraphs": [
         "net8.0"
@@ -288,9 +288,9 @@
       "code": "NU1701",
       "level": "Warning",
       "message": "O pacote 'LiveCharts 0.9.7' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net8.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "libraryId": "LiveCharts",
       "targetGraphs": [
         "net8.0"
@@ -300,9 +300,9 @@
       "code": "NU1701",
       "level": "Warning",
       "message": "O pacote 'PdfiumViewer 2.13.0' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net8.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_gps_routes_checkin_v6_publicconfig_maps_endpoint\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route_planning_v1\\maidsflow-backend_calendar_teamcolor_address_v1\\Services\\Services.csproj",
       "libraryId": "PdfiumViewer",
       "targetGraphs": [
         "net8.0"
