@@ -27,6 +27,8 @@ namespace Core.DTO.RoutePlanning
         public int AppointmentId { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
         public DateTime Start { get; set; }
         public DateTime End { get; set; }
     }

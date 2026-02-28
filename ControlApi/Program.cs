@@ -108,6 +108,7 @@ builder.Services.AddScoped<IGuestyCustomerAddressSyncService, GuestyCustomerAddr
             builder.Services.Configure<GoogleMapsOptions>(builder.Configuration.GetSection(GoogleMapsOptions.SectionName));
             builder.Services.AddHttpClient<IReverseGeocodingService, GoogleReverseGeocodingService>();
             builder.Services.AddHttpClient<IDirectionsService, GoogleDirectionsService>();
+            builder.Services.AddHttpClient<IGeocodingService, GoogleGeocodingService>();
 
             // -----------------------------
             // GPS Tracking options

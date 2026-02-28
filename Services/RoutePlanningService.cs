@@ -23,13 +23,15 @@ namespace Services
         private readonly IScopeGuard _scope;
         private readonly ICurrentUser _currentUser;
         private readonly IDirectionsService _directions;
+        private readonly IGeocodingService _geocoding;
 
-        public RoutePlanningService(IUnitOfWork uow, IScopeGuard scope, ICurrentUser currentUser, IDirectionsService directions)
+        public RoutePlanningService(IUnitOfWork uow, IScopeGuard scope, ICurrentUser currentUser, IDirectionsService directions, IGeocodingService geocoding)
         {
             _uow = uow;
             _scope = scope;
             _currentUser = currentUser;
             _directions = directions;
+            _geocoding = geocoding;
         }
 
         public async Task<RoutePlanResponseDTO> BuildOptimizedDayRouteAsync(int professionalId, RoutePlanRequestDTO request, CancellationToken ct = default)
@@ -155,17 +157,36 @@ namespace Services
                 OverviewPolyline = dir?.OverviewPolyline,
                 TotalDistanceKm = Math.Round(((dir?.TotalDistanceMeters ?? 0) / 1000.0), 2),
                 TotalDurationMinutes = (int)Math.Round(((dir?.TotalDurationSeconds ?? 0) / 60.0), 0),
-                Stops = orderedStops.Select(s => new RoutePlanStopDTO
-                {
-                    AppointmentId = s.AppointmentId,
-                    Title = s.Title,
-                    Address = s.Address,
-                    Start = s.Start,
-                    End = s.End
-                }).ToList()
+                Stops = new List<RoutePlanStopDTO>()
             };
 
-            return resp;
+            
+            // Populate coordinates for stops (so the frontend can place pins and focus reliably).
+            foreach (var st in orderedStops)
+            {
+                double? lat = null;
+                double? lng = null;
+
+                var geo = await _geocoding.GeocodeAsync(st.Address, ct);
+                if (geo != null)
+                {
+                    lat = geo.Latitude;
+                    lng = geo.Longitude;
+                }
+
+                resp.Stops.Add(new RoutePlanStopDTO
+                {
+                    AppointmentId = st.AppointmentId,
+                    Title = st.Title,
+                    Address = st.Address,
+                    Latitude = lat,
+                    Longitude = lng,
+                    Start = st.Start,
+                    End = st.End
+                });
+            }
+
+return resp;
         }
     }
 }
