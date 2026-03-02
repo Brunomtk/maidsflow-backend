@@ -483,6 +483,18 @@ namespace Services
 
             return result > 0;
         }
+
+public async Task<bool> UpdateUserCompany(int userId, int companyId)
+{
+    var user = await _unitOfWork.Users.GetById(userId);
+    if (user == null) return false;
+
+    user.CompanyId = companyId;
+    _unitOfWork.Users.Update(user);
+
+    var result = await _unitOfWork.SaveAsync();
+    return result > 0;
+}
     }
 
     public interface IUserService
@@ -501,5 +513,6 @@ namespace Services
         Task<bool> UpdateRefreshToken(int userId, string? refreshToken, DateTime? expiresAt);
         Task<User?> GetByRefreshToken(string refreshToken);
         Task<bool> UpdateUserPreferences(int userId, string? language, string? theme);
+        Task<bool> UpdateUserCompany(int userId, int companyId);
     }
 }

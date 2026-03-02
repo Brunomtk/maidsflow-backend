@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj": {}
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj": {}
   },
   "projects": {
-    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj": {
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
         "projectName": "ControlApi",
-        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\obj\\",
+        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -32,14 +32,14 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Core\\Core.csproj": {
-                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Core\\Core.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Core\\Core.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Core\\Core.csproj"
               },
-              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Infrastructure\\Infrastructure.csproj": {
-                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Infrastructure\\Infrastructure.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Infrastructure\\Infrastructure.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Infrastructure\\Infrastructure.csproj"
               },
-              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Services\\Services.csproj": {
-                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Services\\Services.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Services\\Services.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Services\\Services.csproj"
               }
             }
           }
@@ -75,6 +75,10 @@
             "DtronixPdf": {
               "target": "Package",
               "version": "[1.1.3, )"
+            },
+            "Google.Apis.Auth": {
+              "target": "Package",
+              "version": "[1.68.0, )"
             },
             "ImageSharpCommunity.Formats.Pdf": {
               "target": "Package",
@@ -186,14 +190,14 @@
         }
       }
     },
-    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Core\\Core.csproj": {
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Core\\Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Core\\Core.csproj",
+        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Core\\Core.csproj",
         "projectName": "Core",
-        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Core\\Core.csproj",
+        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Core\\Core.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Core\\obj\\",
+        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Core\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -335,14 +339,14 @@
         }
       }
     },
-    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Infrastructure\\Infrastructure.csproj": {
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Infrastructure\\Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Infrastructure\\Infrastructure.csproj",
+        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Infrastructure\\Infrastructure.csproj",
         "projectName": "Infrastructure",
-        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Infrastructure\\Infrastructure.csproj",
+        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Infrastructure\\Infrastructure.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Infrastructure\\obj\\",
+        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -363,8 +367,8 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Core\\Core.csproj": {
-                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Core\\Core.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Core\\Core.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Core\\Core.csproj"
               }
             }
           }
@@ -510,14 +514,14 @@
         }
       }
     },
-    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Services\\Services.csproj": {
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Services\\Services.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Services\\Services.csproj",
+        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Services\\Services.csproj",
         "projectName": "Services",
-        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Services\\Services.csproj",
+        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Services\\Services.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Services\\obj\\",
+        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Services\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -538,11 +542,11 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Core\\Core.csproj": {
-                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Core\\Core.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Core\\Core.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Core\\Core.csproj"
               },
-              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Infrastructure\\Infrastructure.csproj": {
-                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\Infrastructure\\Infrastructure.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Infrastructure\\Infrastructure.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\Infrastructure\\Infrastructure.csproj"
               }
             }
           }
@@ -586,6 +590,10 @@
             "EPPlus": {
               "target": "Package",
               "version": "[7.2.1, )"
+            },
+            "Google.Apis.Auth": {
+              "target": "Package",
+              "version": "[1.68.0, )"
             },
             "ImageSharpCommunity.Formats.Pdf": {
               "target": "Package",

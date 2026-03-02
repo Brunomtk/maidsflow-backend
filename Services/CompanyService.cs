@@ -161,6 +161,12 @@ namespace Services
             var result = await _unitOfWork.SaveAsync();
             return result > 0;
         }
+
+public async Task<bool> CompanyExists(int companyId)
+{
+    var c = await _unitOfWork.Companies.GetById(companyId);
+    return c != null;
+}
     }
 
     public interface ICompanyService
@@ -173,5 +179,6 @@ namespace Services
         Task<bool> CreateCompany(Company company);
         Task<bool> UpdateCompany(CreateCompanyRequest request, int companyId);
         Task<bool> DeleteCompany(int companyId);
+        Task<bool> CompanyExists(int companyId);
     }
 }

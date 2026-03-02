@@ -4484,6 +4484,22 @@
   },
   {
     "ContainingType": "ControlApi.Controllers.UsersController",
+    "Method": "AuthenticateGoogle",
+    "RelativePath": "api/Users/authenticate/google",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Core.DTO.User.GoogleAuthenticateRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.UsersController",
     "Method": "ForgotPassword",
     "RelativePath": "api/Users/forgot-password",
     "HttpMethod": "POST",
@@ -4493,6 +4509,22 @@
       {
         "Name": "request",
         "Type": "ControlApi.Controllers.UsersController\u002BForgotPasswordAnonymousRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.UsersController",
+    "Method": "LinkCompanyToCurrentUser",
+    "RelativePath": "api/Users/me/link-company",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Core.DTO.User.LinkCompanyRequest",
         "IsRequired": true
       }
     ],

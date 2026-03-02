@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "xt458/txn9g=",
+  "dgSpecHash": "e4sbJUMPiO8=",
   "success": true,
-  "projectFilePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+  "projectFilePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\bruno\\.nuget\\packages\\awssdk.core\\3.7.400\\awssdk.core.3.7.400.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\awssdk.s3\\3.7.400\\awssdk.s3.3.7.400.nupkg.sha512",
@@ -20,6 +20,9 @@
     "C:\\Users\\bruno\\.nuget\\packages\\epplus.interfaces\\6.1.1\\epplus.interfaces.6.1.1.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\epplus.system.drawing\\6.1.1\\epplus.system.drawing.6.1.1.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\excelnumberformat\\1.1.0\\excelnumberformat.1.1.0.nupkg.sha512",
+    "C:\\Users\\bruno\\.nuget\\packages\\google.apis\\1.68.0\\google.apis.1.68.0.nupkg.sha512",
+    "C:\\Users\\bruno\\.nuget\\packages\\google.apis.auth\\1.68.0\\google.apis.auth.1.68.0.nupkg.sha512",
+    "C:\\Users\\bruno\\.nuget\\packages\\google.apis.core\\1.68.0\\google.apis.core.1.68.0.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\imagesharpcommunity.formats.pdf\\0.2.0\\imagesharpcommunity.formats.pdf.0.2.0.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\irony.netcore\\1.0.11\\irony.netcore.1.0.11.nupkg.sha512",
@@ -126,7 +129,7 @@
     "C:\\Users\\bruno\\.nuget\\packages\\swashbuckle.aspnetcore.swaggerui\\6.4.0\\swashbuckle.aspnetcore.swaggerui.6.4.0.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\system.appcontext\\4.3.0\\system.appcontext.4.3.0.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\system.buffers\\4.3.0\\system.buffers.4.3.0.nupkg.sha512",
-    "C:\\Users\\bruno\\.nuget\\packages\\system.codedom\\4.4.0\\system.codedom.4.4.0.nupkg.sha512",
+    "C:\\Users\\bruno\\.nuget\\packages\\system.codedom\\7.0.0\\system.codedom.7.0.0.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\system.collections\\4.3.0\\system.collections.4.3.0.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\system.collections.concurrent\\4.3.0\\system.collections.concurrent.4.3.0.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\system.collections.nongeneric\\4.3.0\\system.collections.nongeneric.4.3.0.nupkg.sha512",
@@ -154,6 +157,7 @@
     "C:\\Users\\bruno\\.nuget\\packages\\system.linq\\4.3.0\\system.linq.4.3.0.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\system.linq.dynamic.core\\1.4.0\\system.linq.dynamic.core.1.4.0.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\system.linq.expressions\\4.3.0\\system.linq.expressions.4.3.0.nupkg.sha512",
+    "C:\\Users\\bruno\\.nuget\\packages\\system.management\\7.0.2\\system.management.7.0.2.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\system.memory\\4.5.3\\system.memory.4.5.3.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\system.net.http\\4.3.4\\system.net.http.4.3.4.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\system.net.primitives\\4.3.0\\system.net.primitives.4.3.0.nupkg.sha512",
@@ -213,9 +217,9 @@
       "code": "NU1603",
       "level": "Warning",
       "message": "Services depende de AWSSDK.S3 (>= 3.7.310.9) mas AWSSDK.S3 3.7.310.9 não foi encontrado. AWSSDK.S3 3.7.400 foi resolvido.",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "libraryId": "AWSSDK.S3",
       "targetGraphs": [
         "net8.0"
@@ -225,9 +229,9 @@
       "code": "NU1902",
       "level": "Warning",
       "message": "O pacote 'BouncyCastle' 1.8.9 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-8xfc-gm6g-vgpv",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "libraryId": "BouncyCastle",
       "targetGraphs": [
         "net8.0"
@@ -237,9 +241,9 @@
       "code": "NU1902",
       "level": "Warning",
       "message": "O pacote 'BouncyCastle' 1.8.9 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-m44j-cfrm-g8qc",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "libraryId": "BouncyCastle",
       "targetGraphs": [
         "net8.0"
@@ -249,9 +253,9 @@
       "code": "NU1902",
       "level": "Warning",
       "message": "O pacote 'BouncyCastle' 1.8.9 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-v435-xc8x-wvr9",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "libraryId": "BouncyCastle",
       "targetGraphs": [
         "net8.0"
@@ -261,9 +265,9 @@
       "code": "NU1701",
       "level": "Warning",
       "message": "O pacote 'BouncyCastle 1.8.9' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net8.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "libraryId": "BouncyCastle",
       "targetGraphs": [
         "net8.0"
@@ -273,9 +277,9 @@
       "code": "NU1701",
       "level": "Warning",
       "message": "O pacote 'iTextSharp 5.5.13.4' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net8.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "libraryId": "iTextSharp",
       "targetGraphs": [
         "net8.0"
@@ -285,9 +289,9 @@
       "code": "NU1701",
       "level": "Warning",
       "message": "O pacote 'itextsharp.xmlworker 5.5.13.4' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net8.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "libraryId": "itextsharp.xmlworker",
       "targetGraphs": [
         "net8.0"
@@ -297,9 +301,9 @@
       "code": "NU1701",
       "level": "Warning",
       "message": "O pacote 'LiveCharts 0.9.7' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net8.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "libraryId": "LiveCharts",
       "targetGraphs": [
         "net8.0"
@@ -309,9 +313,9 @@
       "code": "NU1701",
       "level": "Warning",
       "message": "O pacote 'PdfiumViewer 2.13.0' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net8.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_push_checkout_reminder_v5_compilefix\\ControlApi\\ControlApi.csproj",
+      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v9_appsettings_fixed_valid\\ControlApi\\ControlApi.csproj",
       "libraryId": "PdfiumViewer",
       "targetGraphs": [
         "net8.0"

@@ -22,6 +22,7 @@ using System.Text.Json.Serialization;
 using System.Net;
 using System.Text;
 using ControlApi.BackgroundJobs;
+using Services.Security;
 
 
 
@@ -39,6 +40,7 @@ namespace ControlApi
             // -----------------------------
             builder.Services.AddDIServices(builder.Configuration);
             builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
             builder.Services.AddMemoryCache();
             builder.Services.AddScoped<Services.Security.ICurrentUser, Services.Security.CurrentUser>();
             builder.Services.AddScoped<Services.Security.IScopeGuard, Services.Security.ScopeGuard>();

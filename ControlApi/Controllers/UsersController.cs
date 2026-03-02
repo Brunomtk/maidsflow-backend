@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Services;
+using Services.Security;
 using Services.Email;
 
 using Services.Storage;
@@ -26,20 +27,35 @@ namespace ControlApi.Controllers
     {
         private readonly IJWTManager _jwtManager;
         private readonly IUserService _userService;
+        private readonly ICompanyService _companyService;
         private readonly IConfiguration _configuration;
+        private readonly IGoogleTokenValidator _googleTokenValidator;
         private readonly IS3StorageService _s3;
         private readonly ICredentialsEmailService _credentialsEmail;
         private readonly IPasswordResetEmailService _passwordResetEmail;
 
-        public UsersController(IJWTManager jwtManager, IUserService userService, IConfiguration configuration, IS3StorageService s3, ICredentialsEmailService credentialsEmail, IPasswordResetEmailService passwordResetEmail)
+        
+        public UsersController(
+            IJWTManager jwtManager,
+            IUserService userService,
+            IConfiguration configuration,
+            IS3StorageService s3,
+            ICredentialsEmailService credentialsEmail,
+            IPasswordResetEmailService passwordResetEmail,
+            IGoogleTokenValidator googleTokenValidator,
+            ICompanyService companyService)
         {
             _jwtManager = jwtManager;
             _userService = userService;
+            _companyService = companyService;
             _configuration = configuration;
             _s3 = s3;
             _credentialsEmail = credentialsEmail;
             _passwordResetEmail = passwordResetEmail;
+            _googleTokenValidator = googleTokenValidator;
         }
+
+
 
         // ===== AUTENTICAÇÃO =====
 
@@ -108,7 +124,96 @@ namespace ControlApi.Controllers
         }
 
         [AllowAnonymous]
-        [HttpPost("refresh-token")]
+        [HttpPost("authenticate/google")]
+                public async Task<IActionResult> AuthenticateGoogle([FromBody] GoogleAuthenticateRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.IdToken))
+                return BadRequest("IdToken is required");
+
+            GoogleTokenPayload payload;
+            try
+            {
+                payload = await _googleTokenValidator.ValidateIdTokenAsync(request.IdToken);
+            }
+            catch (Exception ex)
+            {
+                return Unauthorized($"Invalid Google token: {ex.Message}");
+            }
+
+            if (string.IsNullOrWhiteSpace(payload.Email))
+                return Unauthorized("Google token does not contain a valid email");
+
+            // Prefer existing user by email (case-insensitive).
+            var user = await _userService.GetUserByEmail(payload.Email);
+
+            if (user == null)
+            {
+                // Create a new user (no password login). We store a random password to satisfy the legacy schema.
+                var randomPassword = Guid.NewGuid().ToString("N") + "!";
+                user = new User
+                {
+                    Name = string.IsNullOrWhiteSpace(request.Name) ? (string.IsNullOrWhiteSpace(payload.Name) ? payload.Email : payload.Name) : request.Name!,
+                    Email = payload.Email,
+                    Password = randomPassword,
+                    Role = "company",
+                    Status = Core.Enums.StatusEnum.Active,
+                    CompanyId = null,
+                    ProfessionalId = null,
+                    CustomerId = null,
+                    Onboarding = false,
+                    Language = "pt-BR",
+                    Theme = "dark",
+                    Avatar = payload.Picture
+                };
+
+                var ok = await _userService.CreateUser(user);
+                if (!ok)
+                    return BadRequest("Unable to create user");
+
+                // Reload to get Id / persisted fields (CreateUser encrypts password)
+                user = await _userService.GetUserByEmail(payload.Email);
+                if (user == null)
+                    return BadRequest("User creation failed");
+            }
+
+            var token = await _jwtManager.Authenticate(user, request.RememberMe);
+            if (token == null)
+                return Unauthorized("Token generation failed");
+
+            var daysKey = request.RememberMe ? "Jwt:RememberMeRefreshDays" : "Jwt:RefreshTokenDays";
+            var days = _configuration.GetValue<int?>(daysKey) ?? 30;
+            await _userService.UpdateRefreshToken(
+                user.Id,
+                token.RefreshToken,
+                DateTime.UtcNow.AddDays(days)
+            );
+
+            var avatarUrl = !string.IsNullOrWhiteSpace(user.AvatarKey)
+                ? _s3.CreateDownloadUrl(user.AvatarKey)
+                : user.Avatar;
+
+            var response = new AuthUserResponse
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email,
+                Role = user.Role,
+                Avatar = avatarUrl,
+                AvatarKey = user.AvatarKey,
+                AvatarUrl = avatarUrl,
+                Status = user.Status,
+                Token = token.Token,
+                RefreshToken = token.RefreshToken,
+                CompanyId = user.CompanyId,
+                ProfessionalId = user.ProfessionalId,
+                CustomerId = user.CustomerId,
+                Language = user.Language,
+                Theme = user.Theme,
+                Onboarding = user.Onboarding
+            };
+
+            return Ok(response);
+        }[HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.RefreshToken))
@@ -445,6 +550,46 @@ private static string Base64UrlEncode(byte[] bytes)
                 ProviderStatusCode = result.ProviderStatusCode,
                 ProviderResponse = result.ProviderResponse
             });
+        }
+
+
+        [Authorize]
+        [HttpPut("me/link-company")]
+        public async Task<IActionResult> LinkCompanyToCurrentUser([FromBody] LinkCompanyRequest request)
+        {
+        if (request == null || request.CompanyId <= 0)
+        return BadRequest("CompanyId is required");
+
+        var userIdClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = int.TryParse(userIdClaim, out var uid) ? uid : 0;
+        if (userId <= 0)
+        return Unauthorized();
+
+        var user = await _userService.GetUserById(userId);
+        if (user == null)
+        return NotFound("User not found");
+
+        // Only company owner accounts can be linked
+        if (!string.Equals(user.Role, "company", StringComparison.OrdinalIgnoreCase))
+        return Forbid("Only company users can be linked to a company");
+
+        // Prevent accidental reassignment
+        if (user.CompanyId.HasValue && user.CompanyId.Value > 0 && user.CompanyId.Value != request.CompanyId)
+        return Forbid("User is already linked to a different company");
+
+        // Validate target company exists
+        var companyOk = await _companyService.CompanyExists(request.CompanyId);
+            if (!companyOk)
+                return BadRequest("Invalid CompanyId");
+
+        // Link and persist
+        user.CompanyId = request.CompanyId;
+
+        var ok = await _userService.UpdateUserCompany(user.Id, request.CompanyId);
+        if (!ok)
+        return BadRequest("Unable to link company");
+
+        return Ok(new { success = true, companyId = request.CompanyId });
         }
     }
 }
