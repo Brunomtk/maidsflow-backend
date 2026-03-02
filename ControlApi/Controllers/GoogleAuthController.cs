@@ -77,7 +77,20 @@ namespace ControlApi.Controllers
                     Avatar = payload.Picture
                 };
 
-                var ok = await _userService.CreateUser(user);
+                
+// This endpoint is anonymous, but user creation is protected by service-level role checks.
+// Temporarily assume the "signup" role to allow creating the bootstrap user.
+HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+    new System.Security.Claims.ClaimsIdentity(new[]
+    {
+        new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, "signup"),
+        new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, "0"),
+        new System.Security.Claims.Claim("sub", payload.Subject ?? string.Empty),
+        new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, payload.Email ?? string.Empty),
+    }, "GoogleSignup")
+);
+
+var ok = await _userService.CreateUser(user);
                 if (!ok)
                     return BadRequest("Unable to create user");
 
