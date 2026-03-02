@@ -126,6 +126,7 @@ builder.Services.AddScoped<IGuestyCustomerAddressSyncService, GuestyCustomerAddr
             // Background Jobs
             // -----------------------------
             builder.Services.AddHostedService<AppointmentReminderHostedService>();
+builder.Services.AddHostedService<CheckoutReminderHostedService>();
             builder.Services.AddHostedService<ReviewRequestHostedService>();
             builder.Services.AddHostedService<NotificationCleanupHostedService>();
             builder.Services.AddHostedService<GpsTrackingRetentionHostedService>();

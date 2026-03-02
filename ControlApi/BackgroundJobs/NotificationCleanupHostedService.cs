@@ -35,7 +35,9 @@ namespace ControlApi.BackgroundJobs
         private static readonly string[] ReminderTitles =
         {
             "Agendamento em 30 minutos",
-            "Appointment in 30 minutes"
+            "Appointment in 30 minutes",
+            "Checkout pendente",
+            "Checkout pending"
         };
 
         public NotificationCleanupHostedService(
