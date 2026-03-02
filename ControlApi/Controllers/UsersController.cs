@@ -8,9 +8,11 @@ using Core.DTO;
 using Core.DTO.User;
 using Core.Models;
 using Infrastructure.Authenticate;
+using Infrastructure;
 using Infrastructure.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Services;
 using Services.Security;
@@ -28,6 +30,7 @@ namespace ControlApi.Controllers
         private readonly IJWTManager _jwtManager;
         private readonly IUserService _userService;
         private readonly ICompanyService _companyService;
+        private readonly DbContextClass _db;
         private readonly IConfiguration _configuration;
         private readonly IGoogleTokenValidator _googleTokenValidator;
         private readonly IS3StorageService _s3;
@@ -43,11 +46,13 @@ namespace ControlApi.Controllers
             ICredentialsEmailService credentialsEmail,
             IPasswordResetEmailService passwordResetEmail,
             IGoogleTokenValidator googleTokenValidator,
-            ICompanyService companyService)
+            ICompanyService companyService,
+            DbContextClass db)
         {
             _jwtManager = jwtManager;
             _userService = userService;
             _companyService = companyService;
+            _db = db;
             _configuration = configuration;
             _s3 = s3;
             _credentialsEmail = credentialsEmail;
@@ -475,9 +480,9 @@ private static string Base64UrlEncode(byte[] bytes)
         if (userId <= 0)
         return Unauthorized();
 
-        var user = await _userService.GetUserById(userId);
-        if (user == null)
-        return NotFound("User not found");
+        var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                return NotFound("User not found");
 
         // Only company owner accounts can be linked
         if (!string.Equals(user.Role, "company", StringComparison.OrdinalIgnoreCase) && !string.Equals(user.Role, "signup", StringComparison.OrdinalIgnoreCase))
