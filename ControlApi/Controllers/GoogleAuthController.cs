@@ -3,9 +3,12 @@ using System.Threading.Tasks;
 using Core.DTO.User;
 using Core.Models;
 using Infrastructure.Authenticate;
+using Infrastructure.Security;
+using Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 using Services;
 using Services.Security;
 using Services.Storage;
@@ -20,6 +23,7 @@ namespace ControlApi.Controllers
         private readonly IUserService _userService;
         private readonly IConfiguration _configuration;
         private readonly IS3StorageService _s3;
+        private readonly DbContextClass _db;
         private readonly IGoogleTokenValidator _googleTokenValidator;
 
         public GoogleAuthController(
@@ -27,12 +31,14 @@ namespace ControlApi.Controllers
             IUserService userService,
             IConfiguration configuration,
             IS3StorageService s3,
+            DbContextClass db,
             IGoogleTokenValidator googleTokenValidator)
         {
             _jwtManager = jwtManager;
             _userService = userService;
             _configuration = configuration;
             _s3 = s3;
+            _db = db;
             _googleTokenValidator = googleTokenValidator;
         }
 
@@ -60,44 +66,32 @@ namespace ControlApi.Controllers
 
             if (user == null)
             {
-                var randomPassword = Guid.NewGuid().ToString("N") + "!";
-                user = new User
-                {
-                    Name = string.IsNullOrWhiteSpace(request.Name) ? (string.IsNullOrWhiteSpace(payload.Name) ? payload.Email : payload.Name) : request.Name!,
-                    Email = payload.Email,
-                    Password = randomPassword,
-                    Role = "signup",
-                    Status = Core.Enums.StatusEnum.Active,
-                    CompanyId = null,
-                    ProfessionalId = null,
-                    CustomerId = null,
-                    Onboarding = false,
-                    Language = "pt-BR",
-                    Theme = "dark",
-                    Avatar = payload.Picture
-                };
-
                 
-// This endpoint is anonymous, but user creation is protected by service-level role checks.
-// Temporarily assume the "signup" role to allow creating the bootstrap user.
-HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
-    new System.Security.Claims.ClaimsIdentity(new[]
-    {
-        new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, "signup"),
-        new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, "0"),
-        new System.Security.Claims.Claim("sub", payload.Subject ?? string.Empty),
-        new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, payload.Email ?? string.Empty),
-    }, "GoogleSignup")
-);
+var randomPassword = Guid.NewGuid().ToString("N") + "!";
+user = new User
+{
+    Name = string.IsNullOrWhiteSpace(request.Name) ? (string.IsNullOrWhiteSpace(payload.Name) ? payload.Email : payload.Name) : request.Name!,
+    Email = payload.Email,
+    Password = Encrypt.EncryptPassword(randomPassword),
+    Role = "signup",
+    Status = Core.Enums.StatusEnum.Active,
+    CompanyId = null,
+    ProfessionalId = null,
+    CustomerId = null,
+    Onboarding = false,
+    Language = "pt-BR",
+    Theme = "dark",
+    Avatar = payload.Picture
+};
 
-var ok = await _userService.CreateUser(user);
-                if (!ok)
-                    return BadRequest("Unable to create user");
+await _db.Users.AddAsync(user);
+await _db.SaveChangesAsync();
 
-                user = await _userService.GetUserByEmail(payload.Email);
-                if (user == null)
-                    return BadRequest("User creation failed");
-            }
+// Reload to ensure all fields are populated
+user = await _userService.GetUserByEmail(payload.Email);
+if (user == null)
+    return BadRequest("User creation failed");
+}
 
             var token = await _jwtManager.Authenticate(user, request.RememberMe);
             if (token == null)
