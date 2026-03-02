@@ -53,6 +53,33 @@ namespace ControlApi.Controllers
             return Ok(new { ok = true });
         }
 
+
+/// <summary>
+/// Cancela a assinatura da empresa no Stripe.
+/// Por padrão agenda no fim do período (cancel_at_period_end=true).
+/// Body: { "immediate": false }
+/// </summary>
+[Authorize]
+[HttpPost("cancel-subscription")]
+public async Task<IActionResult> CancelSubscription([FromBody] CancelStripeSubscriptionRequest request)
+{
+    var result = await _stripe.CancelCompanySubscriptionAsync(request);
+    return Ok(result);
+}
+
+        /// <summary>
+        /// Cria uma sessão do Stripe Customer Portal para o cliente trocar o cartão/forma de pagamento.
+        /// Body: { "returnUrl": "https://app.seudominio.com/company/plan", "paymentMethodUpdateOnly": true }
+        /// Admin pode informar companyId no body.
+        /// </summary>
+        [Authorize]
+        [HttpPost("customer-portal-session")]
+        public async Task<IActionResult> CreateCustomerPortalSession([FromBody] CreateCustomerPortalSessionRequest request)
+        {
+            var result = await _stripe.CreateCustomerPortalSessionAsync(request);
+            return Ok(result);
+        }
+
         /// <summary>
         /// Histórico de cobranças (Stripe Invoices) da empresa.
         /// Company: usa a company do token.

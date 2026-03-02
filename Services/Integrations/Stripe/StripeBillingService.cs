@@ -930,7 +930,182 @@ DateTime start;
             }
         }
 
-        public async Task HandleWebhookAsync(string json, string stripeSignatureHeader)
+        
+public async Task<CancelStripeSubscriptionResponse> CancelCompanySubscriptionAsync(CancelStripeSubscriptionRequest request)
+{
+    EnsureStripeConfigured();
+
+    if (_currentUser.IsProfessional)
+        throw new ForbiddenException("Profissional não pode cancelar assinatura.");
+
+    // Resolve companyId
+    int resolvedCompanyId;
+    if (_currentUser.IsAdmin)
+    {
+        if (request == null || !request.CompanyId.HasValue || request.CompanyId.Value <= 0)
+            throw new InvalidOperationException("CompanyId é obrigatório para admin.");
+        resolvedCompanyId = request.CompanyId.Value;
+    }
+    else
+    {
+        var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+        if (!scopedCompanyId.HasValue)
+            throw new ForbiddenException("Escopo de company inválido.");
+        resolvedCompanyId = scopedCompanyId.Value;
+    }
+
+    // Buscar assinatura ativa local
+    var activeSub = await _uow.PlanSubscriptions.GetActiveByCompanyAsync(resolvedCompanyId);
+    if (activeSub == null)
+        throw new NotFoundException("Nenhuma assinatura ativa encontrada para esta empresa.");
+
+    if (string.IsNullOrWhiteSpace(activeSub.StripeSubscriptionId))
+        throw new InvalidOperationException("Assinatura ativa não possui StripeSubscriptionId.");
+
+    var stripeService = new global::Stripe.SubscriptionService();
+
+    global::Stripe.Subscription stripeSub;
+
+    if (request != null && request.Immediate)
+    {
+        // Cancelar imediatamente
+        stripeSub = await stripeService.CancelAsync(activeSub.StripeSubscriptionId);
+
+        activeSub.Status = Core.Enums.Plan.PlanSubscriptionStatusEnum.Cancelled;
+        activeSub.AutoRenew = false;
+        activeSub.EndDate = DateTime.UtcNow;
+        _uow.PlanSubscriptions.Update(activeSub);
+
+        // Se não sobrou assinatura ativa, remove PlanId da company
+        var company = await _uow.Companies.GetById(resolvedCompanyId);
+        if (company != null)
+        {
+            company.PlanId = null;
+            _uow.Companies.Update(company);
+        }
+    }
+    else
+    {
+        // Cancelar no fim do período (recomendado)
+        stripeSub = await stripeService.UpdateAsync(activeSub.StripeSubscriptionId, new global::Stripe.SubscriptionUpdateOptions
+        {
+            CancelAtPeriodEnd = true
+        });
+
+        // Mantém status Active (o acesso continua até EndDate), mas sem auto-renovação
+        activeSub.AutoRenew = false;
+
+        // Ajusta EndDate para refletir o "current_period_end" do Stripe, quando disponível
+        // (Stripe.NET em versões recentes expõe CurrentPeriodEnd como DateTime/DateTime?)
+        var endUtcMaybe = EnsureUtc((DateTime?)stripeSub.CurrentPeriodEnd);
+        if (endUtcMaybe.HasValue)
+        {
+            var endUtc = endUtcMaybe.Value;
+            // Só atualiza se fizer sentido
+            if (endUtc > DateTime.UtcNow.AddMinutes(-5))
+                activeSub.EndDate = endUtc;
+        }
+
+        _uow.PlanSubscriptions.Update(activeSub);
+    }
+_uow.Save();
+
+    DateTime? currentPeriodEnd = EnsureUtc((DateTime?)stripeSub.CurrentPeriodEnd);
+return new CancelStripeSubscriptionResponse
+    {
+        StripeSubscriptionId = activeSub.StripeSubscriptionId!,
+        CancelAtPeriodEnd = stripeSub.CancelAtPeriodEnd,
+        CurrentPeriodEnd = currentPeriodEnd,
+        StripeStatus = stripeSub.Status ?? "",
+        Message = (request != null && request.Immediate)
+            ? "Assinatura cancelada imediatamente."
+            : "Assinatura será cancelada no fim do período."
+    };
+}
+
+        public async Task<CreateCustomerPortalSessionResponse> CreateCustomerPortalSessionAsync(CreateCustomerPortalSessionRequest request)
+        {
+            EnsureStripeConfigured();
+
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Profissional não pode alterar forma de pagamento.");
+
+            // Resolve companyId
+            int resolvedCompanyId;
+            if (_currentUser.IsAdmin)
+            {
+                if (request == null || !request.CompanyId.HasValue || request.CompanyId.Value <= 0)
+                    throw new InvalidOperationException("CompanyId é obrigatório para admin.");
+                resolvedCompanyId = request.CompanyId.Value;
+            }
+            else
+            {
+                var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
+                if (!scopedCompanyId.HasValue)
+                    throw new ForbiddenException("Escopo de company inválido.");
+                resolvedCompanyId = scopedCompanyId.Value;
+            }
+
+            var company = await _uow.Companies.GetById(resolvedCompanyId);
+            if (company == null)
+                throw new NotFoundException("Empresa não encontrada.");
+
+            // Precisamos do StripeCustomerId para abrir o portal.
+            // Se ainda não tiver salvo (casos antigos), tenta derivar da assinatura.
+            if (string.IsNullOrWhiteSpace(company.StripeCustomerId))
+            {
+                var activeSub = await _uow.PlanSubscriptions.GetActiveByCompanyAsync(resolvedCompanyId);
+                if (activeSub == null || string.IsNullOrWhiteSpace(activeSub.StripeSubscriptionId))
+                    throw new BadRequestException("Empresa sem StripeCustomerId e sem assinatura ativa para derivar. Conclua o checkout primeiro.");
+
+                var subSvc = new global::Stripe.SubscriptionService();
+                var stripeSub = await subSvc.GetAsync(activeSub.StripeSubscriptionId);
+                var customerId = stripeSub?.CustomerId;
+                if (string.IsNullOrWhiteSpace(customerId))
+                    throw new BadRequestException("Não foi possível obter o StripeCustomerId a partir da assinatura.");
+
+                company.StripeCustomerId = customerId;
+                _uow.Companies.Update(company);
+                _uow.Save();
+            }
+
+            // ReturnUrl obrigatória para UX correta.
+            // (No front, usar a própria tela /company/plan)
+            var returnUrl = request?.ReturnUrl;
+            if (string.IsNullOrWhiteSpace(returnUrl))
+                throw new BadRequestException("ReturnUrl é obrigatória.");
+
+            // Stripe Customer Portal (Billing Portal)
+            // OBS: você precisa ter habilitado o Customer Portal no dashboard do Stripe,
+            // e permitir "Payment methods" / "Update" nas configurações do portal.
+            var portalSvc = new global::Stripe.BillingPortal.SessionService();
+
+            var options = new global::Stripe.BillingPortal.SessionCreateOptions
+            {
+                Customer = company.StripeCustomerId,
+                ReturnUrl = returnUrl,
+            };
+
+            // Abrir direto na troca de cartão (mais intuitivo)
+            if (request == null || request.PaymentMethodUpdateOnly)
+            {
+                options.FlowData = new global::Stripe.BillingPortal.SessionFlowDataOptions
+                {
+                    Type = "payment_method_update"
+                };
+            }
+
+            var session = await portalSvc.CreateAsync(options);
+            if (session == null || string.IsNullOrWhiteSpace(session.Url))
+                throw new InvalidOperationException("Falha ao criar sessão do Customer Portal.");
+
+            return new CreateCustomerPortalSessionResponse
+            {
+                Url = session.Url
+            };
+        }
+
+public async Task HandleWebhookAsync(string json, string stripeSignatureHeader)
         {
             EnsureStripeConfigured();
 

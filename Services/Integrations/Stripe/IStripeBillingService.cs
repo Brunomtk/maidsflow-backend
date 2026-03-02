@@ -33,6 +33,20 @@ namespace Services.Integrations.Stripe
         /// </summary>
         Task<StripeDatesSyncResultDTO> SyncStripeDatesAsync(int? companyId = null, bool syncAll = false);
 
+        /// <summary>
+        /// Cancela a assinatura da empresa no Stripe.
+        /// Por padrão agenda no fim do período (cancel_at_period_end=true).
+        /// </summary>
+        Task<CancelStripeSubscriptionResponse> CancelCompanySubscriptionAsync(CancelStripeSubscriptionRequest request);
+
+        /// <summary>
+        /// Cria uma sessão do Stripe Customer Portal para o cliente atualizar o cartão/forma de pagamento.
+        /// Por padrão abre diretamente o fluxo de "payment_method_update".
+        /// Company: usa a company do token.
+        /// Admin: pode informar CompanyId.
+        /// </summary>
+        Task<CreateCustomerPortalSessionResponse> CreateCustomerPortalSessionAsync(CreateCustomerPortalSessionRequest request);
+
         Task HandleWebhookAsync(string json, string stripeSignatureHeader);
     }
 }
