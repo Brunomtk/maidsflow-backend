@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Core.DTO.RoutePlanning;
+using Core.Enums.Appointment;
 using Core.Exceptions;
 using Core.Models;
 using Infrastructure;
@@ -229,7 +230,9 @@ namespace Services
             // Normal appointments (non-recurring) overlapping the range
             var normalQuery = _db.Set<Appointment>().AsNoTracking()
                 .Include(a => a.CustomerAddress)
-                .Where(a => !a.IsRecurring && a.Start < rangeEnd && a.End > rangeStart);
+                .Where(a => !a.IsRecurring && a.Start < rangeEnd && a.End > rangeStart)
+                .Where(a => a.Status != AppointmentStatus.Cancelled)
+                .Where(a => !_db.Set<Cancellation>().Any(c => c.AppointmentId == a.Id));
 
             if (companyId.HasValue)
                 normalQuery = normalQuery.Where(a => a.CompanyId == companyId.Value);
@@ -263,6 +266,9 @@ namespace Services
                          && !string.IsNullOrWhiteSpace(a.RecurrenceRule)
                          && a.Start <= rangeEnd
                          && (!a.RecurrenceEnd.HasValue || a.RecurrenceEnd.Value >= rangeStart));
+
+            anchorsQuery = anchorsQuery.Where(a => a.Status != AppointmentStatus.Cancelled)
+                                     .Where(a => !_db.Set<Cancellation>().Any(c => c.AppointmentId == a.Id));
 
             if (companyId.HasValue)
                 anchorsQuery = anchorsQuery.Where(a => a.CompanyId == companyId.Value);
@@ -305,6 +311,7 @@ namespace Services
                     if (exMap.TryGetValue(key, out var ex))
                     {
                         if (ex.IsCancelled) continue;
+                        if (ex.OverrideStatus.HasValue && ex.OverrideStatus.Value == AppointmentStatus.Cancelled) continue;
 
                         var startFinal = ex.OverrideStart ?? occStart;
                         var endFinal = ex.OverrideEnd ?? occEnd;

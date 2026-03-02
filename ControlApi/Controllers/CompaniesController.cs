@@ -68,6 +68,11 @@ namespace ControlApi.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> CreateCompany([FromBody] CreateCompanyRequest request)
         {
+            // Signup endpoint is public. If a stale Authorization token is present in the browser,
+            // the request becomes authenticated and may be blocked by role/scope guards.
+            // Force an anonymous principal for this action to keep signup stable.
+            HttpContext.User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity());
+
             var company = new Company
             {
                 Name = request.Name,
