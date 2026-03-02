@@ -4483,7 +4483,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "ControlApi.Controllers.UsersController",
+    "ContainingType": "ControlApi.Controllers.GoogleAuthController",
     "Method": "AuthenticateGoogle",
     "RelativePath": "api/Users/authenticate/google",
     "HttpMethod": "POST",
