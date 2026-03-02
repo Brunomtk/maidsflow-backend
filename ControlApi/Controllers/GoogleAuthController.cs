@@ -66,7 +66,7 @@ namespace ControlApi.Controllers
                     Name = string.IsNullOrWhiteSpace(request.Name) ? (string.IsNullOrWhiteSpace(payload.Name) ? payload.Email : payload.Name) : request.Name!,
                     Email = payload.Email,
                     Password = randomPassword,
-                    Role = "company",
+                    Role = "signup",
                     Status = Core.Enums.StatusEnum.Active,
                     CompanyId = null,
                     ProfessionalId = null,

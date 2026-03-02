@@ -485,16 +485,21 @@ namespace Services
         }
 
 public async Task<bool> UpdateUserCompany(int userId, int companyId)
-{
-    var user = await _unitOfWork.Users.GetById(userId);
-    if (user == null) return false;
+        {
+            var user = await _unitOfWork.Users.GetById(userId);
+            if (user == null) return false;
 
-    user.CompanyId = companyId;
-    _unitOfWork.Users.Update(user);
+            user.CompanyId = companyId;
 
-    var result = await _unitOfWork.SaveAsync();
-    return result > 0;
-}
+            // If user was created via Google/signup bootstrap, promote role to company when company is linked.
+            if (!string.IsNullOrWhiteSpace(user.Role) && user.Role.Trim().ToLowerInvariant() == "signup")
+                user.Role = "company";
+
+            _unitOfWork.Users.Update(user);
+
+            var result = await _unitOfWork.SaveAsync();
+            return result > 0;
+        }
     }
 
     public interface IUserService

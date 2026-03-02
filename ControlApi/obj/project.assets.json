@@ -11069,11 +11069,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v11_google_controller_compilefix\\ControlApi\\ControlApi.csproj",
+      "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v12_fix_companyid_invalid_on_google\\ControlApi\\ControlApi.csproj",
       "projectName": "ControlApi",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v11_google_controller_compilefix\\ControlApi\\ControlApi.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v12_fix_companyid_invalid_on_google\\ControlApi\\ControlApi.csproj",
       "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-      "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v11_google_controller_compilefix\\ControlApi\\obj\\",
+      "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v12_fix_companyid_invalid_on_google\\ControlApi\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -11094,14 +11094,14 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v11_google_controller_compilefix\\Core\\Core.csproj": {
-              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v11_google_controller_compilefix\\Core\\Core.csproj"
+            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v12_fix_companyid_invalid_on_google\\Core\\Core.csproj": {
+              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v12_fix_companyid_invalid_on_google\\Core\\Core.csproj"
             },
-            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v11_google_controller_compilefix\\Infrastructure\\Infrastructure.csproj": {
-              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v11_google_controller_compilefix\\Infrastructure\\Infrastructure.csproj"
+            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v12_fix_companyid_invalid_on_google\\Infrastructure\\Infrastructure.csproj": {
+              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v12_fix_companyid_invalid_on_google\\Infrastructure\\Infrastructure.csproj"
             },
-            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v11_google_controller_compilefix\\Services\\Services.csproj": {
-              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v11_google_controller_compilefix\\Services\\Services.csproj"
+            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v12_fix_companyid_invalid_on_google\\Services\\Services.csproj": {
+              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_google_auth_link_company_v12_fix_companyid_invalid_on_google\\Services\\Services.csproj"
             }
           }
         }

@@ -480,8 +480,8 @@ private static string Base64UrlEncode(byte[] bytes)
         return NotFound("User not found");
 
         // Only company owner accounts can be linked
-        if (!string.Equals(user.Role, "company", StringComparison.OrdinalIgnoreCase))
-        return Forbid("Only company users can be linked to a company");
+        if (!string.Equals(user.Role, "company", StringComparison.OrdinalIgnoreCase) && !string.Equals(user.Role, "signup", StringComparison.OrdinalIgnoreCase))
+                return Forbid("Only company/signup users can be linked to a company");
 
         // Prevent accidental reassignment
         if (user.CompanyId.HasValue && user.CompanyId.Value > 0 && user.CompanyId.Value != request.CompanyId)
