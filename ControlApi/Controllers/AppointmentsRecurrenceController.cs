@@ -821,7 +821,7 @@ public async Task<IActionResult> SendOnMyWaySmsInstance(
 
     var body =
         $"DON'T REPLY. Hi {customerName}, this is {companyName}. Our team is on the way and will arrive in approximately {eta} minutes at {address}. " +
-        $"If you need to change your appointment, get in touch with {companyName} at {companyPhone} or {companyEmail}.";
+        $"If you need to change your appointment, get in touch with {companyName}. Reply STOP to unsubscribe.";
 
 try
     {

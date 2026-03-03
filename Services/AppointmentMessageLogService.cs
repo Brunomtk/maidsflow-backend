@@ -144,7 +144,7 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
                 RecipientEmail = string.IsNullOrWhiteSpace(customerEmail) ? null : customerEmail,
                 Subject = $"DON'T REPLY — Appointment reminder ({startLabel})",
                 // Stored in BodyText (column is text) because the migration doesn't have a separate preview column.
-                BodyText = $"DON'T REPLY. If you need to change your appointment, get in touch with {companyName} at {companyPhone} or {companyEmail}.",
+                BodyText = $"DON'T REPLY. If you need to change your appointment, get in touch with {companyName}.",
                 TemplateKey = "appointment_reminder_48h_v1",
                 UpdatedDate = now
             });
@@ -450,7 +450,7 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
             : existing.Subject;
 
         var plain = string.IsNullOrWhiteSpace(existing.BodyText)
-            ? $"DON'T REPLY. If you need to change your appointment, get in touch with {companyName} at {companyPhone} or {companyEmail}."
+            ? $"DON'T REPLY. If you need to change your appointment, get in touch with {companyName}."
             : existing.BodyText;
 
         var html = BuildEmailHtml(companyName, plain);
@@ -554,11 +554,11 @@ private static string BuildConfirmationSms24h(
     string address,
     string startLabel)
 {
-    var contact = BuildContactLine(companyPhone, companyEmail);
+    // Phone/email are intentionally not included in the SMS copy.
     return $"DON'T REPLY. Hi {customerName}, this is {companyName}. " +
            $"Reminder: your appointment is scheduled for {startLabel}" +
            (string.IsNullOrWhiteSpace(address) ? "." : $" at {address}.") +
-           $" If you need to change your appointment, get in touch with {companyName}{contact}.";
+           $" If you need to change your appointment, get in touch with {companyName}. Reply STOP to unsubscribe.";
 }
 
 private static string BuildContactLine(string phone, string email)

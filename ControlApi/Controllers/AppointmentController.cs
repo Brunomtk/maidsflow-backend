@@ -177,7 +177,7 @@ namespace ControlApi.Controllers
 
             var body =
                 $"DON'T REPLY. Hi {customerName}, this is {companyName}. Our team is on the way and will arrive in approximately {eta} minutes at {address}. " +
-                $"If you need to change your appointment, get in touch with {companyName} at {appt.Company?.Phone ?? "our phone"} or {appt.Company?.Email ?? "our email"}.";
+                $"If you need to change your appointment, get in touch with {companyName}. Reply STOP to unsubscribe.";
 try
             {
                 var (sid, _) = await _sms.SendSmsAsync(to, body, ct);
