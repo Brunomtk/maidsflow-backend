@@ -1,3 +1,4 @@
+using System;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services;
@@ -17,9 +18,13 @@ public class AppointmentMessagesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetLogs([FromRoute] int appointmentId, CancellationToken ct)
+    public async Task<IActionResult> GetLogs(
+        [FromRoute] int appointmentId,
+        [FromQuery] DateTime? occurrenceStartUtc,
+        [FromQuery] DateTime? occurrenceEndUtc,
+        CancellationToken ct)
     {
-        var logs = await _svc.GetLogsAsync(appointmentId, ct);
+        var logs = await _svc.GetLogsAsync(appointmentId, occurrenceStartUtc, occurrenceEndUtc, ct);
         return Ok(logs);
     }
 

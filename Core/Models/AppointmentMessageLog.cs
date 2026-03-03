@@ -6,6 +6,13 @@ public class AppointmentMessageLog : BaseModel
 {
     public int AppointmentId { get; set; }
 
+    // Recurrence / occurrence context
+    // For recurring appointments, a single Appointment record can represent an entire series.
+    // These fields allow logging per occurrence (instance) being viewed/sent.
+    public Guid? SeriesId { get; set; }
+    public DateTime? OccurrenceStartUtc { get; set; }
+    public DateTime? OccurrenceEndUtc { get; set; }
+
     public AppointmentMessageKind Kind { get; set; }
     public AppointmentMessageChannel Channel { get; set; }
     public AppointmentMessageStatus Status { get; set; }

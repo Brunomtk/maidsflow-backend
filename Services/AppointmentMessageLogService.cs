@@ -13,8 +13,8 @@ namespace Services;
 
 public interface IAppointmentMessageLogService
 {
-    Task<IReadOnlyList<AppointmentMessageLog>> GetLogsAsync(int appointmentId, CancellationToken ct = default);
-    Task EnsureDefaultPlaceholdersAsync(Appointment appointment, CancellationToken ct = default);
+    Task<IReadOnlyList<AppointmentMessageLog>> GetLogsAsync(int appointmentId, DateTime? occurrenceStartUtc = null, DateTime? occurrenceEndUtc = null, CancellationToken ct = default);
+    Task EnsureDefaultPlaceholdersAsync(Appointment appointment, DateTime? occurrenceStartUtc = null, DateTime? occurrenceEndUtc = null, CancellationToken ct = default);
     Task<AppointmentMessageLog> ResendSmsAsync(int appointmentId, int logId, CancellationToken ct = default);
     Task<AppointmentMessageLog> ResendEmailAsync(int appointmentId, int logId, CancellationToken ct = default);
 }
@@ -44,7 +44,7 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
         _sendGrid = sendGrid;
     }
 
-    public async Task<IReadOnlyList<AppointmentMessageLog>> GetLogsAsync(int appointmentId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<AppointmentMessageLog>> GetLogsAsync(int appointmentId, DateTime? occurrenceStartUtc = null, DateTime? occurrenceEndUtc = null, CancellationToken ct = default)
     {
         var appt = await _uow.Appointments.GetById(appointmentId);
         if (appt == null) throw new NotFoundException("Agendamento não encontrado.");
@@ -52,24 +52,35 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
         await EnsureAppointmentAccessAsync(appt);
 
         // Garantir placeholders (48h Email / 24h SMS) para aparecer na UI mesmo antes do primeiro envio.
-        await EnsureDefaultPlaceholdersAsync(appt, ct);
+        await EnsureDefaultPlaceholdersAsync(appt, occurrenceStartUtc, occurrenceEndUtc, ct);
 
-        return await _uow.AppointmentMessageLogs.GetByAppointmentAsync(appointmentId, ct);
+        // For recurring appointments, the UI can request logs for a specific occurrence by passing occurrenceStartUtc.
+        return await _uow.AppointmentMessageLogs.GetByAppointmentAsync(appointmentId, occurrenceStartUtc, ct);
     }
 
-    public async Task EnsureDefaultPlaceholdersAsync(Appointment appointment, CancellationToken ct = default)
+    public async Task EnsureDefaultPlaceholdersAsync(Appointment appointment, DateTime? occurrenceStartUtc = null, DateTime? occurrenceEndUtc = null, CancellationToken ct = default)
     {
+        var isRecurringContext = appointment.IsRecurring || appointment.SeriesId.HasValue;
+        var occStartUtc = occurrenceStartUtc;
+        var occEndUtc = occurrenceEndUtc;
+
+        if (isRecurringContext)
+        {
+            // If caller didn't pass occurrence dates, fall back to the appointment's own Start/End.
+            // (Still better than nothing, but ideally the UI sends the occurrence Start/End.)
+            if (!occStartUtc.HasValue) occStartUtc = EnsureUtc(appointment.Start);
+            if (!occEndUtc.HasValue) occEndUtc = EnsureUtc(appointment.End);
+        }
+
         // Cria placeholders apenas 1x por kind/channel.
         // Não bloqueia se já existe qualquer log (inclusive de reenvio).
         var existing48 = await _uow.AppointmentMessageLogs.GetLatestAsync(
-            appointment.Id, AppointmentMessageKind.ReminderEmail48h, AppointmentMessageChannel.Email, ct);
+            appointment.Id, AppointmentMessageKind.ReminderEmail48h, AppointmentMessageChannel.Email, occStartUtc, ct);
         var existing24 = await _uow.AppointmentMessageLogs.GetLatestAsync(
-            appointment.Id, AppointmentMessageKind.ConfirmationSms24h, AppointmentMessageChannel.Sms, ct);
+            appointment.Id, AppointmentMessageKind.ConfirmationSms24h, AppointmentMessageChannel.Sms, occStartUtc, ct);
 
         var now = DateTime.UtcNow;
-        var startUtc = appointment.Start.Kind == DateTimeKind.Utc
-            ? appointment.Start
-            : DateTime.SpecifyKind(appointment.Start, DateTimeKind.Utc);
+        var startUtc = occStartUtc ?? EnsureUtc(appointment.Start);
 
         
         // Carregar dados necessários para compor mensagens padrão (nome/contato da Company, nome/telefone do Customer, endereço).
@@ -88,7 +99,9 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
         var customerEmail = apptFull?.Customer?.Email ?? "";
 
         var address = BuildBestAddress(apptFull ?? appointment);
-        var startLabel = (apptFull ?? appointment).Start.ToString("MMM dd, yyyy 'at' HH:mm");
+        // Prefer occurrence start label when provided.
+        var startForLabel = startUtc;
+        var startLabel = startForLabel.ToString("MMM dd, yyyy 'at' HH:mm");
 
         var createdAny = false;
 
@@ -97,6 +110,9 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
             await _uow.AppointmentMessageLogs.Add(new AppointmentMessageLog
             {
                 AppointmentId = appointment.Id,
+                SeriesId = isRecurringContext ? appointment.SeriesId : null,
+                OccurrenceStartUtc = isRecurringContext ? startUtc : null,
+                OccurrenceEndUtc = isRecurringContext ? (occEndUtc ?? EnsureUtc(appointment.End)) : null,
                 Kind = AppointmentMessageKind.ReminderEmail48h,
                 Channel = AppointmentMessageChannel.Email,
                 Status = AppointmentMessageStatus.Pending,
@@ -120,6 +136,9 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
             await _uow.AppointmentMessageLogs.Add(new AppointmentMessageLog
             {
                 AppointmentId = appointment.Id,
+                SeriesId = isRecurringContext ? appointment.SeriesId : null,
+                OccurrenceStartUtc = isRecurringContext ? startUtc : null,
+                OccurrenceEndUtc = isRecurringContext ? (occEndUtc ?? EnsureUtc(appointment.End)) : null,
                 Kind = AppointmentMessageKind.ConfirmationSms24h,
                 Channel = AppointmentMessageChannel.Sms,
                 Status = AppointmentMessageStatus.Pending,
@@ -139,6 +158,9 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
         if (createdAny)
             await _uow.SaveAsync();
     }
+
+    private static DateTime EnsureUtc(DateTime dt)
+        => dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 
     public async Task<AppointmentMessageLog> ResendSmsAsync(int appointmentId, int logId, CancellationToken ct = default)
     {
@@ -170,12 +192,15 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
         if (string.IsNullOrWhiteSpace(body))
             throw new BadRequestException("Conteúdo do SMS não está disponível neste log para reenviar.");
 
-        var attempt = await _uow.AppointmentMessageLogs.GetNextAttemptAsync(appointmentId, existing.Kind, existing.Channel, ct);
+        var attempt = await _uow.AppointmentMessageLogs.GetNextAttemptAsync(appointmentId, existing.Kind, existing.Channel, existing.OccurrenceStartUtc, ct);
         var now = DateTime.UtcNow;
 
         var newLog = new AppointmentMessageLog
         {
             AppointmentId = appointmentId,
+            SeriesId = existing.SeriesId,
+            OccurrenceStartUtc = existing.OccurrenceStartUtc,
+            OccurrenceEndUtc = existing.OccurrenceEndUtc,
             Kind = existing.Kind,
             Channel = AppointmentMessageChannel.Sms,
             Status = AppointmentMessageStatus.Pending,
@@ -270,12 +295,15 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
 
         var html = BuildEmailHtml(companyName, plain);
 
-        var attempt = await _uow.AppointmentMessageLogs.GetNextAttemptAsync(appointmentId, existing.Kind, existing.Channel, ct);
+        var attempt = await _uow.AppointmentMessageLogs.GetNextAttemptAsync(appointmentId, existing.Kind, existing.Channel, existing.OccurrenceStartUtc, ct);
         var now = DateTime.UtcNow;
 
         var newLog = new AppointmentMessageLog
         {
             AppointmentId = appointmentId,
+            SeriesId = existing.SeriesId,
+            OccurrenceStartUtc = existing.OccurrenceStartUtc,
+            OccurrenceEndUtc = existing.OccurrenceEndUtc,
             Kind = existing.Kind,
             Channel = AppointmentMessageChannel.Email,
             Status = AppointmentMessageStatus.Pending,

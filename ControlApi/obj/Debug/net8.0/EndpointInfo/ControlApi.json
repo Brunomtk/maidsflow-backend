@@ -327,6 +327,22 @@
               "type": "integer",
               "format": "int32"
             }
+          },
+          {
+            "name": "occurrenceStartUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "occurrenceEndUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
           }
         ],
         "responses": {
