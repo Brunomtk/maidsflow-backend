@@ -9,6 +9,7 @@ namespace Infrastructure.Repositories
     {
         IAppointmentRepository Appointments { get; }
         IAppointmentCompletionRepository AppointmentCompletions { get; }
+        IAppointmentMessageLogRepository AppointmentMessageLogs { get; }
         IServiceTypeRepository ServiceTypes { get; }
         IPayrollRuleRepository PayrollRules { get; }
         IPayrollRunRepository PayrollRuns { get; }
@@ -50,6 +51,7 @@ namespace Infrastructure.Repositories
             DbContextClass dbContext,
             IAppointmentRepository appointmentRepository,
             IAppointmentCompletionRepository appointmentCompletionRepository,
+            IAppointmentMessageLogRepository appointmentMessageLogRepository,
             IServiceTypeRepository serviceTypeRepository,
             IPayrollRuleRepository payrollRuleRepository,
             IPayrollRunRepository payrollRunRepository,
@@ -83,6 +85,7 @@ namespace Infrastructure.Repositories
 
             Appointments = appointmentRepository;
             AppointmentCompletions = appointmentCompletionRepository;
+            AppointmentMessageLogs = appointmentMessageLogRepository;
             ServiceTypes = serviceTypeRepository;
             PayrollRules = payrollRuleRepository;
             PayrollRuns = payrollRunRepository;
@@ -115,6 +118,7 @@ namespace Infrastructure.Repositories
 
         public IAppointmentRepository Appointments { get; }
         public IAppointmentCompletionRepository AppointmentCompletions { get; }
+        public IAppointmentMessageLogRepository AppointmentMessageLogs { get; }
         public IServiceTypeRepository ServiceTypes { get; }
         public IPayrollRuleRepository PayrollRules { get; }
         public IPayrollRunRepository PayrollRuns { get; }

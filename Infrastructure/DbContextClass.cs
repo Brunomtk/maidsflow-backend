@@ -52,6 +52,7 @@ namespace Infrastructure
         public DbSet<PushSubscription> PushSubscriptions { get; set; }
         public DbSet<AppointmentReminderDispatch> AppointmentReminderDispatches { get; set; }
         public DbSet<AppointmentReviewRequestDispatch> AppointmentReviewRequestDispatches { get; set; }
+        public DbSet<AppointmentMessageLog> AppointmentMessageLogs { get; set; }
         
         
 
@@ -202,6 +203,29 @@ namespace Infrastructure
                       .WithMany()
                       .HasForeignKey(s => s.CompanyId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // AppointmentMessageLogs
+            modelBuilder.Entity<AppointmentMessageLog>(entity =>
+            {
+                entity.ToTable("AppointmentMessageLogs");
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.Provider).HasMaxLength(64);
+                entity.Property(x => x.ProviderMessageId).HasMaxLength(128);
+                entity.Property(x => x.ProviderStatus).HasMaxLength(128);
+                entity.Property(x => x.RecipientEmail).HasMaxLength(256);
+                entity.Property(x => x.RecipientPhoneE164).HasMaxLength(32);
+                entity.Property(x => x.Subject).HasMaxLength(256);
+                entity.Property(x => x.TemplateKey).HasMaxLength(128);
+                entity.Property(x => x.RequestedByRole).HasMaxLength(32);
+
+                entity.Property(x => x.Kind).HasConversion<int>();
+                entity.Property(x => x.Channel).HasConversion<int>();
+                entity.Property(x => x.Status).HasConversion<int>();
+
+                entity.HasIndex(x => new { x.AppointmentId, x.Kind, x.Channel, x.CreatedDate });
+                entity.HasIndex(x => x.ProviderMessageId);
             });
 
             // Professionals

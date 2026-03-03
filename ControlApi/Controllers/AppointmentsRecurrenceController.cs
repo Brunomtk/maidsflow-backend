@@ -775,6 +775,8 @@ public async Task<IActionResult> SendOnMyWaySmsInstance(
     }
 
     var companyName = anchor.Company?.Name ?? "Our Team";
+    var companyPhone = anchor.Company?.Phone ?? "";
+    var companyEmail = anchor.Company?.Email ?? "";
     var customerName = anchor.Customer?.Name ?? "there";
     var to = anchor.Customer?.Phone ?? string.Empty;
 
@@ -818,9 +820,10 @@ public async Task<IActionResult> SendOnMyWaySmsInstance(
         return BadRequest("Não foi possível determinar o endereço da ocorrência.");
 
     var body =
-        $"Hi {customerName}, this is {companyName}. Reminder: our team is on the way and will arrive at your location in approximately {eta} minutes at {address}. Reply HELP for help or STOP to unsubscribe.";
+        $"DON'T REPLY. Hi {customerName}, this is {companyName}. Our team is on the way and will arrive in approximately {eta} minutes at {address}. " +
+        $"If you need to change your appointment, get in touch with ELIZA at {companyPhone} or {companyEmail}.";
 
-    try
+try
     {
         var (sid, _) = await _sms.SendSmsAsync(to, body, ct);
 

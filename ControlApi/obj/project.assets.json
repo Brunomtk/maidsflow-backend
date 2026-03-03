@@ -11069,11 +11069,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_cancel_subscription_and_update_payment_method_v2\\ControlApi\\ControlApi.csproj",
+      "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_appointment_message_logs_twilio_v1_messagecopyfix_buildfix3\\ControlApi\\ControlApi.csproj",
       "projectName": "ControlApi",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_cancel_subscription_and_update_payment_method_v2\\ControlApi\\ControlApi.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_appointment_message_logs_twilio_v1_messagecopyfix_buildfix3\\ControlApi\\ControlApi.csproj",
       "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-      "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_cancel_subscription_and_update_payment_method_v2\\ControlApi\\obj\\",
+      "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_appointment_message_logs_twilio_v1_messagecopyfix_buildfix3\\ControlApi\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -11094,14 +11094,14 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_cancel_subscription_and_update_payment_method_v2\\Core\\Core.csproj": {
-              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_cancel_subscription_and_update_payment_method_v2\\Core\\Core.csproj"
+            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_appointment_message_logs_twilio_v1_messagecopyfix_buildfix3\\Core\\Core.csproj": {
+              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_appointment_message_logs_twilio_v1_messagecopyfix_buildfix3\\Core\\Core.csproj"
             },
-            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_cancel_subscription_and_update_payment_method_v2\\Infrastructure\\Infrastructure.csproj": {
-              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_cancel_subscription_and_update_payment_method_v2\\Infrastructure\\Infrastructure.csproj"
+            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_appointment_message_logs_twilio_v1_messagecopyfix_buildfix3\\Infrastructure\\Infrastructure.csproj": {
+              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_appointment_message_logs_twilio_v1_messagecopyfix_buildfix3\\Infrastructure\\Infrastructure.csproj"
             },
-            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_cancel_subscription_and_update_payment_method_v2\\Services\\Services.csproj": {
-              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_cancel_subscription_and_update_payment_method_v2\\Services\\Services.csproj"
+            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_appointment_message_logs_twilio_v1_messagecopyfix_buildfix3\\Services\\Services.csproj": {
+              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_appointment_message_logs_twilio_v1_messagecopyfix_buildfix3\\Services\\Services.csproj"
             }
           }
         }

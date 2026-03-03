@@ -1,0 +1,291 @@
+using Core.Enums.Messaging;
+using Core.Exceptions;
+using Core.Models;
+using Infrastructure;
+using Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
+using Services.Integrations.Twilio;
+using Services.Security;
+using System.Linq;
+
+namespace Services;
+
+public interface IAppointmentMessageLogService
+{
+    Task<IReadOnlyList<AppointmentMessageLog>> GetLogsAsync(int appointmentId, CancellationToken ct = default);
+    Task EnsureDefaultPlaceholdersAsync(Appointment appointment, CancellationToken ct = default);
+    Task<AppointmentMessageLog> ResendSmsAsync(int appointmentId, int logId, CancellationToken ct = default);
+}
+
+public class AppointmentMessageLogService : IAppointmentMessageLogService
+{
+    private readonly IUnitOfWork _uow;
+    private readonly DbContextClass _db;
+    private readonly ICurrentUser _currentUser;
+    private readonly IScopeGuard _scope;
+    private readonly ITwilioSmsSender _twilio;
+
+    public AppointmentMessageLogService(
+        IUnitOfWork uow,
+        DbContextClass db,
+        ICurrentUser currentUser,
+        IScopeGuard scope,
+        ITwilioSmsSender twilio)
+    {
+        _uow = uow;
+        _db = db;
+        _currentUser = currentUser;
+        _scope = scope;
+        _twilio = twilio;
+    }
+
+    public async Task<IReadOnlyList<AppointmentMessageLog>> GetLogsAsync(int appointmentId, CancellationToken ct = default)
+    {
+        var appt = await _uow.Appointments.GetById(appointmentId);
+        if (appt == null) throw new NotFoundException("Agendamento não encontrado.");
+
+        await EnsureAppointmentAccessAsync(appt);
+
+        // Garantir placeholders (48h Email / 24h SMS) para aparecer na UI mesmo antes do primeiro envio.
+        await EnsureDefaultPlaceholdersAsync(appt, ct);
+
+        return await _uow.AppointmentMessageLogs.GetByAppointmentAsync(appointmentId, ct);
+    }
+
+    public async Task EnsureDefaultPlaceholdersAsync(Appointment appointment, CancellationToken ct = default)
+    {
+        // Cria placeholders apenas 1x por kind/channel.
+        // Não bloqueia se já existe qualquer log (inclusive de reenvio).
+        var existing48 = await _uow.AppointmentMessageLogs.GetLatestAsync(
+            appointment.Id, AppointmentMessageKind.ReminderEmail48h, AppointmentMessageChannel.Email, ct);
+        var existing24 = await _uow.AppointmentMessageLogs.GetLatestAsync(
+            appointment.Id, AppointmentMessageKind.ConfirmationSms24h, AppointmentMessageChannel.Sms, ct);
+
+        var now = DateTime.UtcNow;
+        var startUtc = appointment.Start.Kind == DateTimeKind.Utc
+            ? appointment.Start
+            : DateTime.SpecifyKind(appointment.Start, DateTimeKind.Utc);
+
+        
+        // Carregar dados necessários para compor mensagens padrão (nome/contato da Company, nome/telefone do Customer, endereço).
+        var apptFull = await _db.Appointments
+            .Include(a => a.Company)
+            .Include(a => a.Customer)
+            .Include(a => a.CustomerAddress)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == appointment.Id, ct);
+
+        var companyName = apptFull?.Company?.Name ?? "Our Team";
+        var companyPhone = apptFull?.Company?.Phone ?? "";
+        var companyEmail = apptFull?.Company?.Email ?? "";
+        var customerName = apptFull?.Customer?.Name ?? "there";
+        var customerPhone = apptFull?.Customer?.Phone ?? "";
+
+        var address = BuildBestAddress(apptFull ?? appointment);
+        var startLabel = (apptFull ?? appointment).Start.ToString("MMM dd, yyyy 'at' HH:mm");
+
+        var createdAny = false;
+
+        if (existing48 == null)
+        {
+            await _uow.AppointmentMessageLogs.Add(new AppointmentMessageLog
+            {
+                AppointmentId = appointment.Id,
+                Kind = AppointmentMessageKind.ReminderEmail48h,
+                Channel = AppointmentMessageChannel.Email,
+                Status = AppointmentMessageStatus.Pending,
+                ScheduledForUtc = startUtc.AddHours(-48),
+                Attempt = 0,
+                Provider = "SendGrid",
+                RequestedByRole = "System",
+                CreatedDate = now,
+                Subject = $"DON'T REPLY — Appointment reminder ({startLabel})",
+                // Stored in BodyText (column is text) because the migration doesn't have a separate preview column.
+                BodyText = $"DON'T REPLY. If you need to change your appointment, get in touch with ELIZA at {companyPhone} or {companyEmail}.",
+                TemplateKey = "appointment_reminder_48h_v1",
+                UpdatedDate = now
+            });
+            createdAny = true;
+        }
+
+        if (existing24 == null)
+        {
+            await _uow.AppointmentMessageLogs.Add(new AppointmentMessageLog
+            {
+                AppointmentId = appointment.Id,
+                Kind = AppointmentMessageKind.ConfirmationSms24h,
+                Channel = AppointmentMessageChannel.Sms,
+                Status = AppointmentMessageStatus.Pending,
+                ScheduledForUtc = startUtc.AddHours(-24),
+                Attempt = 0,
+                Provider = "Twilio",
+                RequestedByRole = "System",
+                CreatedDate = now,
+                RecipientPhoneE164 = customerPhone,
+                BodyText = BuildConfirmationSms24h(customerName, companyName, companyPhone, companyEmail, address, startLabel),
+                TemplateKey = "appointment_confirmation_24h_sms_v1",
+                UpdatedDate = now
+            });
+            createdAny = true;
+        }
+
+        if (createdAny)
+            await _uow.SaveAsync();
+    }
+
+    public async Task<AppointmentMessageLog> ResendSmsAsync(int appointmentId, int logId, CancellationToken ct = default)
+    {
+        var appt = await _uow.Appointments.GetById(appointmentId);
+        if (appt == null) throw new NotFoundException("Agendamento não encontrado.");
+        await EnsureAppointmentAccessAsync(appt);
+
+        var existing = await _db.AppointmentMessageLogs.FirstOrDefaultAsync(x => x.Id == logId && x.AppointmentId == appointmentId, ct);
+        if (existing == null) throw new NotFoundException("Log de mensagem não encontrado.");
+
+        if (existing.Channel != AppointmentMessageChannel.Sms)
+            throw new BadRequestException("Reenvio disponível apenas para SMS no momento.");
+
+        var to = existing.RecipientPhoneE164;
+        if (string.IsNullOrWhiteSpace(to))
+        {
+            // tentar pegar do Customer
+            if (!appt.CustomerId.HasValue)
+                throw new BadRequestException("Agendamento não possui cliente associado.");
+
+            var customer = await _db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.Id == appt.CustomerId.Value, ct);
+            to = customer?.Phone;
+        }
+
+        if (string.IsNullOrWhiteSpace(to))
+            throw new BadRequestException("Telefone do cliente não encontrado para reenviar SMS.");
+
+        var body = existing.BodyText;
+        if (string.IsNullOrWhiteSpace(body))
+            throw new BadRequestException("Conteúdo do SMS não está disponível neste log para reenviar.");
+
+        var attempt = await _uow.AppointmentMessageLogs.GetNextAttemptAsync(appointmentId, existing.Kind, existing.Channel, ct);
+        var now = DateTime.UtcNow;
+
+        var newLog = new AppointmentMessageLog
+        {
+            AppointmentId = appointmentId,
+            Kind = existing.Kind,
+            Channel = AppointmentMessageChannel.Sms,
+            Status = AppointmentMessageStatus.Pending,
+            ScheduledForUtc = existing.ScheduledForUtc,
+            Attempt = attempt,
+            Provider = "Twilio",
+            RequestedByUserId = _currentUser.UserId,
+            RequestedByRole = _currentUser.IsAdmin ? "Admin" : (_currentUser.IsProfessional ? "Professional" : "Company"),
+            RecipientPhoneE164 = to,
+            BodyText = body,
+            TemplateKey = existing.TemplateKey,
+            PayloadJson = existing.PayloadJson,
+            CreatedDate = now,
+            UpdatedDate = now
+        };
+
+        await _uow.AppointmentMessageLogs.Add(newLog);
+        await _uow.SaveAsync();
+
+        try
+        {
+            var (sid, raw) = await _twilio.SendSmsAsync(to!, body!, ct);
+
+            newLog.Status = AppointmentMessageStatus.Sent;
+            newLog.SentAtUtc = DateTime.UtcNow;
+            newLog.ProviderMessageId = string.IsNullOrWhiteSpace(sid) ? null : sid;
+            newLog.ProviderStatus = "accepted";
+            newLog.LastError = null;
+            newLog.LastErrorRaw = null;
+            newLog.UpdatedDate = DateTime.UtcNow;
+
+            _uow.AppointmentMessageLogs.Update(newLog);
+            await _uow.SaveAsync();
+        }
+        catch (Exception ex)
+        {
+            newLog.Status = AppointmentMessageStatus.Failed;
+            newLog.LastError = ex.Message;
+            newLog.UpdatedDate = DateTime.UtcNow;
+            _uow.AppointmentMessageLogs.Update(newLog);
+            await _uow.SaveAsync();
+
+            // Repropaga para UI saber que falhou (mas já está logado)
+            throw;
+        }
+
+        return newLog;
+    }
+
+    
+private static string BuildConfirmationSms24h(
+    string customerName,
+    string companyName,
+    string companyPhone,
+    string companyEmail,
+    string address,
+    string startLabel)
+{
+    var contact = BuildContactLine(companyPhone, companyEmail);
+    return $"DON'T REPLY. Hi {customerName}, this is {companyName}. " +
+           $"Reminder: your appointment is scheduled for {startLabel}" +
+           (string.IsNullOrWhiteSpace(address) ? "." : $" at {address}.") +
+           $" If you need to change your appointment, get in touch with ELIZA{contact}.";
+}
+
+private static string BuildContactLine(string phone, string email)
+{
+    phone = (phone ?? string.Empty).Trim();
+    email = (email ?? string.Empty).Trim();
+
+    if (!string.IsNullOrWhiteSpace(phone) && !string.IsNullOrWhiteSpace(email))
+        return $" at {phone} or {email}";
+    if (!string.IsNullOrWhiteSpace(phone))
+        return $" at {phone}";
+    if (!string.IsNullOrWhiteSpace(email))
+        return $" at {email}";
+
+    return string.Empty;
+}
+
+private static string BuildBestAddress(Appointment appt)
+{
+    if (!string.IsNullOrWhiteSpace(appt.Address))
+        return appt.Address;
+
+    if (appt.CustomerAddress != null)
+    {
+        var parts = new[]
+        {
+            appt.CustomerAddress.AddressLine1,
+            appt.CustomerAddress.City,
+            appt.CustomerAddress.State,
+            appt.CustomerAddress.ZipCode
+        }.Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
+
+        var line = string.Join(", ", parts);
+        if (!string.IsNullOrWhiteSpace(line))
+            return line;
+    }
+
+    if (appt.Customer != null && !string.IsNullOrWhiteSpace(appt.Customer.Address))
+        return appt.Customer.Address;
+
+    return string.Empty;
+}
+
+private async Task EnsureAppointmentAccessAsync(Appointment appointment)
+    {
+        if (_currentUser.IsAdmin) return;
+
+        await _scope.EnsureCompanyAccessAsync(appointment.CompanyId);
+
+        if (_currentUser.IsProfessional)
+        {
+            var professionalId = await _scope.GetScopedProfessionalIdAsync();
+            if (!professionalId.HasValue || !appointment.ProfessionalIds.Contains(professionalId.Value))
+                throw new ForbiddenException("Você não tem permissão para acessar este agendamento.");
+        }
+    }
+}

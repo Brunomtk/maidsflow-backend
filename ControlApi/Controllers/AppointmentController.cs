@@ -176,8 +176,9 @@ namespace ControlApi.Controllers
                 return BadRequest("Não foi possível determinar o endereço do agendamento.");
 
             var body =
-                $"Hi {customerName}, this is {companyName}. Reminder: our team is on the way and will arrive at your location in approximately {eta} minutes at {address}. Reply HELP for help or STOP to unsubscribe.";
-            try
+                $"DON'T REPLY. Hi {customerName}, this is {companyName}. Our team is on the way and will arrive in approximately {eta} minutes at {address}. " +
+                $"If you need to change your appointment, get in touch with ELIZA at {appt.Company?.Phone ?? "our phone"} or {appt.Company?.Email ?? "our email"}.";
+try
             {
                 var (sid, _) = await _sms.SendSmsAsync(to, body, ct);
 

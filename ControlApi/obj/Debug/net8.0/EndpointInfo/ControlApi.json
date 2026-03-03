@@ -313,6 +313,61 @@
         }
       }
     },
+    "/api/appointments/{appointmentId}/messages": {
+      "get": {
+        "tags": [
+          "AppointmentMessages"
+        ],
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/appointments/{appointmentId}/messages/{logId}/resend-sms": {
+      "post": {
+        "tags": [
+          "AppointmentMessages"
+        ],
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "logId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/AppointmentsRecurrence": {
       "post": {
         "tags": [

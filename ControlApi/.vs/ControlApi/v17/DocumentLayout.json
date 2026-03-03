@@ -1,12 +1,52 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_cancel_subscription_and_update_payment_method_v2\\ControlApi\\",
-  "Documents": [],
+  "WorkspaceRootPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_appointment_message_logs_twilio_v1_messagecopyfix_buildfix3\\ControlApi\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_appointment_message_logs_twilio_v1_messagecopyfix_buildfix3\\Infrastructure\\Migrations\\20260303144430_AddAppointmentMessageLogsOnly.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_appointment_message_logs_twilio_v1_messagecopyfix_buildfix3\\Infrastructure\\Migrations\\20260303144135_mensagemappoimmente.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
       "VerticalTabListWidth": 256,
-      "DocumentGroups": []
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "20260303144430_AddAppointmentMessageLogsOnly.cs",
+              "DocumentMoniker": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_appointment_message_logs_twilio_v1_messagecopyfix_buildfix3\\Infrastructure\\Migrations\\20260303144430_AddAppointmentMessageLogsOnly.cs",
+              "RelativeDocumentMoniker": "..\\Infrastructure\\Migrations\\20260303144430_AddAppointmentMessageLogsOnly.cs",
+              "ToolTip": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_appointment_message_logs_twilio_v1_messagecopyfix_buildfix3\\Infrastructure\\Migrations\\20260303144430_AddAppointmentMessageLogsOnly.cs",
+              "RelativeToolTip": "..\\Infrastructure\\Migrations\\20260303144430_AddAppointmentMessageLogsOnly.cs",
+              "ViewState": "AgIAACsAAAAAAAAAAAAowFEAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-03T14:44:30.293Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "20260303144135_mensagemappoimmente.cs",
+              "DocumentMoniker": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_appointment_message_logs_twilio_v1_messagecopyfix_buildfix3\\Infrastructure\\Migrations\\20260303144135_mensagemappoimmente.cs",
+              "RelativeDocumentMoniker": "..\\Infrastructure\\Migrations\\20260303144135_mensagemappoimmente.cs",
+              "ToolTip": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_appointment_message_logs_twilio_v1_messagecopyfix_buildfix3\\Infrastructure\\Migrations\\20260303144135_mensagemappoimmente.cs",
+              "RelativeToolTip": "..\\Infrastructure\\Migrations\\20260303144135_mensagemappoimmente.cs",
+              "ViewState": "AgIAAL8CAAAAAAAAAAAqwNwCAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-03T14:41:36.032Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
     }
   ]
 }

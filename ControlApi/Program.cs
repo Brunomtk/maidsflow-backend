@@ -54,6 +54,7 @@ builder.Services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
             builder.Services.AddScoped<ITeamService, TeamService>();
             builder.Services.AddScoped<ILeaderService, LeaderService>();
             builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+            builder.Services.AddScoped<IAppointmentMessageLogService, AppointmentMessageLogService>();
             builder.Services.AddScoped<IServiceTypeService, ServiceTypeService>();
             builder.Services.AddScoped<IPayrollRuleService, PayrollRuleService>();
             builder.Services.AddScoped<IPayrollPreviewService, PayrollPreviewService>();
@@ -256,6 +257,7 @@ builder.Services.AddHostedService<CheckoutReminderHostedService>();
             });
             
             builder.Services.AddScoped<ICustomerAreaRepository, CustomerAreaRepository>();
+            builder.Services.AddScoped<IAppointmentMessageLogRepository, AppointmentMessageLogRepository>();
             builder.Services.AddScoped<IChecklistRepository, ChecklistRepository>();
             builder.Services.AddScoped<IChecklistItemRepository, ChecklistItemRepository>();
             builder.Services.AddScoped<IChecklistItemPhotoRepository, ChecklistItemPhotoRepository>();
