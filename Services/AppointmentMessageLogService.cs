@@ -60,7 +60,19 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
 
         // For recurring appointments, the UI can request logs for a specific occurrence by passing occurrenceStartUtc.
         // Match by occurrence window when provided (recurrence-safe)
-        return await _uow.AppointmentMessageLogs.GetByAppointmentAsync(appointmentId, normStart, normEnd, ct);
+        var logs = await _uow.AppointmentMessageLogs.GetByAppointmentAsync(appointmentId, normStart, normEnd, ct);
+
+        // SAFETY: Only show "Sent" when we have a real SentAtUtc.
+        // This avoids incorrect UI (Status=Sent with empty sent timestamp).
+        foreach (var l in logs)
+        {
+            if (l.Status == AppointmentMessageStatus.Sent && l.SentAtUtc == null)
+            {
+                l.Status = AppointmentMessageStatus.Pending;
+            }
+        }
+
+        return logs;
     }
 
     public async Task EnsureDefaultPlaceholdersAsync(Appointment appointment, DateTime? occurrenceStartUtc = null, DateTime? occurrenceEndUtc = null, CancellationToken ct = default)
@@ -237,9 +249,14 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
         {
             var (sid, raw) = await _twilio.SendSmsAsync(to!, body!, ct);
 
+            // Only mark as Sent when we have a concrete send marker.
+            // For Twilio, the SID is the most reliable indicator.
+            if (string.IsNullOrWhiteSpace(sid))
+                throw new Exception("Twilio did not return a message SID.");
+
             newLog.Status = AppointmentMessageStatus.Sent;
             newLog.SentAtUtc = DateTime.UtcNow;
-            newLog.ProviderMessageId = string.IsNullOrWhiteSpace(sid) ? null : sid;
+            newLog.ProviderMessageId = sid;
             newLog.ProviderStatus = "accepted";
             newLog.LastError = null;
             newLog.LastErrorRaw = null;
