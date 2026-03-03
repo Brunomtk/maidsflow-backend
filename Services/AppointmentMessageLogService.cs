@@ -4,6 +4,7 @@ using Core.Models;
 using Infrastructure;
 using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Services.Integrations.SendGrid;
 using Services.Integrations.Twilio;
 using Services.Security;
 using System.Linq;
@@ -15,6 +16,7 @@ public interface IAppointmentMessageLogService
     Task<IReadOnlyList<AppointmentMessageLog>> GetLogsAsync(int appointmentId, CancellationToken ct = default);
     Task EnsureDefaultPlaceholdersAsync(Appointment appointment, CancellationToken ct = default);
     Task<AppointmentMessageLog> ResendSmsAsync(int appointmentId, int logId, CancellationToken ct = default);
+    Task<AppointmentMessageLog> ResendEmailAsync(int appointmentId, int logId, CancellationToken ct = default);
 }
 
 public class AppointmentMessageLogService : IAppointmentMessageLogService
@@ -24,19 +26,22 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
     private readonly ICurrentUser _currentUser;
     private readonly IScopeGuard _scope;
     private readonly ITwilioSmsSender _twilio;
+    private readonly ISendGridEmailSender _sendGrid;
 
     public AppointmentMessageLogService(
         IUnitOfWork uow,
         DbContextClass db,
         ICurrentUser currentUser,
         IScopeGuard scope,
-        ITwilioSmsSender twilio)
+        ITwilioSmsSender twilio,
+        ISendGridEmailSender sendGrid)
     {
         _uow = uow;
         _db = db;
         _currentUser = currentUser;
         _scope = scope;
         _twilio = twilio;
+        _sendGrid = sendGrid;
     }
 
     public async Task<IReadOnlyList<AppointmentMessageLog>> GetLogsAsync(int appointmentId, CancellationToken ct = default)
@@ -80,6 +85,7 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
         var companyEmail = apptFull?.Company?.Email ?? "";
         var customerName = apptFull?.Customer?.Name ?? "there";
         var customerPhone = apptFull?.Customer?.Phone ?? "";
+        var customerEmail = apptFull?.Customer?.Email ?? "";
 
         var address = BuildBestAddress(apptFull ?? appointment);
         var startLabel = (apptFull ?? appointment).Start.ToString("MMM dd, yyyy 'at' HH:mm");
@@ -99,6 +105,7 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
                 Provider = "SendGrid",
                 RequestedByRole = "System",
                 CreatedDate = now,
+                RecipientEmail = string.IsNullOrWhiteSpace(customerEmail) ? null : customerEmail,
                 Subject = $"DON'T REPLY — Appointment reminder ({startLabel})",
                 // Stored in BodyText (column is text) because the migration doesn't have a separate preview column.
                 BodyText = $"DON'T REPLY. If you need to change your appointment, get in touch with ELIZA at {companyPhone} or {companyEmail}.",
@@ -216,6 +223,138 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
         }
 
         return newLog;
+    }
+
+    public async Task<AppointmentMessageLog> ResendEmailAsync(int appointmentId, int logId, CancellationToken ct = default)
+    {
+        var appt = await _uow.Appointments.GetById(appointmentId);
+        if (appt == null) throw new NotFoundException("Agendamento não encontrado.");
+        await EnsureAppointmentAccessAsync(appt);
+
+        var existing = await _db.AppointmentMessageLogs.FirstOrDefaultAsync(x => x.Id == logId && x.AppointmentId == appointmentId, ct);
+        if (existing == null) throw new NotFoundException("Log de mensagem não encontrado.");
+
+        if (existing.Channel != AppointmentMessageChannel.Email)
+            throw new BadRequestException("Reenvio disponível apenas para Email neste endpoint.");
+
+        // Resolve destinatário
+        var toEmail = existing.RecipientEmail;
+        string? toName = null;
+
+        if (string.IsNullOrWhiteSpace(toEmail))
+        {
+            if (!appt.CustomerId.HasValue)
+                throw new BadRequestException("Agendamento não possui cliente associado.");
+
+            var customer = await _db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.Id == appt.CustomerId.Value, ct);
+            toEmail = customer?.Email;
+            toName = customer?.Name;
+        }
+
+        if (string.IsNullOrWhiteSpace(toEmail))
+            throw new BadRequestException("Email do cliente não encontrado para reenviar.");
+
+        // Dados da company para copy padrão
+        var company = await _db.Companies.AsNoTracking().FirstOrDefaultAsync(c => c.Id == appt.CompanyId, ct);
+        var companyName = company?.Name ?? "Our Team";
+        var companyPhone = company?.Phone ?? "";
+        var companyEmail = company?.Email ?? "";
+
+        var subject = string.IsNullOrWhiteSpace(existing.Subject)
+            ? "DON'T REPLY — Appointment confirmation"
+            : existing.Subject;
+
+        var plain = string.IsNullOrWhiteSpace(existing.BodyText)
+            ? $"DON'T REPLY. If you need to change your appointment, get in touch with ELIZA at {companyPhone} or {companyEmail}."
+            : existing.BodyText;
+
+        var html = BuildEmailHtml(companyName, plain);
+
+        var attempt = await _uow.AppointmentMessageLogs.GetNextAttemptAsync(appointmentId, existing.Kind, existing.Channel, ct);
+        var now = DateTime.UtcNow;
+
+        var newLog = new AppointmentMessageLog
+        {
+            AppointmentId = appointmentId,
+            Kind = existing.Kind,
+            Channel = AppointmentMessageChannel.Email,
+            Status = AppointmentMessageStatus.Pending,
+            ScheduledForUtc = existing.ScheduledForUtc,
+            Attempt = attempt,
+            Provider = "SendGrid",
+            RequestedByUserId = _currentUser.UserId,
+            RequestedByRole = _currentUser.IsAdmin ? "Admin" : (_currentUser.IsProfessional ? "Professional" : "Company"),
+            RecipientEmail = toEmail,
+            Subject = subject,
+            BodyText = plain,
+            TemplateKey = existing.TemplateKey,
+            PayloadJson = existing.PayloadJson,
+            CreatedDate = now,
+            UpdatedDate = now
+        };
+
+        await _uow.AppointmentMessageLogs.Add(newLog);
+        await _uow.SaveAsync();
+
+        var send = await _sendGrid.SendAsync(new SendGridEmailMessage(
+            ToEmail: toEmail!,
+            Subject: subject,
+            PlainText: plain,
+            Html: html,
+            ToName: toName
+        ), ct);
+
+        if (send.Ok)
+        {
+            newLog.Status = AppointmentMessageStatus.Sent;
+            newLog.SentAtUtc = DateTime.UtcNow;
+            newLog.ProviderStatus = $"accepted:{send.StatusCode}";
+            newLog.LastError = null;
+            newLog.LastErrorRaw = null;
+            newLog.UpdatedDate = DateTime.UtcNow;
+            _uow.AppointmentMessageLogs.Update(newLog);
+            await _uow.SaveAsync();
+            return newLog;
+        }
+
+        newLog.Status = AppointmentMessageStatus.Failed;
+        newLog.ProviderStatus = send.StatusCode == 0 ? null : send.StatusCode.ToString();
+        newLog.LastError = send.Error ?? "SendGrid request failed";
+        newLog.LastErrorRaw = send.ResponseBody;
+        newLog.UpdatedDate = DateTime.UtcNow;
+        _uow.AppointmentMessageLogs.Update(newLog);
+        await _uow.SaveAsync();
+
+        throw new BadRequestException($"Falha ao reenviar email: {newLog.LastError}");
+    }
+
+    private static string BuildEmailHtml(string companyName, string plainText)
+    {
+        var safe = System.Net.WebUtility.HtmlEncode(plainText).Replace("\n", "<br/>");
+        return $@"<!doctype html>
+<html>
+  <head>
+    <meta charset='utf-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1' />
+  </head>
+  <body style='margin:0;padding:0;background:#0b1220;font-family:Arial,Helvetica,sans-serif;'>
+    <div style='max-width:640px;margin:0 auto;padding:24px;'>
+      <div style='background:#0f1a33;border:1px solid rgba(255,255,255,0.12);border-radius:16px;overflow:hidden;'>
+        <div style='padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.10);'>
+          <div style='color:#7dd3fc;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;'>MaidsFlow</div>
+          <div style='color:#ffffff;font-weight:700;font-size:18px;margin-top:6px;'>DON'T REPLY</div>
+          <div style='color:rgba(255,255,255,0.65);font-size:13px;margin-top:6px;'>This email was sent by {System.Net.WebUtility.HtmlEncode(companyName)}.</div>
+        </div>
+        <div style='padding:18px 20px;color:#ffffff;font-size:14px;line-height:1.55;'>
+          {safe}
+        </div>
+      </div>
+      <div style='color:rgba(255,255,255,0.45);font-size:12px;margin-top:14px;text-align:center;'>
+        Please do not reply to this email.
+      </div>
+    </div>
+  </body>
+</html>";
     }
 
     

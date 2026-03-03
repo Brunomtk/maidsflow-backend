@@ -368,6 +368,38 @@
         }
       }
     },
+    "/api/appointments/{appointmentId}/messages/{logId}/resend-email": {
+      "post": {
+        "tags": [
+          "AppointmentMessages"
+        ],
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "logId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/AppointmentsRecurrence": {
       "post": {
         "tags": [

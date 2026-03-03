@@ -204,6 +204,27 @@
   },
   {
     "ContainingType": "ControlApi.Controllers.AppointmentMessagesController",
+    "Method": "ResendEmail",
+    "RelativePath": "api/appointments/{appointmentId}/messages/{logId}/resend-email",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "appointmentId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "logId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.AppointmentMessagesController",
     "Method": "ResendSms",
     "RelativePath": "api/appointments/{appointmentId}/messages/{logId}/resend-sms",
     "HttpMethod": "POST",

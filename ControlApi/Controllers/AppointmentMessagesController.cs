@@ -32,4 +32,14 @@ public class AppointmentMessagesController : ControllerBase
         var log = await _svc.ResendSmsAsync(appointmentId, logId, ct);
         return Ok(log);
     }
+
+    /// <summary>
+    /// Reenvia um Email baseado em um log existente (cria uma nova tentativa no histórico).
+    /// </summary>
+    [HttpPost("{logId:int}/resend-email")]
+    public async Task<IActionResult> ResendEmail([FromRoute] int appointmentId, [FromRoute] int logId, CancellationToken ct)
+    {
+        var log = await _svc.ResendEmailAsync(appointmentId, logId, ct);
+        return Ok(log);
+    }
 }
