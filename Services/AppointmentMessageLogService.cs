@@ -52,35 +52,40 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
         await EnsureAppointmentAccessAsync(appt);
 
         // Garantir placeholders (48h Email / 24h SMS) para aparecer na UI mesmo antes do primeiro envio.
-        await EnsureDefaultPlaceholdersAsync(appt, occurrenceStartUtc, occurrenceEndUtc, ct);
+        // Normalize occurrence timestamps to reduce duplication caused by tick/second differences.
+        var normStart = NormalizeOccurrenceUtc(occurrenceStartUtc);
+        var normEnd = NormalizeOccurrenceUtc(occurrenceEndUtc);
+
+        await EnsureDefaultPlaceholdersAsync(appt, normStart, normEnd, ct);
 
         // For recurring appointments, the UI can request logs for a specific occurrence by passing occurrenceStartUtc.
-        return await _uow.AppointmentMessageLogs.GetByAppointmentAsync(appointmentId, occurrenceStartUtc, ct);
+        // Match by occurrence window when provided (recurrence-safe)
+        return await _uow.AppointmentMessageLogs.GetByAppointmentAsync(appointmentId, normStart, normEnd, ct);
     }
 
     public async Task EnsureDefaultPlaceholdersAsync(Appointment appointment, DateTime? occurrenceStartUtc = null, DateTime? occurrenceEndUtc = null, CancellationToken ct = default)
     {
         var isRecurringContext = appointment.IsRecurring || appointment.SeriesId.HasValue;
-        var occStartUtc = occurrenceStartUtc;
-        var occEndUtc = occurrenceEndUtc;
+        var occStartUtc = NormalizeOccurrenceUtc(occurrenceStartUtc);
+        var occEndUtc = NormalizeOccurrenceUtc(occurrenceEndUtc);
 
         if (isRecurringContext)
         {
             // If caller didn't pass occurrence dates, fall back to the appointment's own Start/End.
             // (Still better than nothing, but ideally the UI sends the occurrence Start/End.)
-            if (!occStartUtc.HasValue) occStartUtc = EnsureUtc(appointment.Start);
-            if (!occEndUtc.HasValue) occEndUtc = EnsureUtc(appointment.End);
+            if (!occStartUtc.HasValue) occStartUtc = NormalizeOccurrenceUtc(EnsureUtc(appointment.Start));
+            if (!occEndUtc.HasValue) occEndUtc = NormalizeOccurrenceUtc(EnsureUtc(appointment.End));
         }
 
         // Cria placeholders apenas 1x por kind/channel.
         // Não bloqueia se já existe qualquer log (inclusive de reenvio).
         var existing48 = await _uow.AppointmentMessageLogs.GetLatestAsync(
-            appointment.Id, AppointmentMessageKind.ReminderEmail48h, AppointmentMessageChannel.Email, occStartUtc, ct);
+            appointment.Id, AppointmentMessageKind.ReminderEmail48h, AppointmentMessageChannel.Email, occStartUtc, occEndUtc, ct);
         var existing24 = await _uow.AppointmentMessageLogs.GetLatestAsync(
-            appointment.Id, AppointmentMessageKind.ConfirmationSms24h, AppointmentMessageChannel.Sms, occStartUtc, ct);
+            appointment.Id, AppointmentMessageKind.ConfirmationSms24h, AppointmentMessageChannel.Sms, occStartUtc, occEndUtc, ct);
 
         var now = DateTime.UtcNow;
-        var startUtc = occStartUtc ?? EnsureUtc(appointment.Start);
+        var startUtc = occStartUtc ?? NormalizeOccurrenceUtc(EnsureUtc(appointment.Start)) ?? EnsureUtc(appointment.Start);
 
         
         // Carregar dados necessários para compor mensagens padrão (nome/contato da Company, nome/telefone do Customer, endereço).
@@ -162,6 +167,14 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
     private static DateTime EnsureUtc(DateTime dt)
         => dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 
+    private static DateTime? NormalizeOccurrenceUtc(DateTime? dt)
+    {
+        if (!dt.HasValue) return null;
+        var utc = EnsureUtc(dt.Value);
+        // Normalize to minute precision (seconds and ticks removed) to avoid mismatch between sources.
+        return new DateTime(utc.Year, utc.Month, utc.Day, utc.Hour, utc.Minute, 0, DateTimeKind.Utc);
+    }
+
     public async Task<AppointmentMessageLog> ResendSmsAsync(int appointmentId, int logId, CancellationToken ct = default)
     {
         var appt = await _uow.Appointments.GetById(appointmentId);
@@ -192,7 +205,7 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
         if (string.IsNullOrWhiteSpace(body))
             throw new BadRequestException("Conteúdo do SMS não está disponível neste log para reenviar.");
 
-        var attempt = await _uow.AppointmentMessageLogs.GetNextAttemptAsync(appointmentId, existing.Kind, existing.Channel, existing.OccurrenceStartUtc, ct);
+        var attempt = await _uow.AppointmentMessageLogs.GetNextAttemptAsync(appointmentId, existing.Kind, existing.Channel, existing.OccurrenceStartUtc, existing.OccurrenceEndUtc, ct);
         var now = DateTime.UtcNow;
 
         var newLog = new AppointmentMessageLog
@@ -295,7 +308,7 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
 
         var html = BuildEmailHtml(companyName, plain);
 
-        var attempt = await _uow.AppointmentMessageLogs.GetNextAttemptAsync(appointmentId, existing.Kind, existing.Channel, existing.OccurrenceStartUtc, ct);
+        var attempt = await _uow.AppointmentMessageLogs.GetNextAttemptAsync(appointmentId, existing.Kind, existing.Channel, existing.OccurrenceStartUtc, existing.OccurrenceEndUtc, ct);
         var now = DateTime.UtcNow;
 
         var newLog = new AppointmentMessageLog
