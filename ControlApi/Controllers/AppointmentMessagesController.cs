@@ -2,6 +2,7 @@ using System;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services;
+using Core.DTOs.Messaging;
 
 namespace ControlApi.Controllers;
 
@@ -26,6 +27,33 @@ public class AppointmentMessagesController : ControllerBase
     {
         var logs = await _svc.GetLogsAsync(appointmentId, occurrenceStartUtc, occurrenceEndUtc, ct);
         return Ok(logs);
+    }
+
+    /// <summary>
+    /// Cria um log de mensagem para um appointment (usado pelo n8n antes de enviar SMS/Email).
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> CreateLog(
+        [FromRoute] int appointmentId,
+        [FromBody] CreateAppointmentMessageLogRequest req,
+        CancellationToken ct)
+    {
+        var created = await _svc.CreateLogAsync(appointmentId, req, ct);
+        return Ok(created);
+    }
+
+    /// <summary>
+    /// Atualiza um log existente (usado pelo n8n após o envio para marcar Sent/Failed).
+    /// </summary>
+    [HttpPatch("{logId:int}")]
+    public async Task<IActionResult> UpdateLog(
+        [FromRoute] int appointmentId,
+        [FromRoute] int logId,
+        [FromBody] UpdateAppointmentMessageLogRequest req,
+        CancellationToken ct)
+    {
+        var updated = await _svc.UpdateLogAsync(appointmentId, logId, req, ct);
+        return Ok(updated);
     }
 
     /// <summary>

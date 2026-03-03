@@ -1,4 +1,5 @@
 using Core.Enums.Messaging;
+using Core.DTOs.Messaging;
 using Core.Exceptions;
 using Core.Models;
 using Infrastructure;
@@ -15,6 +16,8 @@ public interface IAppointmentMessageLogService
 {
     Task<IReadOnlyList<AppointmentMessageLog>> GetLogsAsync(int appointmentId, DateTime? occurrenceStartUtc = null, DateTime? occurrenceEndUtc = null, CancellationToken ct = default);
     Task EnsureDefaultPlaceholdersAsync(Appointment appointment, DateTime? occurrenceStartUtc = null, DateTime? occurrenceEndUtc = null, CancellationToken ct = default);
+    Task<AppointmentMessageLog> CreateLogAsync(int appointmentId, CreateAppointmentMessageLogRequest req, CancellationToken ct = default);
+    Task<AppointmentMessageLog> UpdateLogAsync(int appointmentId, int logId, UpdateAppointmentMessageLogRequest req, CancellationToken ct = default);
     Task<AppointmentMessageLog> ResendSmsAsync(int appointmentId, int logId, CancellationToken ct = default);
     Task<AppointmentMessageLog> ResendEmailAsync(int appointmentId, int logId, CancellationToken ct = default);
 }
@@ -176,6 +179,112 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
             await _uow.SaveAsync();
     }
 
+    public async Task<AppointmentMessageLog> CreateLogAsync(int appointmentId, CreateAppointmentMessageLogRequest req, CancellationToken ct = default)
+    {
+        var appt = await _uow.Appointments.GetById(appointmentId);
+        if (appt == null) throw new NotFoundException("Agendamento não encontrado.");
+
+        await EnsureAppointmentAccessAsync(appt);
+
+        var kind = ParseEnum<AppointmentMessageKind>(req.Kind, nameof(req.Kind));
+        var channel = ParseEnum<AppointmentMessageChannel>(req.Channel, nameof(req.Channel));
+        var status = ParseEnum<AppointmentMessageStatus>(req.Status, nameof(req.Status));
+
+        var occStart = NormalizeOccurrenceUtc(req.OccurrenceStartUtc);
+        var occEnd = NormalizeOccurrenceUtc(req.OccurrenceEndUtc);
+
+        // Attempt per occurrence/kind/channel
+        var attempt = await _uow.AppointmentMessageLogs.GetNextAttemptAsync(appointmentId, kind, channel, occStart, occEnd, ct);
+
+        var provider = channel == AppointmentMessageChannel.Sms ? "Twilio" : "SendGrid";
+
+        // Create should normally start Pending. If caller tries to create as Sent, we downgrade to Pending.
+        if (status == AppointmentMessageStatus.Sent)
+        {
+            status = AppointmentMessageStatus.Pending;
+        }
+
+        var log = new AppointmentMessageLog
+        {
+            AppointmentId = appointmentId,
+            SeriesId = appt.SeriesId,
+            OccurrenceStartUtc = occStart,
+            OccurrenceEndUtc = occEnd,
+            Kind = kind,
+            Channel = channel,
+            Status = status,
+            ScheduledForUtc = req.ScheduledForUtc,
+            SentAtUtc = null,
+            Attempt = attempt,
+            RequestedByUserId = _currentUser.UserId,
+            RequestedByRole = string.IsNullOrWhiteSpace(req.RequestedByRole) ? "System" : req.RequestedByRole,
+            RecipientEmail = req.RecipientEmail,
+            RecipientPhoneE164 = req.RecipientPhoneE164,
+            Subject = req.Subject,
+            BodyText = req.BodyText,
+            TemplateKey = req.TemplateKey,
+            PayloadJson = req.PayloadJson,
+            Provider = provider,
+            ProviderMessageId = null,
+            ProviderStatus = null,
+            LastError = null,
+            LastErrorRaw = null,
+            CreatedDate = DateTime.UtcNow,
+            UpdatedDate = DateTime.UtcNow
+        };
+
+        await _db.AppointmentMessageLogs.AddAsync(log, ct);
+        await _uow.SaveAsync();
+        return log;
+    }
+
+    public async Task<AppointmentMessageLog> UpdateLogAsync(int appointmentId, int logId, UpdateAppointmentMessageLogRequest req, CancellationToken ct = default)
+    {
+        var appt = await _uow.Appointments.GetById(appointmentId);
+        if (appt == null) throw new NotFoundException("Agendamento não encontrado.");
+
+        await EnsureAppointmentAccessAsync(appt);
+
+        var log = await _db.AppointmentMessageLogs.FirstOrDefaultAsync(x => x.Id == logId && x.AppointmentId == appointmentId, ct);
+        if (log == null) throw new NotFoundException("Log de mensagem não encontrado.");
+
+        if (!string.IsNullOrWhiteSpace(req.Status))
+        {
+            var newStatus = ParseEnum<AppointmentMessageStatus>(req.Status!, nameof(req.Status));
+
+            // Only allow Sent if SentAtUtc provided
+            if (newStatus == AppointmentMessageStatus.Sent && req.SentAtUtc == null)
+            {
+                newStatus = AppointmentMessageStatus.Pending;
+            }
+
+            log.Status = newStatus;
+        }
+
+        if (req.SentAtUtc.HasValue)
+            log.SentAtUtc = EnsureUtc(req.SentAtUtc.Value);
+
+        if (!string.IsNullOrWhiteSpace(req.ProviderMessageId))
+            log.ProviderMessageId = req.ProviderMessageId;
+
+        if (!string.IsNullOrWhiteSpace(req.ProviderStatus))
+            log.ProviderStatus = req.ProviderStatus;
+
+        if (!string.IsNullOrWhiteSpace(req.LastError))
+            log.LastError = req.LastError;
+
+        if (!string.IsNullOrWhiteSpace(req.LastErrorRaw))
+            log.LastErrorRaw = req.LastErrorRaw;
+
+        // FINAL SAFETY: Sent must have SentAtUtc
+        if (log.Status == AppointmentMessageStatus.Sent && log.SentAtUtc == null)
+            log.Status = AppointmentMessageStatus.Pending;
+
+        log.UpdatedDate = DateTime.UtcNow;
+        await _uow.SaveAsync();
+        return log;
+    }
+
     private static DateTime EnsureUtc(DateTime dt)
         => dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 
@@ -185,6 +294,27 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
         var utc = EnsureUtc(dt.Value);
         // Normalize to minute precision (seconds and ticks removed) to avoid mismatch between sources.
         return new DateTime(utc.Year, utc.Month, utc.Day, utc.Hour, utc.Minute, 0, DateTimeKind.Utc);
+    }
+
+    private static TEnum ParseEnum<TEnum>(string? raw, string fieldName) where TEnum : struct
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            throw new BadRequestException($"Campo '{fieldName}' é obrigatório.");
+
+        var s = raw.Trim();
+
+        // Accept numeric strings ("1")
+        if (int.TryParse(s, out var num))
+        {
+            if (Enum.IsDefined(typeof(TEnum), num))
+                return (TEnum)Enum.ToObject(typeof(TEnum), num);
+        }
+
+        // Accept names (case-insensitive)
+        if (Enum.TryParse<TEnum>(s, ignoreCase: true, out var parsed))
+            return parsed;
+
+        throw new BadRequestException($"Valor inválido para '{fieldName}': '{raw}'.");
     }
 
     public async Task<AppointmentMessageLog> ResendSmsAsync(int appointmentId, int logId, CancellationToken ct = default)
