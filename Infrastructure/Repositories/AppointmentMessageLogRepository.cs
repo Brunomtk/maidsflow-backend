@@ -25,7 +25,28 @@ public class AppointmentMessageLogRepository : GenericRepository<AppointmentMess
         // Match by tolerance + overlap instead of strict equality.
         if (occurrenceStartUtc.HasValue || occurrenceEndUtc.HasValue)
         {
-            q = q.Where(x => OccurrenceMatches(x, occurrenceStartUtc, occurrenceEndUtc));
+            var tol = TimeSpan.FromMinutes(5);
+DateTime? qs = occurrenceStartUtc.HasValue ? EnsureUtc(occurrenceStartUtc.Value) : null;
+DateTime? qe = occurrenceEndUtc.HasValue ? EnsureUtc(occurrenceEndUtc.Value) : null;
+DateTime? qsMin = qs.HasValue ? qs.Value - tol : null;
+DateTime? qsMax = qs.HasValue ? qs.Value + tol : null;
+DateTime? qeMin = qe.HasValue ? qe.Value - tol : null;
+DateTime? qeMax = qe.HasValue ? qe.Value + tol : null;
+
+q = q.Where(x =>
+    (!qs.HasValue && !qe.HasValue)
+    ||
+    (x.OccurrenceStartUtc.HasValue && x.OccurrenceEndUtc.HasValue &&
+        (
+            (qs.HasValue && x.OccurrenceStartUtc.Value >= qsMin!.Value && x.OccurrenceStartUtc.Value <= qsMax!.Value)
+            ||
+            (qe.HasValue && x.OccurrenceEndUtc.Value >= qeMin!.Value && x.OccurrenceEndUtc.Value <= qeMax!.Value)
+            ||
+            (qs.HasValue && qe.HasValue && x.OccurrenceStartUtc.Value <= qeMax!.Value && x.OccurrenceEndUtc.Value >= qsMin!.Value)
+        )
+    )
+);
+
         }
 
         return await q.OrderByDescending(x => x.CreatedDate).ToListAsync(ct);
@@ -38,7 +59,28 @@ public class AppointmentMessageLogRepository : GenericRepository<AppointmentMess
             .Where(x => x.AppointmentId == appointmentId && x.Kind == kind && x.Channel == channel);
         if (occurrenceStartUtc.HasValue || occurrenceEndUtc.HasValue)
         {
-            q = q.Where(x => OccurrenceMatches(x, occurrenceStartUtc, occurrenceEndUtc));
+            var tol = TimeSpan.FromMinutes(5);
+DateTime? qs = occurrenceStartUtc.HasValue ? EnsureUtc(occurrenceStartUtc.Value) : null;
+DateTime? qe = occurrenceEndUtc.HasValue ? EnsureUtc(occurrenceEndUtc.Value) : null;
+DateTime? qsMin = qs.HasValue ? qs.Value - tol : null;
+DateTime? qsMax = qs.HasValue ? qs.Value + tol : null;
+DateTime? qeMin = qe.HasValue ? qe.Value - tol : null;
+DateTime? qeMax = qe.HasValue ? qe.Value + tol : null;
+
+q = q.Where(x =>
+    (!qs.HasValue && !qe.HasValue)
+    ||
+    (x.OccurrenceStartUtc.HasValue && x.OccurrenceEndUtc.HasValue &&
+        (
+            (qs.HasValue && x.OccurrenceStartUtc.Value >= qsMin!.Value && x.OccurrenceStartUtc.Value <= qsMax!.Value)
+            ||
+            (qe.HasValue && x.OccurrenceEndUtc.Value >= qeMin!.Value && x.OccurrenceEndUtc.Value <= qeMax!.Value)
+            ||
+            (qs.HasValue && qe.HasValue && x.OccurrenceStartUtc.Value <= qeMax!.Value && x.OccurrenceEndUtc.Value >= qsMin!.Value)
+        )
+    )
+);
+
         }
 
         return await q.OrderByDescending(x => x.CreatedDate).FirstOrDefaultAsync(ct);
@@ -51,7 +93,28 @@ public class AppointmentMessageLogRepository : GenericRepository<AppointmentMess
             .Where(x => x.AppointmentId == appointmentId && x.Kind == kind && x.Channel == channel);
         if (occurrenceStartUtc.HasValue || occurrenceEndUtc.HasValue)
         {
-            q = q.Where(x => OccurrenceMatches(x, occurrenceStartUtc, occurrenceEndUtc));
+            var tol = TimeSpan.FromMinutes(5);
+DateTime? qs = occurrenceStartUtc.HasValue ? EnsureUtc(occurrenceStartUtc.Value) : null;
+DateTime? qe = occurrenceEndUtc.HasValue ? EnsureUtc(occurrenceEndUtc.Value) : null;
+DateTime? qsMin = qs.HasValue ? qs.Value - tol : null;
+DateTime? qsMax = qs.HasValue ? qs.Value + tol : null;
+DateTime? qeMin = qe.HasValue ? qe.Value - tol : null;
+DateTime? qeMax = qe.HasValue ? qe.Value + tol : null;
+
+q = q.Where(x =>
+    (!qs.HasValue && !qe.HasValue)
+    ||
+    (x.OccurrenceStartUtc.HasValue && x.OccurrenceEndUtc.HasValue &&
+        (
+            (qs.HasValue && x.OccurrenceStartUtc.Value >= qsMin!.Value && x.OccurrenceStartUtc.Value <= qsMax!.Value)
+            ||
+            (qe.HasValue && x.OccurrenceEndUtc.Value >= qeMin!.Value && x.OccurrenceEndUtc.Value <= qeMax!.Value)
+            ||
+            (qs.HasValue && qe.HasValue && x.OccurrenceStartUtc.Value <= qeMax!.Value && x.OccurrenceEndUtc.Value >= qsMin!.Value)
+        )
+    )
+);
+
         }
 
         var last = await q
@@ -62,42 +125,6 @@ public class AppointmentMessageLogRepository : GenericRepository<AppointmentMess
         return (last <= 0 ? 1 : last + 1);
     }
 
-    
-
-    private static bool OccurrenceMatches(AppointmentMessageLog x, DateTime? occurrenceStartUtc, DateTime? occurrenceEndUtc)
-    {
-        // Recurrence timestamps can vary slightly across sources (seconds/ticks/timezone conversions).
-        // Match using tolerance + interval overlap.
-        var tol = TimeSpan.FromMinutes(5);
-
-        if (occurrenceStartUtc.HasValue && occurrenceEndUtc.HasValue)
-        {
-            var qs = EnsureUtc(occurrenceStartUtc.Value);
-            var qe = EnsureUtc(occurrenceEndUtc.Value);
-            if (!x.OccurrenceStartUtc.HasValue || !x.OccurrenceEndUtc.HasValue) return false;
-            var xs = EnsureUtc(x.OccurrenceStartUtc.Value);
-            var xe = EnsureUtc(x.OccurrenceEndUtc.Value);
-            return xs <= qe.Add(tol) && xe >= qs.Add(-tol);
-        }
-
-        if (occurrenceStartUtc.HasValue)
-        {
-            var qs = EnsureUtc(occurrenceStartUtc.Value);
-            var min = qs.Add(-tol);
-            var max = qs.Add(tol);
-            return x.OccurrenceStartUtc.HasValue && EnsureUtc(x.OccurrenceStartUtc.Value) >= min && EnsureUtc(x.OccurrenceStartUtc.Value) <= max;
-        }
-
-        if (occurrenceEndUtc.HasValue)
-        {
-            var qe = EnsureUtc(occurrenceEndUtc.Value);
-            var min = qe.Add(-tol);
-            var max = qe.Add(tol);
-            return x.OccurrenceEndUtc.HasValue && EnsureUtc(x.OccurrenceEndUtc.Value) >= min && EnsureUtc(x.OccurrenceEndUtc.Value) <= max;
-        }
-
-        return true;
-    }
-private static DateTime EnsureUtc(DateTime dt)
+    private static DateTime EnsureUtc(DateTime dt)
         => dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 }
