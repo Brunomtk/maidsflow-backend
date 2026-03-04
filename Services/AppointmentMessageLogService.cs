@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Services.Integrations.SendGrid;
 using Services.Integrations.Twilio;
 using Services.Security;
+using System;
 using System.Linq;
 
 namespace Services;
@@ -60,6 +61,13 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
 
         var logs = await _uow.AppointmentMessageLogs.GetByAppointmentAsync(appointmentId, normStart, normEnd, ct);
 
+        // Fallback: some legacy rows (or small timestamp drifts) may not match the requested occurrence window.
+        // If the UI asked for an occurrence and we found nothing, return logs without occurrence filtering.
+        if ((normStart.HasValue || normEnd.HasValue) && (logs == null || logs.Count == 0))
+        {
+            logs = await _uow.AppointmentMessageLogs.GetByAppointmentAsync(appointmentId, null, null, ct);
+        }
+
         // SAFETY: Only show "Sent" when we have a real SentAtUtc.
         // This avoids incorrect UI (Status=Sent with empty sent timestamp).
         foreach (var l in logs)
@@ -95,21 +103,34 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
             if (x.Kind != kind || x.Channel != channel) return false;
             if (!isRecurringContext) return true;
 
+            var tol = TimeSpan.FromMinutes(5);
+
+            // If both bounds are known, match by interval overlap (with tolerance)
+            if (startUtc.HasValue && endUtc.HasValue)
+            {
+                if (!x.OccurrenceStartUtc.HasValue || !x.OccurrenceEndUtc.HasValue) return false;
+                return EnsureUtc(x.OccurrenceStartUtc.Value) <= EnsureUtc(endUtc.Value).Add(tol)
+                    && EnsureUtc(x.OccurrenceEndUtc.Value) >= EnsureUtc(startUtc.Value).Add(-tol);
+            }
+
             if (startUtc.HasValue)
             {
-                var min = startUtc.Value.AddMinutes(-1);
-                var max = startUtc.Value.AddMinutes(1);
+                var min = startUtc.Value.Add(-tol);
+                var max = startUtc.Value.Add(tol);
                 if (!x.OccurrenceStartUtc.HasValue) return false;
-                if (x.OccurrenceStartUtc.Value < min || x.OccurrenceStartUtc.Value > max) return false;
+                var xs = EnsureUtc(x.OccurrenceStartUtc.Value);
+                if (xs < EnsureUtc(min) || xs > EnsureUtc(max)) return false;
             }
             if (endUtc.HasValue)
             {
-                var min = endUtc.Value.AddMinutes(-1);
-                var max = endUtc.Value.AddMinutes(1);
+                var min = endUtc.Value.Add(-tol);
+                var max = endUtc.Value.Add(tol);
                 if (!x.OccurrenceEndUtc.HasValue) return false;
-                if (x.OccurrenceEndUtc.Value < min || x.OccurrenceEndUtc.Value > max) return false;
+                var xe = EnsureUtc(x.OccurrenceEndUtc.Value);
+                if (xe < EnsureUtc(min) || xe > EnsureUtc(max)) return false;
             }
             return true;
+
         }
 
         void AddIfMissing(AppointmentMessageKind kind, AppointmentMessageChannel channel, Func<AppointmentMessageLog> factory)

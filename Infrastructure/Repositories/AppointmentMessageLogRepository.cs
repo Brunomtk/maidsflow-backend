@@ -21,23 +21,11 @@ public class AppointmentMessageLogRepository : GenericRepository<AppointmentMess
         var q = _dbContext.AppointmentMessageLogs
             .AsNoTracking()
             .Where(x => x.AppointmentId == appointmentId);
-
-        // IMPORTANT: recurrence occurrences come from multiple sources (calendar, API, UI) and may differ by seconds/ticks.
-        // So we match by a small time window instead of strict equality.
-        if (occurrenceStartUtc.HasValue)
+        // IMPORTANT: recurrence occurrences can come from multiple sources and may differ slightly.
+        // Match by tolerance + overlap instead of strict equality.
+        if (occurrenceStartUtc.HasValue || occurrenceEndUtc.HasValue)
         {
-            var start = EnsureUtc(occurrenceStartUtc.Value);
-            var min = start.AddMinutes(-1);
-            var max = start.AddMinutes(1);
-            q = q.Where(x => x.OccurrenceStartUtc.HasValue && x.OccurrenceStartUtc.Value >= min && x.OccurrenceStartUtc.Value <= max);
-        }
-
-        if (occurrenceEndUtc.HasValue)
-        {
-            var end = EnsureUtc(occurrenceEndUtc.Value);
-            var min = end.AddMinutes(-1);
-            var max = end.AddMinutes(1);
-            q = q.Where(x => x.OccurrenceEndUtc.HasValue && x.OccurrenceEndUtc.Value >= min && x.OccurrenceEndUtc.Value <= max);
+            q = q.Where(x => OccurrenceMatches(x, occurrenceStartUtc, occurrenceEndUtc));
         }
 
         return await q.OrderByDescending(x => x.CreatedDate).ToListAsync(ct);
@@ -48,21 +36,9 @@ public class AppointmentMessageLogRepository : GenericRepository<AppointmentMess
         var q = _dbContext.AppointmentMessageLogs
             .AsNoTracking()
             .Where(x => x.AppointmentId == appointmentId && x.Kind == kind && x.Channel == channel);
-
-        if (occurrenceStartUtc.HasValue)
+        if (occurrenceStartUtc.HasValue || occurrenceEndUtc.HasValue)
         {
-            var start = EnsureUtc(occurrenceStartUtc.Value);
-            var min = start.AddMinutes(-1);
-            var max = start.AddMinutes(1);
-            q = q.Where(x => x.OccurrenceStartUtc.HasValue && x.OccurrenceStartUtc.Value >= min && x.OccurrenceStartUtc.Value <= max);
-        }
-
-        if (occurrenceEndUtc.HasValue)
-        {
-            var end = EnsureUtc(occurrenceEndUtc.Value);
-            var min = end.AddMinutes(-1);
-            var max = end.AddMinutes(1);
-            q = q.Where(x => x.OccurrenceEndUtc.HasValue && x.OccurrenceEndUtc.Value >= min && x.OccurrenceEndUtc.Value <= max);
+            q = q.Where(x => OccurrenceMatches(x, occurrenceStartUtc, occurrenceEndUtc));
         }
 
         return await q.OrderByDescending(x => x.CreatedDate).FirstOrDefaultAsync(ct);
@@ -73,21 +49,9 @@ public class AppointmentMessageLogRepository : GenericRepository<AppointmentMess
         var q = _dbContext.AppointmentMessageLogs
             .AsNoTracking()
             .Where(x => x.AppointmentId == appointmentId && x.Kind == kind && x.Channel == channel);
-
-        if (occurrenceStartUtc.HasValue)
+        if (occurrenceStartUtc.HasValue || occurrenceEndUtc.HasValue)
         {
-            var start = EnsureUtc(occurrenceStartUtc.Value);
-            var min = start.AddMinutes(-1);
-            var max = start.AddMinutes(1);
-            q = q.Where(x => x.OccurrenceStartUtc.HasValue && x.OccurrenceStartUtc.Value >= min && x.OccurrenceStartUtc.Value <= max);
-        }
-
-        if (occurrenceEndUtc.HasValue)
-        {
-            var end = EnsureUtc(occurrenceEndUtc.Value);
-            var min = end.AddMinutes(-1);
-            var max = end.AddMinutes(1);
-            q = q.Where(x => x.OccurrenceEndUtc.HasValue && x.OccurrenceEndUtc.Value >= min && x.OccurrenceEndUtc.Value <= max);
+            q = q.Where(x => OccurrenceMatches(x, occurrenceStartUtc, occurrenceEndUtc));
         }
 
         var last = await q
@@ -98,6 +62,42 @@ public class AppointmentMessageLogRepository : GenericRepository<AppointmentMess
         return (last <= 0 ? 1 : last + 1);
     }
 
-    private static DateTime EnsureUtc(DateTime dt)
+    
+
+    private static bool OccurrenceMatches(AppointmentMessageLog x, DateTime? occurrenceStartUtc, DateTime? occurrenceEndUtc)
+    {
+        // Recurrence timestamps can vary slightly across sources (seconds/ticks/timezone conversions).
+        // Match using tolerance + interval overlap.
+        var tol = TimeSpan.FromMinutes(5);
+
+        if (occurrenceStartUtc.HasValue && occurrenceEndUtc.HasValue)
+        {
+            var qs = EnsureUtc(occurrenceStartUtc.Value);
+            var qe = EnsureUtc(occurrenceEndUtc.Value);
+            if (!x.OccurrenceStartUtc.HasValue || !x.OccurrenceEndUtc.HasValue) return false;
+            var xs = EnsureUtc(x.OccurrenceStartUtc.Value);
+            var xe = EnsureUtc(x.OccurrenceEndUtc.Value);
+            return xs <= qe.Add(tol) && xe >= qs.Add(-tol);
+        }
+
+        if (occurrenceStartUtc.HasValue)
+        {
+            var qs = EnsureUtc(occurrenceStartUtc.Value);
+            var min = qs.Add(-tol);
+            var max = qs.Add(tol);
+            return x.OccurrenceStartUtc.HasValue && EnsureUtc(x.OccurrenceStartUtc.Value) >= min && EnsureUtc(x.OccurrenceStartUtc.Value) <= max;
+        }
+
+        if (occurrenceEndUtc.HasValue)
+        {
+            var qe = EnsureUtc(occurrenceEndUtc.Value);
+            var min = qe.Add(-tol);
+            var max = qe.Add(tol);
+            return x.OccurrenceEndUtc.HasValue && EnsureUtc(x.OccurrenceEndUtc.Value) >= min && EnsureUtc(x.OccurrenceEndUtc.Value) <= max;
+        }
+
+        return true;
+    }
+private static DateTime EnsureUtc(DateTime dt)
         => dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 }
