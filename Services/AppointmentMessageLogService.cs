@@ -193,17 +193,60 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
         var occStart = NormalizeOccurrenceUtc(req.OccurrenceStartUtc);
         var occEnd = NormalizeOccurrenceUtc(req.OccurrenceEndUtc);
 
-        // Attempt per occurrence/kind/channel
-        var attempt = await _uow.AppointmentMessageLogs.GetNextAttemptAsync(appointmentId, kind, channel, occStart, occEnd, ct);
-
         var provider = channel == AppointmentMessageChannel.Sms ? "Twilio" : "SendGrid";
 
-        // Create should normally start Pending. If caller tries to create as Sent, we downgrade to Pending.
+        // SINGLE LOG ID policy:
+        // One row per (AppointmentId + Kind + Channel + Occurrence window).
+        // This prevents the system from creating multiple rows for the same appointment/occurrence.
+        var existing = await _uow.AppointmentMessageLogs.GetLatestAsync(appointmentId, kind, channel, occStart, occEnd, ct);
+
+        // Create should normally start Pending. If caller tries to create as Sent, downgrade to Pending.
         if (status == AppointmentMessageStatus.Sent)
-        {
             status = AppointmentMessageStatus.Pending;
+
+        if (existing != null)
+        {
+            // If already successfully sent, keep it as-is.
+            if (existing.Status == AppointmentMessageStatus.Sent && existing.SentAtUtc != null)
+                return existing;
+
+            // Only increment attempt when there has been at least one real attempt.
+            var shouldIncrementAttempt =
+                existing.Attempt > 0 ||
+                existing.Status == AppointmentMessageStatus.Failed ||
+                existing.SentAtUtc != null ||
+                !string.IsNullOrWhiteSpace(existing.ProviderMessageId);
+
+            if (shouldIncrementAttempt)
+                existing.Attempt = existing.Attempt + 1;
+
+            existing.Status = AppointmentMessageStatus.Pending;
+            existing.ScheduledForUtc = req.ScheduledForUtc;
+            existing.SentAtUtc = null;
+
+            existing.RequestedByUserId = _currentUser.UserId;
+            existing.RequestedByRole = string.IsNullOrWhiteSpace(req.RequestedByRole) ? "System" : req.RequestedByRole;
+
+            existing.RecipientEmail = req.RecipientEmail;
+            existing.RecipientPhoneE164 = req.RecipientPhoneE164;
+            existing.Subject = req.Subject;
+            existing.BodyText = req.BodyText;
+            existing.TemplateKey = req.TemplateKey;
+            existing.PayloadJson = req.PayloadJson;
+
+            existing.Provider = provider;
+            existing.ProviderMessageId = null;
+            existing.ProviderStatus = null;
+            existing.LastError = null;
+            existing.LastErrorRaw = null;
+            existing.UpdatedDate = DateTime.UtcNow;
+
+            _uow.AppointmentMessageLogs.Update(existing);
+            await _uow.SaveAsync();
+            return existing;
         }
 
+        var now = DateTime.UtcNow;
         var log = new AppointmentMessageLog
         {
             AppointmentId = appointmentId,
@@ -215,7 +258,7 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
             Status = status,
             ScheduledForUtc = req.ScheduledForUtc,
             SentAtUtc = null,
-            Attempt = attempt,
+            Attempt = 0,
             RequestedByUserId = _currentUser.UserId,
             RequestedByRole = string.IsNullOrWhiteSpace(req.RequestedByRole) ? "System" : req.RequestedByRole,
             RecipientEmail = req.RecipientEmail,
@@ -229,8 +272,8 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
             ProviderStatus = null,
             LastError = null,
             LastErrorRaw = null,
-            CreatedDate = DateTime.UtcNow,
-            UpdatedDate = DateTime.UtcNow
+            CreatedDate = now,
+            UpdatedDate = now
         };
 
         await _db.AppointmentMessageLogs.AddAsync(log, ct);
@@ -347,32 +390,22 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
         if (string.IsNullOrWhiteSpace(body))
             throw new BadRequestException("Conteúdo do SMS não está disponível neste log para reenviar.");
 
-        var attempt = await _uow.AppointmentMessageLogs.GetNextAttemptAsync(appointmentId, existing.Kind, existing.Channel, existing.OccurrenceStartUtc, existing.OccurrenceEndUtc, ct);
-        var now = DateTime.UtcNow;
+        // SINGLE LOG ID policy: reuse the same record and increment Attempt.
+        existing.Attempt = existing.Attempt + 1;
+        existing.Status = AppointmentMessageStatus.Pending;
+        existing.SentAtUtc = null;
+        existing.ProviderMessageId = null;
+        existing.ProviderStatus = null;
+        existing.LastError = null;
+        existing.LastErrorRaw = null;
+        existing.Provider = "Twilio";
+        existing.RequestedByUserId = _currentUser.UserId;
+        existing.RequestedByRole = _currentUser.IsAdmin ? "Admin" : (_currentUser.IsProfessional ? "Professional" : "Company");
+        existing.RecipientPhoneE164 = to;
+        existing.BodyText = body;
+        existing.UpdatedDate = DateTime.UtcNow;
 
-        var newLog = new AppointmentMessageLog
-        {
-            AppointmentId = appointmentId,
-            SeriesId = existing.SeriesId,
-            OccurrenceStartUtc = existing.OccurrenceStartUtc,
-            OccurrenceEndUtc = existing.OccurrenceEndUtc,
-            Kind = existing.Kind,
-            Channel = AppointmentMessageChannel.Sms,
-            Status = AppointmentMessageStatus.Pending,
-            ScheduledForUtc = existing.ScheduledForUtc,
-            Attempt = attempt,
-            Provider = "Twilio",
-            RequestedByUserId = _currentUser.UserId,
-            RequestedByRole = _currentUser.IsAdmin ? "Admin" : (_currentUser.IsProfessional ? "Professional" : "Company"),
-            RecipientPhoneE164 = to,
-            BodyText = body,
-            TemplateKey = existing.TemplateKey,
-            PayloadJson = existing.PayloadJson,
-            CreatedDate = now,
-            UpdatedDate = now
-        };
-
-        await _uow.AppointmentMessageLogs.Add(newLog);
+        _uow.AppointmentMessageLogs.Update(existing);
         await _uow.SaveAsync();
 
         try
@@ -384,30 +417,30 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
             if (string.IsNullOrWhiteSpace(sid))
                 throw new Exception("Twilio did not return a message SID.");
 
-            newLog.Status = AppointmentMessageStatus.Sent;
-            newLog.SentAtUtc = DateTime.UtcNow;
-            newLog.ProviderMessageId = sid;
-            newLog.ProviderStatus = "accepted";
-            newLog.LastError = null;
-            newLog.LastErrorRaw = null;
-            newLog.UpdatedDate = DateTime.UtcNow;
+            existing.Status = AppointmentMessageStatus.Sent;
+            existing.SentAtUtc = DateTime.UtcNow;
+            existing.ProviderMessageId = sid;
+            existing.ProviderStatus = "accepted";
+            existing.LastError = null;
+            existing.LastErrorRaw = null;
+            existing.UpdatedDate = DateTime.UtcNow;
 
-            _uow.AppointmentMessageLogs.Update(newLog);
+            _uow.AppointmentMessageLogs.Update(existing);
             await _uow.SaveAsync();
         }
         catch (Exception ex)
         {
-            newLog.Status = AppointmentMessageStatus.Failed;
-            newLog.LastError = ex.Message;
-            newLog.UpdatedDate = DateTime.UtcNow;
-            _uow.AppointmentMessageLogs.Update(newLog);
+            existing.Status = AppointmentMessageStatus.Failed;
+            existing.LastError = ex.Message;
+            existing.UpdatedDate = DateTime.UtcNow;
+            _uow.AppointmentMessageLogs.Update(existing);
             await _uow.SaveAsync();
 
             // Repropaga para UI saber que falhou (mas já está logado)
             throw;
         }
 
-        return newLog;
+        return existing;
     }
 
     public async Task<AppointmentMessageLog> ResendEmailAsync(int appointmentId, int logId, CancellationToken ct = default)
@@ -455,33 +488,22 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
 
         var html = BuildEmailHtml(companyName, plain);
 
-        var attempt = await _uow.AppointmentMessageLogs.GetNextAttemptAsync(appointmentId, existing.Kind, existing.Channel, existing.OccurrenceStartUtc, existing.OccurrenceEndUtc, ct);
-        var now = DateTime.UtcNow;
-
-        var newLog = new AppointmentMessageLog
-        {
-            AppointmentId = appointmentId,
-            SeriesId = existing.SeriesId,
-            OccurrenceStartUtc = existing.OccurrenceStartUtc,
-            OccurrenceEndUtc = existing.OccurrenceEndUtc,
-            Kind = existing.Kind,
-            Channel = AppointmentMessageChannel.Email,
-            Status = AppointmentMessageStatus.Pending,
-            ScheduledForUtc = existing.ScheduledForUtc,
-            Attempt = attempt,
-            Provider = "SendGrid",
-            RequestedByUserId = _currentUser.UserId,
-            RequestedByRole = _currentUser.IsAdmin ? "Admin" : (_currentUser.IsProfessional ? "Professional" : "Company"),
-            RecipientEmail = toEmail,
-            Subject = subject,
-            BodyText = plain,
-            TemplateKey = existing.TemplateKey,
-            PayloadJson = existing.PayloadJson,
-            CreatedDate = now,
-            UpdatedDate = now
-        };
-
-        await _uow.AppointmentMessageLogs.Add(newLog);
+        // SINGLE LOG ID policy: reuse the same record and increment Attempt.
+        existing.Attempt = existing.Attempt + 1;
+        existing.Status = AppointmentMessageStatus.Pending;
+        existing.SentAtUtc = null;
+        existing.ProviderMessageId = null;
+        existing.ProviderStatus = null;
+        existing.LastError = null;
+        existing.LastErrorRaw = null;
+        existing.Provider = "SendGrid";
+        existing.RequestedByUserId = _currentUser.UserId;
+        existing.RequestedByRole = _currentUser.IsAdmin ? "Admin" : (_currentUser.IsProfessional ? "Professional" : "Company");
+        existing.RecipientEmail = toEmail;
+        existing.Subject = subject;
+        existing.BodyText = plain;
+        existing.UpdatedDate = DateTime.UtcNow;
+        _uow.AppointmentMessageLogs.Update(existing);
         await _uow.SaveAsync();
 
         var send = await _sendGrid.SendAsync(new SendGridEmailMessage(
@@ -494,26 +516,26 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
 
         if (send.Ok)
         {
-            newLog.Status = AppointmentMessageStatus.Sent;
-            newLog.SentAtUtc = DateTime.UtcNow;
-            newLog.ProviderStatus = $"accepted:{send.StatusCode}";
-            newLog.LastError = null;
-            newLog.LastErrorRaw = null;
-            newLog.UpdatedDate = DateTime.UtcNow;
-            _uow.AppointmentMessageLogs.Update(newLog);
+            existing.Status = AppointmentMessageStatus.Sent;
+            existing.SentAtUtc = DateTime.UtcNow;
+            existing.ProviderStatus = $"accepted:{send.StatusCode}";
+            existing.LastError = null;
+            existing.LastErrorRaw = null;
+            existing.UpdatedDate = DateTime.UtcNow;
+            _uow.AppointmentMessageLogs.Update(existing);
             await _uow.SaveAsync();
-            return newLog;
+            return existing;
         }
 
-        newLog.Status = AppointmentMessageStatus.Failed;
-        newLog.ProviderStatus = send.StatusCode == 0 ? null : send.StatusCode.ToString();
-        newLog.LastError = send.Error ?? "SendGrid request failed";
-        newLog.LastErrorRaw = send.ResponseBody;
-        newLog.UpdatedDate = DateTime.UtcNow;
-        _uow.AppointmentMessageLogs.Update(newLog);
+        existing.Status = AppointmentMessageStatus.Failed;
+        existing.ProviderStatus = send.StatusCode == 0 ? null : send.StatusCode.ToString();
+        existing.LastError = send.Error ?? "SendGrid request failed";
+        existing.LastErrorRaw = send.ResponseBody;
+        existing.UpdatedDate = DateTime.UtcNow;
+        _uow.AppointmentMessageLogs.Update(existing);
         await _uow.SaveAsync();
 
-        throw new BadRequestException($"Falha ao reenviar email: {newLog.LastError}");
+        throw new BadRequestException($"Falha ao reenviar email: {existing.LastError}");
     }
 
     private static string BuildEmailHtml(string companyName, string plainText)
