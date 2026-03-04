@@ -53,16 +53,11 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
         if (appt == null) throw new NotFoundException("Agendamento não encontrado.");
 
         await EnsureAppointmentAccessAsync(appt);
-
-        // Garantir placeholders (48h Email / 24h SMS) para aparecer na UI mesmo antes do primeiro envio.
-        // Normalize occurrence timestamps to reduce duplication caused by tick/second differences.
+        // For recurring appointments, the UI can request logs for a specific occurrence by passing occurrenceStartUtc.
+        // Match by occurrence window when provided (recurrence-safe)
         var normStart = NormalizeOccurrenceUtc(occurrenceStartUtc);
         var normEnd = NormalizeOccurrenceUtc(occurrenceEndUtc);
 
-        await EnsureDefaultPlaceholdersAsync(appt, normStart, normEnd, ct);
-
-        // For recurring appointments, the UI can request logs for a specific occurrence by passing occurrenceStartUtc.
-        // Match by occurrence window when provided (recurrence-safe)
         var logs = await _uow.AppointmentMessageLogs.GetByAppointmentAsync(appointmentId, normStart, normEnd, ct);
 
         // SAFETY: Only show "Sent" when we have a real SentAtUtc.
@@ -75,7 +70,99 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
             }
         }
 
-        return logs;
+        return AddVirtualDefaults(appt, logs.ToList(), normStart, normEnd);
+    }
+
+
+    private List<AppointmentMessageLog> AddVirtualDefaults(Appointment appointment, List<AppointmentMessageLog> logs, DateTime? occurrenceStartUtc, DateTime? occurrenceEndUtc)
+    {
+        // Do NOT write to DB here. This is UI sugar only.
+        // We want the UI to always show the 48h email + 24h SMS cards even before the first send,
+        // but opening an appointment must never create DB rows.
+        var isRecurringContext = appointment.IsRecurring || appointment.SeriesId.HasValue;
+
+        // Ensure we keep nullable types here (we need HasValue/Value checks below)
+        var startUtc = occurrenceStartUtc
+            ?? NormalizeOccurrenceUtc((DateTime?)EnsureUtc(appointment.Start))
+            ?? (DateTime?)EnsureUtc(appointment.Start);
+
+        var endUtc = occurrenceEndUtc
+            ?? NormalizeOccurrenceUtc((DateTime?)EnsureUtc(appointment.End))
+            ?? (DateTime?)EnsureUtc(appointment.End);
+
+        bool MatchExisting(AppointmentMessageLog x, AppointmentMessageKind kind, AppointmentMessageChannel channel)
+        {
+            if (x.Kind != kind || x.Channel != channel) return false;
+            if (!isRecurringContext) return true;
+
+            if (startUtc.HasValue)
+            {
+                var min = startUtc.Value.AddMinutes(-1);
+                var max = startUtc.Value.AddMinutes(1);
+                if (!x.OccurrenceStartUtc.HasValue) return false;
+                if (x.OccurrenceStartUtc.Value < min || x.OccurrenceStartUtc.Value > max) return false;
+            }
+            if (endUtc.HasValue)
+            {
+                var min = endUtc.Value.AddMinutes(-1);
+                var max = endUtc.Value.AddMinutes(1);
+                if (!x.OccurrenceEndUtc.HasValue) return false;
+                if (x.OccurrenceEndUtc.Value < min || x.OccurrenceEndUtc.Value > max) return false;
+            }
+            return true;
+        }
+
+        void AddIfMissing(AppointmentMessageKind kind, AppointmentMessageChannel channel, Func<AppointmentMessageLog> factory)
+        {
+            if (logs.Any(x => MatchExisting(x, kind, channel))) return;
+            logs.Add(factory());
+        }
+
+        var now = DateTime.UtcNow;
+        var startForSchedule = startUtc ?? EnsureUtc(appointment.Start);
+
+        AddIfMissing(AppointmentMessageKind.ReminderEmail48h, AppointmentMessageChannel.Email, () => new AppointmentMessageLog
+        {
+            Id = 0,
+            AppointmentId = appointment.Id,
+            SeriesId = isRecurringContext ? appointment.SeriesId : null,
+            OccurrenceStartUtc = isRecurringContext ? startUtc : null,
+            OccurrenceEndUtc = isRecurringContext ? endUtc : null,
+            Kind = AppointmentMessageKind.ReminderEmail48h,
+            Channel = AppointmentMessageChannel.Email,
+            Status = AppointmentMessageStatus.Pending,
+            ScheduledForUtc = startForSchedule.AddHours(-48),
+            Attempt = 0,
+            Provider = "SendGrid",
+            RequestedByRole = "System",
+            CreatedDate = now,
+            UpdatedDate = now
+        });
+
+        AddIfMissing(AppointmentMessageKind.ConfirmationSms24h, AppointmentMessageChannel.Sms, () => new AppointmentMessageLog
+        {
+            Id = 0,
+            AppointmentId = appointment.Id,
+            SeriesId = isRecurringContext ? appointment.SeriesId : null,
+            OccurrenceStartUtc = isRecurringContext ? startUtc : null,
+            OccurrenceEndUtc = isRecurringContext ? endUtc : null,
+            Kind = AppointmentMessageKind.ConfirmationSms24h,
+            Channel = AppointmentMessageChannel.Sms,
+            Status = AppointmentMessageStatus.Pending,
+            ScheduledForUtc = startForSchedule.AddHours(-24),
+            Attempt = 0,
+            Provider = "Twilio",
+            RequestedByRole = "System",
+            CreatedDate = now,
+            UpdatedDate = now
+        });
+
+        return logs
+            .OrderBy(x => x.Kind)
+            .ThenBy(x => x.Channel)
+            .ThenByDescending(x => x.CreatedDate)
+            .ThenByDescending(x => x.Id)
+            .ToList();
     }
 
     public async Task EnsureDefaultPlaceholdersAsync(Appointment appointment, DateTime? occurrenceStartUtc = null, DateTime? occurrenceEndUtc = null, CancellationToken ct = default)
