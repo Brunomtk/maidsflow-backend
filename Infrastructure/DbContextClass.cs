@@ -11,10 +11,10 @@ namespace Infrastructure
     public class DbContextClass : DbContext
     {
         public DbSet<ChecklistItemPhoto> ChecklistItemPhotos { get; set; } = null!;
-
         public DbSet<ChecklistItem> ChecklistItems { get; set; } = null!;
-
         public DbSet<Checklist> Checklists { get; set; } = null!;
+        public DbSet<ChecklistTemplate> ChecklistTemplates { get; set; } = null!;
+        public DbSet<ChecklistTemplateItem> ChecklistTemplateItems { get; set; } = null!;
 
         public DbSet<CustomerArea> CustomerAreas { get; set; } = null!;
 
@@ -80,11 +80,39 @@ namespace Infrastructure
                 entity.HasIndex(a => new { a.CustomerId, a.CustomerAddressId, a.Name, a.Active }).IsUnique();
             });
 
+            modelBuilder.Entity<ChecklistTemplate>(entity =>
+            {
+                entity.ToTable("ChecklistTemplates");
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Name).IsRequired().HasMaxLength(160);
+                entity.Property(x => x.TemplateType).IsRequired().HasMaxLength(50);
+                entity.Property(x => x.Description).HasMaxLength(1000);
+                entity.HasOne(x => x.Company)
+                      .WithMany()
+                      .HasForeignKey(x => x.CompanyId)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<ChecklistTemplateItem>(entity =>
+            {
+                entity.ToTable("ChecklistTemplateItems");
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.SpaceName).IsRequired().HasMaxLength(120);
+                entity.Property(x => x.Title).IsRequired().HasMaxLength(220);
+                entity.Property(x => x.Description).HasMaxLength(1000);
+                entity.HasOne(x => x.ChecklistTemplate)
+                      .WithMany(t => t.Items)
+                      .HasForeignKey(x => x.ChecklistTemplateId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
             modelBuilder.Entity<Checklist>(entity =>
             {
                 entity.ToTable("Checklists");
                 entity.HasKey(c => c.Id);
                 entity.Property(c => c.Status).HasConversion<string>();
+                entity.Property(c => c.TemplateNameSnapshot).HasMaxLength(160);
+                entity.Property(c => c.PropertyLabel).HasMaxLength(160);
                 entity.HasOne(c => c.Customer)
                       .WithMany()
                       .HasForeignKey(c => c.CustomerId)
@@ -104,18 +132,26 @@ namespace Infrastructure
                       .WithMany()
                       .HasForeignKey(c => c.ProfessionalId)
                       .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(c => c.ChecklistTemplate)
+                      .WithMany()
+                      .HasForeignKey(c => c.ChecklistTemplateId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
                 entity.HasOne(c => c.Company)
                       .WithMany()
                       .HasForeignKey(c => c.CompanyId)
                       .OnDelete(DeleteBehavior.Restrict);
-
-        });
+            });
 
             modelBuilder.Entity<ChecklistItem>(entity =>
             {
                 entity.ToTable("ChecklistItems");
                 entity.HasKey(i => i.Id);
                 entity.Property(i => i.Status).HasConversion<string>().IsRequired(false);
+                entity.Property(i => i.SpaceName).IsRequired().HasMaxLength(120);
+                entity.Property(i => i.Title).IsRequired().HasMaxLength(220);
+                entity.Property(i => i.Description).HasMaxLength(1000);
                 entity.HasOne(i => i.Checklist)
                       .WithMany(c => c.Items)
                       .HasForeignKey(i => i.ChecklistId)
@@ -123,7 +159,11 @@ namespace Infrastructure
                 entity.HasOne(i => i.CustomerArea)
                       .WithMany()
                       .HasForeignKey(i => i.CustomerAreaId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                      .OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(i => i.ChecklistTemplateItem)
+                      .WithMany()
+                      .HasForeignKey(i => i.ChecklistTemplateItemId)
+                      .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<ChecklistItemPhoto>(entity =>

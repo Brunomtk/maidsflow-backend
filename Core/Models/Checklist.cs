@@ -20,6 +20,11 @@ namespace Core.Models
         public int CompanyId { get; set; }
         public Company Company { get; set; } = null!;
 
+        public int? ChecklistTemplateId { get; set; }
+        public ChecklistTemplate? ChecklistTemplate { get; set; }
+        public string? TemplateNameSnapshot { get; set; }
+        public string? PropertyLabel { get; set; }
+
         public ChecklistStatus Status { get; set; } = ChecklistStatus.EmAndamento;
         public string? ObservacoesGerais { get; set; }
         public ICollection<ChecklistItem> Items { get; set; } = new List<ChecklistItem>();

@@ -51,7 +51,6 @@ namespace Services
                 if (!profId.HasValue)
                     throw new ForbiddenException("Escopo de profissional inválido.");
 
-                // Professional only sees checklists assigned to itself
                 if (!ck.ProfessionalId.HasValue || ck.ProfessionalId.Value != profId.Value)
                     throw new ForbiddenException("Você não tem permissão para acessar este checklist.");
             }
@@ -59,7 +58,6 @@ namespace Services
 
         public async Task<Checklist?> CreateAsync(CreateChecklistDTO dto)
         {
-            // Professionals can create checklists only for themselves (within their company)
             if (_currentUser.IsProfessional)
             {
                 var profId = await _scope.GetScopedProfessionalIdAsync();
@@ -77,16 +75,12 @@ namespace Services
                 if (!companyId.HasValue) throw new ForbiddenException("Escopo de company inválido.");
                 dto.CompanyId = companyId.Value;
 
-                // If company sets a ProfessionalId, ensure it belongs to the same company
                 if (dto.ProfessionalId.HasValue)
                     await _scope.EnsureProfessionalInCompanyAsync(dto.ProfessionalId.Value);
             }
-            // admin: no changes
 
-            // Ensure customer belongs to company scope
             await _scope.EnsureCustomerInCompanyAsync(dto.CustomerId);
 
-            // Validate optional FKs
             int? appointmentId = null;
             if (dto.AppointmentId.HasValue)
             {
@@ -101,6 +95,16 @@ namespace Services
                 await _scope.EnsureProfessionalAccessAsync(dto.ProfessionalId.Value);
                 var professional = await _uow.Professionals.GetByIdAsync(dto.ProfessionalId.Value);
                 if (professional != null) professionalId = dto.ProfessionalId.Value;
+            }
+
+            ChecklistTemplate? template = null;
+            if (dto.ChecklistTemplateId.HasValue)
+            {
+                template = await _uow.ChecklistTemplates.GetByIdWithItemsAsync(dto.ChecklistTemplateId.Value);
+                if (template == null)
+                    throw new NotFoundException("Modelo de checklist não encontrado.");
+                if (!_currentUser.IsAdmin && template.CompanyId.HasValue && template.CompanyId != dto.CompanyId)
+                    throw new ForbiddenException("Você não tem permissão para usar este modelo de checklist.");
             }
 
             int? customerAddressId = dto.CustomerAddressId;
@@ -130,15 +134,40 @@ namespace Services
                 CustomerId = dto.CustomerId,
                 CustomerAddressId = customerAddressId,
                 CompanyId = dto.CompanyId,
+                PropertyLabel = dto.PropertyLabel,
                 ObservacoesGerais = dto.ObservacoesGerais,
                 AppointmentId = appointmentId,
                 ProfessionalId = professionalId,
+                ChecklistTemplateId = template?.Id,
+                TemplateNameSnapshot = template?.Name,
                 Status = ChecklistStatus.EmAndamento
             };
 
             await _uow.Checklists.Add(ck);
             var saved = await _uow.SaveAsync() > 0;
-            return saved ? ck : null;
+            if (!saved) return null;
+
+            if (template != null && dto.AutoPopulateFromTemplate)
+            {
+                foreach (var templateItem in template.Items.OrderBy(i => i.SortOrder).ThenBy(i => i.Id))
+                {
+                    await _uow.ChecklistItems.Add(new ChecklistItem
+                    {
+                        ChecklistId = ck.Id,
+                        ChecklistTemplateItemId = templateItem.Id,
+                        SpaceName = templateItem.SpaceName,
+                        Title = templateItem.Title,
+                        Description = templateItem.Description,
+                        IsRequired = templateItem.IsRequired,
+                        RequiresPhoto = templateItem.RequiresPhoto,
+                        SortOrder = templateItem.SortOrder
+                    });
+                }
+
+                await _uow.SaveAsync();
+            }
+
+            return ck;
         }
 
         public async Task<Checklist?> GetByIdAsync(int id)
@@ -165,7 +194,6 @@ namespace Services
                 }
             }
 
-            // If filters include appointment/professional/customer, validate scope
             if (filters.CustomerId.HasValue)
                 await _scope.EnsureCustomerInCompanyAsync(filters.CustomerId.Value);
             if (filters.ProfessionalId.HasValue)
@@ -181,14 +209,19 @@ namespace Services
             var item = await _uow.ChecklistItems.GetWithPhotosAsync(dto.ItemId);
             if (item == null) return false;
 
-            // Load checklist to check scope
-            // IChecklistRepository herda de IGenericRepository e expõe GetById(int) (sem sufixo Async)
             var ck = await _uow.Checklists.GetById(item.ChecklistId);
             if (ck == null) return false;
             await EnsureChecklistScopedAsync(ck);
 
             item.Status = dto.Status;
             item.Observacoes = dto.Observacoes;
+            if (!string.IsNullOrWhiteSpace(dto.SpaceName)) item.SpaceName = dto.SpaceName.Trim();
+            if (!string.IsNullOrWhiteSpace(dto.Title)) item.Title = dto.Title.Trim();
+            if (dto.Description != null) item.Description = dto.Description;
+            if (dto.IsRequired.HasValue) item.IsRequired = dto.IsRequired.Value;
+            if (dto.RequiresPhoto.HasValue) item.RequiresPhoto = dto.RequiresPhoto.Value;
+            if (dto.SortOrder.HasValue) item.SortOrder = dto.SortOrder.Value;
+
             _uow.ChecklistItems.Update(item);
             return await _uow.SaveAsync() > 0;
         }
@@ -219,7 +252,6 @@ namespace Services
             var photo = await _uow.ChecklistItemPhotos.GetByIdAsync(photoId);
             if (photo == null) return false;
 
-            // IChecklistItemRepository herda de IGenericRepository e expõe GetById(int)
             var item = await _uow.ChecklistItems.GetById(photo.ChecklistItemId);
             if (item == null) return false;
 
@@ -228,9 +260,7 @@ namespace Services
             await EnsureChecklistScopedAsync(ck);
 
             if (!string.IsNullOrWhiteSpace(photo.Url) && _s3.TryGetKeyFromStoredValue(photo.Url, out var key))
-            {
                 await _s3.DeleteIfExistsAsync(key);
-            }
 
             _uow.ChecklistItemPhotos.Delete(photo);
             return await _uow.SaveAsync() > 0;
@@ -283,17 +313,24 @@ namespace Services
             if (ck == null) return 0;
             await EnsureChecklistScopedAsync(ck);
 
-            var area = await _uow.CustomerAreas.GetByIdAsync(dto.CustomerAreaId);
-            if (area == null || !area.Active || area.CustomerId != ck.CustomerId) return 0;
-            if (area.CustomerAddressId != ck.CustomerAddressId) return 0;
-
-            var existing = ck.Items.FirstOrDefault(i => i.CustomerAreaId == area.Id);
-            if (existing != null) return existing.Id;
+            CustomerArea? area = null;
+            if (dto.CustomerAreaId.HasValue)
+            {
+                area = await _uow.CustomerAreas.GetByIdAsync(dto.CustomerAreaId.Value);
+                if (area == null || !area.Active || area.CustomerId != ck.CustomerId) return 0;
+                if (area.CustomerAddressId != ck.CustomerAddressId) return 0;
+            }
 
             var item = new ChecklistItem
             {
                 ChecklistId = ck.Id,
-                CustomerAreaId = area.Id,
+                CustomerAreaId = area?.Id,
+                SpaceName = !string.IsNullOrWhiteSpace(dto.SpaceName) ? dto.SpaceName.Trim() : area?.Name ?? "General",
+                Title = dto.Title.Trim(),
+                Description = dto.Description,
+                IsRequired = dto.IsRequired,
+                RequiresPhoto = dto.RequiresPhoto,
+                SortOrder = dto.SortOrder > 0 ? dto.SortOrder : (ck.Items.Any() ? ck.Items.Max(i => i.SortOrder) + 1 : 1),
                 Observacoes = dto.Observacoes
             };
 
@@ -308,7 +345,7 @@ namespace Services
             if (ck == null) return 0;
             await EnsureChecklistScopedAsync(ck);
 
-            var existingAreaIds = ck.Items.Select(i => i.CustomerAreaId).ToHashSet();
+            var existingAreaIds = ck.Items.Where(i => i.CustomerAreaId.HasValue).Select(i => i.CustomerAreaId!.Value).ToHashSet();
             var areas = await _uow.CustomerAreas.QueryByCustomer(ck.CustomerId, ck.CustomerAddressId, onlyActive: true).ToListAsync();
 
             int created = 0;
@@ -319,7 +356,10 @@ namespace Services
                     await _uow.ChecklistItems.Add(new ChecklistItem
                     {
                         ChecklistId = ck.Id,
-                        CustomerAreaId = area.Id
+                        CustomerAreaId = area.Id,
+                        SpaceName = area.Name,
+                        Title = $"Conferir limpeza e organização de {area.Name}",
+                        SortOrder = ck.Items.Any() ? ck.Items.Max(i => i.SortOrder) + created + 1 : created + 1
                     });
                     created++;
                 }

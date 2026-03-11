@@ -262,8 +262,11 @@ builder.Services.AddHostedService<CheckoutReminderHostedService>();
             builder.Services.AddScoped<IChecklistRepository, ChecklistRepository>();
             builder.Services.AddScoped<IChecklistItemRepository, ChecklistItemRepository>();
             builder.Services.AddScoped<IChecklistItemPhotoRepository, ChecklistItemPhotoRepository>();
+            builder.Services.AddScoped<IChecklistTemplateRepository, ChecklistTemplateRepository>();
+            builder.Services.AddScoped<IChecklistTemplateItemRepository, ChecklistTemplateItemRepository>();
             builder.Services.AddScoped<ICustomerAreaService, CustomerAreaService>();
             builder.Services.AddScoped<IChecklistService, ChecklistService>();
+            builder.Services.AddScoped<IChecklistTemplateService, ChecklistTemplateService>();
             var app = builder.Build();
             
             // -----------------------------

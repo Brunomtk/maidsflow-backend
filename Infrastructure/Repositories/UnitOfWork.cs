@@ -32,13 +32,12 @@ namespace Infrastructure.Repositories
         IReviewRepository Reviews { get; }
         ITeamRepository Teams { get; }
         IUserRepository Users { get; }
-
-        // Checklist module
         ICustomerAreaRepository CustomerAreas { get; }
         IChecklistRepository Checklists { get; }
         IChecklistItemRepository ChecklistItems { get; }
         IChecklistItemPhotoRepository ChecklistItemPhotos { get; }
-
+        IChecklistTemplateRepository ChecklistTemplates { get; }
+        IChecklistTemplateItemRepository ChecklistTemplateItems { get; }
         int Save();
         Task<int> SaveAsync();
     }
@@ -74,15 +73,15 @@ namespace Infrastructure.Repositories
             IReviewRepository reviewRepository,
             ITeamRepository teamRepository,
             IUserRepository userRepository,
-            // Checklist module
             ICustomerAreaRepository customerAreaRepository,
             IChecklistRepository checklistRepository,
             IChecklistItemRepository checklistItemRepository,
-            IChecklistItemPhotoRepository checklistItemPhotoRepository
+            IChecklistItemPhotoRepository checklistItemPhotoRepository,
+            IChecklistTemplateRepository checklistTemplateRepository,
+            IChecklistTemplateItemRepository checklistTemplateItemRepository
         )
         {
             _dbContext = dbContext;
-
             Appointments = appointmentRepository;
             AppointmentCompletions = appointmentCompletionRepository;
             AppointmentMessageLogs = appointmentMessageLogRepository;
@@ -108,12 +107,12 @@ namespace Infrastructure.Repositories
             Reviews = reviewRepository;
             Teams = teamRepository;
             Users = userRepository;
-
-            // Checklist
             CustomerAreas = customerAreaRepository;
             Checklists = checklistRepository;
             ChecklistItems = checklistItemRepository;
             ChecklistItemPhotos = checklistItemPhotoRepository;
+            ChecklistTemplates = checklistTemplateRepository;
+            ChecklistTemplateItems = checklistTemplateItemRepository;
         }
 
         public IAppointmentRepository Appointments { get; }
@@ -141,11 +140,12 @@ namespace Infrastructure.Repositories
         public IReviewRepository Reviews { get; }
         public ITeamRepository Teams { get; }
         public IUserRepository Users { get; }
-
         public ICustomerAreaRepository CustomerAreas { get; }
         public IChecklistRepository Checklists { get; }
         public IChecklistItemRepository ChecklistItems { get; }
         public IChecklistItemPhotoRepository ChecklistItemPhotos { get; }
+        public IChecklistTemplateRepository ChecklistTemplates { get; }
+        public IChecklistTemplateItemRepository ChecklistTemplateItems { get; }
 
         public int Save() => _dbContext.SaveChanges();
         public Task<int> SaveAsync() => _dbContext.SaveChangesAsync();

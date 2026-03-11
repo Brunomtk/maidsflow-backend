@@ -8,6 +8,9 @@ namespace Core.DTO.Checklist
     {
         public int Id { get; set; }
         public int CompanyId { get; set; }
+        public int? ChecklistTemplateId { get; set; }
+        public string? TemplateNameSnapshot { get; set; }
+        public string? PropertyLabel { get; set; }
         public ChecklistStatus Status { get; set; }
         public string? ObservacoesGerais { get; set; }
         public DateTime CreatedDate { get; set; }
@@ -27,7 +30,14 @@ namespace Core.DTO.Checklist
     {
         public int Id { get; set; }
         public int? CustomerAreaId { get; set; }
+        public int? ChecklistTemplateItemId { get; set; }
         public string CustomerAreaName { get; set; } = string.Empty;
+        public string SpaceName { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public bool IsRequired { get; set; }
+        public bool RequiresPhoto { get; set; }
+        public int SortOrder { get; set; }
         public ChecklistItemStatus? Status { get; set; }
         public string? Observacoes { get; set; }
         public List<ChecklistDetailsPhotoDTO> Photos { get; set; } = new();
@@ -42,7 +52,6 @@ namespace Core.DTO.Checklist
 
     public class ChecklistDetailsAreaDTO
     {
-        public int? Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public List<ChecklistDetailsItemDTO> Items { get; set; } = new();
     }

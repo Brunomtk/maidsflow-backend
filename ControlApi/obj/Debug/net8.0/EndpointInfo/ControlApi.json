@@ -1488,6 +1488,21 @@
             }
           },
           {
+            "name": "ChecklistTemplateId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "PageNumber",
             "in": "query",
             "schema": {
@@ -1814,6 +1829,143 @@
       "get": {
         "tags": [
           "Checklists"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/ChecklistTemplates/seed-defaults": {
+      "post": {
+        "tags": [
+          "ChecklistTemplates"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/ChecklistTemplates": {
+      "get": {
+        "tags": [
+          "ChecklistTemplates"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ChecklistTemplates"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChecklistTemplateDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChecklistTemplateDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChecklistTemplateDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/ChecklistTemplates/{id}": {
+      "get": {
+        "tags": [
+          "ChecklistTemplates"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ChecklistTemplates"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateChecklistTemplateDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateChecklistTemplateDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateChecklistTemplateDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ChecklistTemplates"
         ],
         "parameters": [
           {
@@ -8682,6 +8834,22 @@
           "company": {
             "$ref": "#/components/schemas/Company"
           },
+          "checklistTemplateId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "checklistTemplate": {
+            "$ref": "#/components/schemas/ChecklistTemplate"
+          },
+          "templateNameSnapshot": {
+            "type": "string",
+            "nullable": true
+          },
+          "propertyLabel": {
+            "type": "string",
+            "nullable": true
+          },
           "status": {
             "$ref": "#/components/schemas/ChecklistStatus"
           },
@@ -8723,10 +8891,41 @@
           },
           "customerAreaId": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "customerArea": {
             "$ref": "#/components/schemas/CustomerArea"
+          },
+          "checklistTemplateItemId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "checklistTemplateItem": {
+            "$ref": "#/components/schemas/ChecklistTemplateItem"
+          },
+          "spaceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRequired": {
+            "type": "boolean"
+          },
+          "requiresPhoto": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
           },
           "status": {
             "$ref": "#/components/schemas/ChecklistItemStatus"
@@ -8794,6 +8993,104 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "ChecklistTemplate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "companyId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "company": {
+            "$ref": "#/components/schemas/Company"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "templateType": {
+            "type": "string",
+            "nullable": true
+          },
+          "isSystemTemplate": {
+            "type": "boolean"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChecklistTemplateItem"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChecklistTemplateItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "checklistTemplateId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "checklistTemplate": {
+            "$ref": "#/components/schemas/ChecklistTemplate"
+          },
+          "spaceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRequired": {
+            "type": "boolean"
+          },
+          "requiresPhoto": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
       },
       "ClientType": {
         "enum": [
@@ -9293,6 +9590,10 @@
             "type": "integer",
             "format": "int32"
           },
+          "propertyLabel": {
+            "type": "string",
+            "nullable": true
+          },
           "observacoesGerais": {
             "type": "string",
             "nullable": true
@@ -9306,6 +9607,14 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          },
+          "checklistTemplateId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "autoPopulateFromTemplate": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -9313,7 +9622,8 @@
       "CreateChecklistItemDTO": {
         "required": [
           "checklistId",
-          "customerAreaId"
+          "spaceName",
+          "title"
         ],
         "type": "object",
         "properties": {
@@ -9323,11 +9633,97 @@
           },
           "customerAreaId": {
             "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "spaceName": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRequired": {
+            "type": "boolean"
+          },
+          "requiresPhoto": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
             "format": "int32"
           },
           "observacoes": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateChecklistTemplateDTO": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "templateType": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateChecklistTemplateItemDTO"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateChecklistTemplateItemDTO": {
+        "required": [
+          "spaceName",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "spaceName": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRequired": {
+            "type": "boolean"
+          },
+          "requiresPhoto": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -12346,6 +12742,31 @@
           "observacoes": {
             "type": "string",
             "nullable": true
+          },
+          "spaceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRequired": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "requiresPhoto": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -12374,6 +12795,79 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateChecklistTemplateDTO": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "templateType": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpdateChecklistTemplateItemDTO"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateChecklistTemplateItemDTO": {
+        "required": [
+          "spaceName",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "spaceName": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRequired": {
+            "type": "boolean"
+          },
+          "requiresPhoto": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false

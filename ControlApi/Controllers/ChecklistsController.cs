@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Core.Enums;
 using Core.DTO.Checklist;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -81,10 +80,6 @@ namespace ControlApi.Controllers
             return ok ? Ok() : NotFound();
         }
 
-        /// <summary>
-        /// Gera URL pré-assinada (PUT) para upload de foto de Checklist Item para S3.
-        /// O backend retorna a Key (que deve ser salva no campo Url da foto) e o UploadUrl.
-        /// </summary>
         [HttpPost("items/photos/presign")]
         public async Task<IActionResult> PresignChecklistItemPhoto([FromBody] PresignChecklistItemPhotoDTO dto)
         {
@@ -148,15 +143,16 @@ namespace ControlApi.Controllers
             return Ok(new { created });
         }
 
-        // ===== Details endpoint (Areas + Items + Observações + Fotos) =====
         [HttpGet("{id:int}/details")]
         public async Task<IActionResult> GetDetails(int id)
         {
             var ck = await _db.Checklists
                 .Include(c => c.Customer)
                 .Include(c => c.Appointment)
+                .Include(c => c.ChecklistTemplate)
                 .Include(c => c.Items).ThenInclude(i => i.Photos)
                 .Include(c => c.Items).ThenInclude(i => i.CustomerArea)
+                .Include(c => c.Items).ThenInclude(i => i.ChecklistTemplateItem)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (ck == null) return NotFound();
@@ -165,6 +161,9 @@ namespace ControlApi.Controllers
             {
                 Id = ck.Id,
                 CompanyId = ck.Appointment != null ? ck.Appointment.CompanyId : ck.Customer.CompanyId,
+                ChecklistTemplateId = ck.ChecklistTemplateId,
+                TemplateNameSnapshot = ck.TemplateNameSnapshot ?? ck.ChecklistTemplate?.Name,
+                PropertyLabel = ck.PropertyLabel,
                 Status = ck.Status,
                 ObservacoesGerais = ck.ObservacoesGerais,
                 CreatedDate = ck.CreatedDate,
@@ -177,6 +176,7 @@ namespace ControlApi.Controllers
                     ? new AppointmentSummaryDTO
                     {
                         Id = ck.Appointment.Id,
+                        CompanyId = ck.Appointment.CompanyId,
                         Title = ck.Appointment.Title,
                         Start = ck.Appointment.Start,
                         End = ck.Appointment.End
@@ -184,30 +184,39 @@ namespace ControlApi.Controllers
                     : null
             };
 
-            dto.Items = ck.Items.Select(i => new ChecklistDetailsItemDTO
-            {
-                Id = i.Id,
-                CustomerAreaId = i.CustomerAreaId,
-                CustomerAreaName = i.CustomerArea?.Name ?? string.Empty,
-                Status = i.Status,
-                Observacoes = i.Observacoes,
-                Photos = i.Photos.Select(p => new ChecklistDetailsPhotoDTO
+            dto.Items = ck.Items
+                .OrderBy(i => i.SortOrder)
+                .ThenBy(i => i.Id)
+                .Select(i => new ChecklistDetailsItemDTO
                 {
-                    Id = p.Id,
-                    Url = _s3.TryGetKeyFromStoredValue(p.Url, out var key)
-                        ? _s3.CreateDownloadUrl(key)
-                        : p.Url,
-                    Descricao = p.Descricao
-                }).ToList()
-            }).ToList();
+                    Id = i.Id,
+                    CustomerAreaId = i.CustomerAreaId,
+                    ChecklistTemplateItemId = i.ChecklistTemplateItemId,
+                    CustomerAreaName = i.CustomerArea?.Name ?? i.SpaceName,
+                    SpaceName = i.SpaceName,
+                    Title = i.Title,
+                    Description = i.Description,
+                    IsRequired = i.IsRequired,
+                    RequiresPhoto = i.RequiresPhoto,
+                    SortOrder = i.SortOrder,
+                    Status = i.Status,
+                    Observacoes = i.Observacoes,
+                    Photos = i.Photos.Select(p => new ChecklistDetailsPhotoDTO
+                    {
+                        Id = p.Id,
+                        Url = _s3.TryGetKeyFromStoredValue(p.Url, out var key)
+                            ? _s3.CreateDownloadUrl(key)
+                            : p.Url,
+                        Descricao = p.Descricao
+                    }).ToList()
+                }).ToList();
 
             dto.Areas = dto.Items
-                .GroupBy(i => new { i.CustomerAreaId, i.CustomerAreaName })
+                .GroupBy(i => i.SpaceName)
                 .Select(g => new ChecklistDetailsAreaDTO
                 {
-                    Id = g.Key.CustomerAreaId,
-                    Name = g.Key.CustomerAreaName,
-                    Items = g.ToList()
+                    Name = g.Key,
+                    Items = g.OrderBy(x => x.SortOrder).ThenBy(x => x.Id).ToList()
                 })
                 .OrderBy(a => a.Name)
                 .ToList();
@@ -215,57 +224,4 @@ namespace ControlApi.Controllers
             return Ok(dto);
         }
     }
-
-    public class ChecklistDetailsDTO
-    {
-        public int Id { get; set; }
-        public int CompanyId { get; set; }
-        public ChecklistStatus Status { get; set; }
-        public string? ObservacoesGerais { get; set; }
-        public DateTime CreatedDate { get; set; }
-        public CustomerSummaryDTO Customer { get; set; } = new();
-        public AppointmentSummaryDTO? Appointment { get; set; }
-        public List<ChecklistDetailsItemDTO> Items { get; set; } = new();
-        public List<ChecklistDetailsAreaDTO> Areas { get; set; } = new();
-    }
-
-    public class CustomerSummaryDTO
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-    }
-
-    public class ChecklistDetailsItemDTO
-    {
-        public int Id { get; set; }
-        public int? CustomerAreaId { get; set; }
-        public string CustomerAreaName { get; set; } = string.Empty;
-        public ChecklistItemStatus? Status { get; set; }
-        public string? Observacoes { get; set; }
-        public List<ChecklistDetailsPhotoDTO> Photos { get; set; } = new();
-    }
-
-    public class ChecklistDetailsPhotoDTO
-    {
-        public int Id { get; set; }
-        public string Url { get; set; } = string.Empty;
-        public string? Descricao { get; set; }
-    }
-
-    public class ChecklistDetailsAreaDTO
-    {
-        public int? Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public List<ChecklistDetailsItemDTO> Items { get; set; } = new();
-    }
-
-    public class AppointmentSummaryDTO
-    {
-        public int Id { get; set; }
-        public int CompanyId { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public DateTime Start { get; set; }
-        public DateTime End { get; set; }
-    }
-
 }

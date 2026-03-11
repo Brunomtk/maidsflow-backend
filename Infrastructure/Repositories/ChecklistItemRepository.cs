@@ -14,6 +14,10 @@ namespace Infrastructure.Repositories
         public ChecklistItemRepository(DbContextClass context) : base(context) {}
 
         public Task<ChecklistItem?> GetWithPhotosAsync(int itemId) =>
-            _dbContext.ChecklistItems.Include(i => i.Photos).FirstOrDefaultAsync(i => i.Id == itemId);
+            _dbContext.ChecklistItems
+                .Include(i => i.Photos)
+                .Include(i => i.CustomerArea)
+                .Include(i => i.ChecklistTemplateItem)
+                .FirstOrDefaultAsync(i => i.Id == itemId);
     }
 }
