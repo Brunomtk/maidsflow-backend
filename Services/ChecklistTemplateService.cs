@@ -36,7 +36,7 @@ namespace Services
         {
             var companyId = await GetScopedCompanyIdForTemplatesAsync();
             await SeedDefaultAirbnbTemplatesAsync();
-            var templates = await _uow.ChecklistTemplates.GetVisibleTemplatesAsync(companyId);
+            var templates = await _uow.ChecklistTemplates.GetVisibleTemplatesAsync(companyId == 0 ? null : companyId);
             return templates.Select(Map).ToList();
         }
 
@@ -44,20 +44,58 @@ namespace Services
         {
             var template = await _uow.ChecklistTemplates.GetByIdWithItemsAsync(id);
             if (template == null) return null;
+
             var companyId = await GetScopedCompanyIdForTemplatesAsync();
             if (template.CompanyId.HasValue && !_currentUser.IsAdmin && template.CompanyId != companyId)
-                throw new ForbiddenException("Você não tem permissão para acessar este modelo de checklist.");
+                throw new ForbiddenException("You do not have permission to access this checklist model.");
+
             return Map(template);
         }
 
         public async Task SeedDefaultAirbnbTemplatesAsync()
         {
-            if ((await _uow.ChecklistTemplates.GetVisibleTemplatesAsync(null)).Any(x => x.IsSystemTemplate))
-                return;
-
             var defaults = DefaultAirbnbTemplates();
-            foreach (var template in defaults)
-                await _uow.ChecklistTemplates.Add(template);
+            var existingVisible = await _uow.ChecklistTemplates.GetVisibleTemplatesAsync(null);
+            var existingSystemTemplates = existingVisible.Where(x => x.IsSystemTemplate).ToList();
+
+            foreach (var defaultTemplate in defaults)
+            {
+                var match = existingSystemTemplates.FirstOrDefault(x => IsSameSystemTemplate(x, defaultTemplate));
+
+                if (match == null)
+                {
+                    await _uow.ChecklistTemplates.Add(defaultTemplate);
+                    continue;
+                }
+
+                match.Name = defaultTemplate.Name;
+                match.Description = defaultTemplate.Description;
+                match.TemplateType = defaultTemplate.TemplateType;
+                match.IsActive = true;
+                match.IsSystemTemplate = true;
+                match.CompanyId = null;
+
+                foreach (var existingItem in match.Items.ToList())
+                    _uow.ChecklistTemplateItems.Delete(existingItem);
+
+                match.Items = defaultTemplate.Items
+                    .OrderBy(i => i.SortOrder)
+                    .Select(i => new ChecklistTemplateItem
+                    {
+                        ChecklistTemplateId = match.Id,
+                        SpaceName = i.SpaceName,
+                        Title = i.Title,
+                        Description = i.Description,
+                        IsRequired = i.IsRequired,
+                        RequiresPhoto = i.RequiresPhoto,
+                        SortOrder = i.SortOrder
+                    }).ToList();
+
+                foreach (var item in match.Items)
+                    await _uow.ChecklistTemplateItems.Add(item);
+
+                _uow.ChecklistTemplates.Update(match);
+            }
 
             await _uow.SaveAsync();
         }
@@ -66,13 +104,13 @@ namespace Services
         {
             var companyId = await GetCompanyIdForWriteAsync();
             if (await _uow.ChecklistTemplates.ExistsByNameAsync(companyId, dto.Name))
-                throw new ConflictException("Já existe um modelo de checklist com esse nome.");
+                throw new ConflictException("A checklist model with this name already exists.");
 
             var entity = new ChecklistTemplate
             {
                 CompanyId = companyId,
                 Name = dto.Name.Trim(),
-                Description = dto.Description,
+                Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim(),
                 TemplateType = string.IsNullOrWhiteSpace(dto.TemplateType) ? "airbnb" : dto.TemplateType.Trim().ToLowerInvariant(),
                 IsActive = dto.IsActive,
                 IsSystemTemplate = false,
@@ -80,7 +118,7 @@ namespace Services
                 {
                     SpaceName = item.SpaceName.Trim(),
                     Title = item.Title.Trim(),
-                    Description = item.Description,
+                    Description = string.IsNullOrWhiteSpace(item.Description) ? null : item.Description.Trim(),
                     IsRequired = item.IsRequired,
                     RequiresPhoto = item.RequiresPhoto,
                     SortOrder = item.SortOrder == 0 ? index + 1 : item.SortOrder
@@ -97,17 +135,17 @@ namespace Services
             var entity = await _uow.ChecklistTemplates.GetByIdWithItemsAsync(dto.Id);
             if (entity == null) return null;
             if (entity.IsSystemTemplate)
-                throw new ConflictException("Modelos padrão do sistema não podem ser editados. Crie uma cópia customizada.");
+                throw new ConflictException("System models cannot be edited. Create a custom copy instead.");
 
             var companyId = await GetCompanyIdForWriteAsync();
             if (entity.CompanyId != companyId && !_currentUser.IsAdmin)
-                throw new ForbiddenException("Você não tem permissão para editar este modelo.");
+                throw new ForbiddenException("You do not have permission to edit this checklist model.");
 
             if (await _uow.ChecklistTemplates.ExistsByNameAsync(companyId, dto.Name, dto.Id))
-                throw new ConflictException("Já existe um modelo de checklist com esse nome.");
+                throw new ConflictException("A checklist model with this name already exists.");
 
             entity.Name = dto.Name.Trim();
-            entity.Description = dto.Description;
+            entity.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
             entity.TemplateType = string.IsNullOrWhiteSpace(dto.TemplateType) ? "airbnb" : dto.TemplateType.Trim().ToLowerInvariant();
             entity.IsActive = dto.IsActive;
 
@@ -119,7 +157,7 @@ namespace Services
                 ChecklistTemplateId = entity.Id,
                 SpaceName = item.SpaceName.Trim(),
                 Title = item.Title.Trim(),
-                Description = item.Description,
+                Description = string.IsNullOrWhiteSpace(item.Description) ? null : item.Description.Trim(),
                 IsRequired = item.IsRequired,
                 RequiresPhoto = item.RequiresPhoto,
                 SortOrder = item.SortOrder == 0 ? index + 1 : item.SortOrder
@@ -138,11 +176,11 @@ namespace Services
             var entity = await _uow.ChecklistTemplates.GetByIdWithItemsAsync(id);
             if (entity == null) return false;
             if (entity.IsSystemTemplate)
-                throw new ConflictException("Modelos padrão do sistema não podem ser removidos.");
+                throw new ConflictException("System models cannot be removed.");
 
             var companyId = await GetCompanyIdForWriteAsync();
             if (entity.CompanyId != companyId && !_currentUser.IsAdmin)
-                throw new ForbiddenException("Você não tem permissão para remover este modelo.");
+                throw new ForbiddenException("You do not have permission to remove this checklist model.");
 
             _uow.ChecklistTemplates.Delete(entity);
             return await _uow.SaveAsync() > 0;
@@ -152,21 +190,21 @@ namespace Services
         {
             if (_currentUser.IsAdmin) return 0;
             var companyId = await _scope.GetScopedCompanyIdAsync();
-            if (!companyId.HasValue) throw new ForbiddenException("Escopo de company inválido.");
+            if (!companyId.HasValue) throw new ForbiddenException("Invalid company scope.");
             return companyId.Value;
         }
 
         private async Task<int> GetCompanyIdForWriteAsync()
         {
             var companyId = await _scope.GetScopedCompanyIdAsync();
-            if (!companyId.HasValue) throw new ForbiddenException("Escopo de company inválido.");
+            if (!companyId.HasValue) throw new ForbiddenException("Invalid company scope.");
             return companyId.Value;
         }
 
         private static ChecklistTemplateDTO Map(ChecklistTemplate x) => new()
         {
             Id = x.Id,
-            CompanyId = x.CompanyId ?? 0,
+            CompanyId = x.CompanyId,
             Name = x.Name,
             Description = x.Description,
             TemplateType = x.TemplateType,
@@ -185,6 +223,24 @@ namespace Services
             }).ToList()
         };
 
+        private static bool IsSameSystemTemplate(ChecklistTemplate existing, ChecklistTemplate target)
+        {
+            if (!existing.IsSystemTemplate) return false;
+
+            var normalizedExistingName = Normalize(existing.Name);
+            var normalizedTargetName = Normalize(target.Name);
+            if (normalizedExistingName == normalizedTargetName) return true;
+
+            return normalizedExistingName switch
+            {
+                "airbnb turnover padrao" => normalizedTargetName == "airbnb standard turnover",
+                "airbnb check-out express" => normalizedTargetName == "airbnb express checkout",
+                _ => false
+            };
+        }
+
+        private static string Normalize(string? value) => (value ?? string.Empty).Trim().ToLowerInvariant();
+
         private static List<ChecklistTemplate> DefaultAirbnbTemplates()
         {
             return new List<ChecklistTemplate>
@@ -192,47 +248,47 @@ namespace Services
                 new ChecklistTemplate
                 {
                     CompanyId = null,
-                    Name = "Airbnb Turnover Padrão",
-                    Description = "Checklist completo para limpeza entre hóspedes, reposição e inspeção final.",
+                    Name = "Airbnb Standard Turnover",
+                    Description = "Complete turnover checklist for cleaning, restocking, and final readiness inspection between guests.",
                     TemplateType = "airbnb",
                     IsSystemTemplate = true,
                     IsActive = true,
                     Items = new List<ChecklistTemplateItem>
                     {
-                        new() { SpaceName = "Entrada", Title = "Verificar fechadura, maçaneta e acesso", SortOrder = 1 },
-                        new() { SpaceName = "Entrada", Title = "Limpar porta, tapete e interruptores", SortOrder = 2 },
-                        new() { SpaceName = "Sala", Title = "Aspirar/varrer piso e limpar rodapés", SortOrder = 3 },
-                        new() { SpaceName = "Sala", Title = "Limpar sofá, almofadas e manta", SortOrder = 4 },
-                        new() { SpaceName = "Sala", Title = "Limpar mesa, TV, controles e superfícies", SortOrder = 5 },
-                        new() { SpaceName = "Quarto", Title = "Trocar roupa de cama completa", RequiresPhoto = true, SortOrder = 6 },
-                        new() { SpaceName = "Quarto", Title = "Inspecionar colchão, travesseiros e cabeceira", SortOrder = 7 },
-                        new() { SpaceName = "Quarto", Title = "Organizar armário, cabides e criados", SortOrder = 8 },
-                        new() { SpaceName = "Banheiro", Title = "Higienizar vaso, pia, espelho e box", RequiresPhoto = true, SortOrder = 9 },
-                        new() { SpaceName = "Banheiro", Title = "Repor papel, sabonete e amenities", SortOrder = 10 },
-                        new() { SpaceName = "Cozinha", Title = "Limpar bancada, pia, fogão e micro-ondas", SortOrder = 11 },
-                        new() { SpaceName = "Cozinha", Title = "Conferir utensílios, louças e eletros", SortOrder = 12 },
-                        new() { SpaceName = "Cozinha", Title = "Descartar lixo e trocar sacos", SortOrder = 13 },
-                        new() { SpaceName = "Lavanderia", Title = "Conferir máquina, tanque e produtos", SortOrder = 14 },
-                        new() { SpaceName = "Finalização", Title = "Checar cheiro, iluminação e temperatura", SortOrder = 15 },
-                        new() { SpaceName = "Finalização", Title = "Registrar fotos finais da unidade pronta", RequiresPhoto = true, SortOrder = 16 }
+                        new() { SpaceName = "Entry", Title = "Check lock, handle, and access condition", IsRequired = true, SortOrder = 1 },
+                        new() { SpaceName = "Entry", Title = "Clean the door, doormat, and light switches", SortOrder = 2 },
+                        new() { SpaceName = "Living Room", Title = "Vacuum or sweep the floor and clean baseboards", IsRequired = true, SortOrder = 3 },
+                        new() { SpaceName = "Living Room", Title = "Clean the sofa, cushions, and throw blanket", SortOrder = 4 },
+                        new() { SpaceName = "Living Room", Title = "Wipe the table, TV, remotes, and exposed surfaces", SortOrder = 5 },
+                        new() { SpaceName = "Bedroom", Title = "Replace all bed linens and make the bed neatly", IsRequired = true, RequiresPhoto = true, SortOrder = 6 },
+                        new() { SpaceName = "Bedroom", Title = "Inspect the mattress, pillows, and headboard", SortOrder = 7 },
+                        new() { SpaceName = "Bedroom", Title = "Organize the wardrobe, hangers, and nightstands", SortOrder = 8 },
+                        new() { SpaceName = "Bathroom", Title = "Sanitize the toilet, sink, mirror, and shower area", IsRequired = true, RequiresPhoto = true, SortOrder = 9 },
+                        new() { SpaceName = "Bathroom", Title = "Restock toilet paper, soap, and basic amenities", SortOrder = 10 },
+                        new() { SpaceName = "Kitchen", Title = "Clean the countertop, sink, stove, and microwave", IsRequired = true, SortOrder = 11 },
+                        new() { SpaceName = "Kitchen", Title = "Check utensils, dishes, and small appliances", SortOrder = 12 },
+                        new() { SpaceName = "Kitchen", Title = "Remove trash and replace garbage bags", SortOrder = 13 },
+                        new() { SpaceName = "Laundry Area", Title = "Check the washer area, sink, and cleaning products", SortOrder = 14 },
+                        new() { SpaceName = "Final Review", Title = "Check smell, lighting, and room temperature", IsRequired = true, SortOrder = 15 },
+                        new() { SpaceName = "Final Review", Title = "Take final ready-unit photos", IsRequired = true, RequiresPhoto = true, SortOrder = 16 }
                     }
                 },
                 new ChecklistTemplate
                 {
                     CompanyId = null,
-                    Name = "Airbnb Check-out Express",
-                    Description = "Modelo enxuto para conferência rápida em unidades com alta rotatividade.",
+                    Name = "Airbnb Express Checkout",
+                    Description = "Lean checklist for fast turnover on high-rotation short-stay properties.",
                     TemplateType = "airbnb",
                     IsSystemTemplate = true,
                     IsActive = true,
                     Items = new List<ChecklistTemplateItem>
                     {
-                        new() { SpaceName = "Geral", Title = "Remover lixo e itens esquecidos", SortOrder = 1 },
-                        new() { SpaceName = "Geral", Title = "Ventilar ambiente e checar odores", SortOrder = 2 },
-                        new() { SpaceName = "Quarto", Title = "Trocar cama e organizar travesseiros", RequiresPhoto = true, SortOrder = 3 },
-                        new() { SpaceName = "Banheiro", Title = "Higienizar louças e secar superfícies", SortOrder = 4 },
-                        new() { SpaceName = "Cozinha", Title = "Conferir pia, louças e bancada", SortOrder = 5 },
-                        new() { SpaceName = "Finalização", Title = "Tirar foto final e liberar unidade", RequiresPhoto = true, SortOrder = 6 }
+                        new() { SpaceName = "General", Title = "Remove trash and forgotten guest items", IsRequired = true, SortOrder = 1 },
+                        new() { SpaceName = "General", Title = "Ventilate the unit and check for odors", SortOrder = 2 },
+                        new() { SpaceName = "Bedroom", Title = "Replace linens and organize pillows", IsRequired = true, RequiresPhoto = true, SortOrder = 3 },
+                        new() { SpaceName = "Bathroom", Title = "Sanitize fixtures and dry visible surfaces", IsRequired = true, SortOrder = 4 },
+                        new() { SpaceName = "Kitchen", Title = "Check the sink, dishes, and countertop", IsRequired = true, SortOrder = 5 },
+                        new() { SpaceName = "Final Review", Title = "Take a final photo and release the unit", IsRequired = true, RequiresPhoto = true, SortOrder = 6 }
                     }
                 }
             };
