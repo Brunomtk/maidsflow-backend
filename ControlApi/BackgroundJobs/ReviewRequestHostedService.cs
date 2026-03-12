@@ -267,7 +267,7 @@ namespace ControlApi.BackgroundJobs
                     if (string.IsNullOrWhiteSpace(baseUrl))
                         throw new InvalidOperationException("PublicReviewFormBaseUrl is not configured.");
 
-                    reviewUrl = $"{baseUrl.TrimEnd('/')}/{review.PublicToken.Value}";
+                    reviewUrl = ReviewPublicLinkBuilder.Build(baseUrl, review.PublicToken.Value);
 
                     if (review.CustomerAddressId.HasValue)
                     {

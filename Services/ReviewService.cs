@@ -510,7 +510,7 @@ namespace Services
                 {
                     ReviewId = existing.Id,
                     Token = existing.PublicToken.Value,
-                    Url = string.IsNullOrWhiteSpace(publicFormBaseUrl) ? null : $"{publicFormBaseUrl.TrimEnd('/')}/{existing.PublicToken.Value}"
+                    Url = string.IsNullOrWhiteSpace(publicFormBaseUrl) ? null : ReviewPublicLinkBuilder.Build(publicFormBaseUrl, existing.PublicToken.Value)
                 };
             }
 

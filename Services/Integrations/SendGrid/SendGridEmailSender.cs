@@ -53,7 +53,17 @@ public class SendGridEmailSender : ISendGridEmailSender
             {
                 new SendGridContent { Type = "text/plain", Value = message.PlainText },
                 new SendGridContent { Type = "text/html", Value = message.Html }
-            }
+            },
+            TrackingSettings = _opt.DisableClickTracking
+                ? new SendGridTrackingSettings
+                {
+                    ClickTracking = new SendGridClickTracking
+                    {
+                        Enable = false,
+                        EnableText = false
+                    }
+                }
+                : null
         };
 
         request.Content = JsonContent.Create(payload);
@@ -77,6 +87,18 @@ public class SendGridEmailSender : ISendGridEmailSender
         [JsonPropertyName("from")] public SendGridEmailAddress From { get; set; } = new();
         [JsonPropertyName("subject")] public string Subject { get; set; } = string.Empty;
         [JsonPropertyName("content")] public SendGridContent[] Content { get; set; } = Array.Empty<SendGridContent>();
+        [JsonPropertyName("tracking_settings")] public SendGridTrackingSettings? TrackingSettings { get; set; }
+    }
+
+    private sealed class SendGridTrackingSettings
+    {
+        [JsonPropertyName("click_tracking")] public SendGridClickTracking? ClickTracking { get; set; }
+    }
+
+    private sealed class SendGridClickTracking
+    {
+        [JsonPropertyName("enable")] public bool Enable { get; set; }
+        [JsonPropertyName("enable_text")] public bool EnableText { get; set; }
     }
 
     private sealed class SendGridPersonalization

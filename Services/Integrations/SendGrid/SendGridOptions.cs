@@ -43,4 +43,7 @@ public class SendGridOptions
 
     /// <summary>Default subject used for review request emails.</summary>
     public string ReviewRequestSubject { get; set; } = "How was your service?";
+    /// <summary>Disable SendGrid click tracking so links open directly.</summary>
+    public bool DisableClickTracking { get; set; } = true;
+
 }
