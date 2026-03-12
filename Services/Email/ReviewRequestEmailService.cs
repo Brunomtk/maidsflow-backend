@@ -73,7 +73,16 @@ namespace Services.Email
                 ToName: customer.Name
             );
 
-            await _sender.SendAsync(msg, ct);
+            var result = await _sender.SendAsync(msg, ct);
+            if (!result.Ok)
+            {
+                var details = string.IsNullOrWhiteSpace(result.ResponseBody)
+                    ? result.Error
+                    : result.ResponseBody;
+
+                throw new InvalidOperationException(
+                    $"Failed to send review request email via SendGrid. StatusCode={result.StatusCode}. Details={details}");
+            }
         }
     }
 }
