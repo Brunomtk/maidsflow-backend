@@ -6821,6 +6821,29 @@
         }
       }
     },
+    "/api/Reviews/appointment/{appointmentId}/send-email": {
+      "post": {
+        "tags": [
+          "Reviews"
+        ],
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/Reviews/public/{token}": {
       "get": {
         "tags": [

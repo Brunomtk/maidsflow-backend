@@ -4266,6 +4266,22 @@
   },
   {
     "ContainingType": "ControlApi.Controllers.ReviewsController",
+    "Method": "SendReviewLinkByEmailForAppointment",
+    "RelativePath": "api/Reviews/appointment/{appointmentId}/send-email",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "appointmentId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.ReviewsController",
     "Method": "GetPaged",
     "RelativePath": "api/Reviews/paged",
     "HttpMethod": "GET",

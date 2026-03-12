@@ -7,6 +7,12 @@ using Core.Exceptions;
 using Infrastructure.Repositories;
 using Infrastructure.ServiceExtension;
 using Services.Security;
+using Services.Email;
+using Services.Integrations.SendGrid;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
+using Core.Enums.Messaging;
+using System.Text.Json;
 
 namespace Services
 {
@@ -22,6 +28,7 @@ namespace Services
         Task<ReviewLinkDTO> GetOrCreateLinkForAppointmentAsync(int appointmentId, string? publicFormBaseUrl = null);
         Task<PublicReviewInfoDTO?> GetPublicInfoAsync(Guid token);
         Task<Review?> SubmitPublicAsync(Guid token, PublicReviewSubmitDTO dto);
+        Task<ReviewEmailDispatchDTO> SendReviewLinkByEmailAsync(int appointmentId, string? publicFormBaseUrl = null);
     }
 
     public class ReviewService : IReviewService
@@ -29,12 +36,24 @@ namespace Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUser _currentUser;
         private readonly IScopeGuard _scope;
+        private readonly IReviewRequestEmailService _reviewRequestEmailService;
+        private readonly SendGridOptions _sendGridOptions;
+        private readonly IConfiguration _configuration;
 
-        public ReviewService(IUnitOfWork unitOfWork, ICurrentUser currentUser, IScopeGuard scope)
+        public ReviewService(
+            IUnitOfWork unitOfWork,
+            ICurrentUser currentUser,
+            IScopeGuard scope,
+            IReviewRequestEmailService reviewRequestEmailService,
+            IOptions<SendGridOptions> sendGridOptions,
+            IConfiguration configuration)
         {
             _unitOfWork = unitOfWork;
             _currentUser = currentUser;
             _scope = scope;
+            _reviewRequestEmailService = reviewRequestEmailService;
+            _sendGridOptions = sendGridOptions.Value;
+            _configuration = configuration;
         }
 
         public async Task<PagedResult<Review>> GetPagedAsync(ReviewFiltersDTO filters)
@@ -231,6 +250,238 @@ namespace Services
             _unitOfWork.Reviews.Update(review);
             await _unitOfWork.SaveAsync();
             return review;
+        }
+
+        public async Task<ReviewEmailDispatchDTO> SendReviewLinkByEmailAsync(int appointmentId, string? publicFormBaseUrl = null)
+        {
+            if (_currentUser.IsProfessional)
+                throw new ForbiddenException("Professional cannot send review-request emails.");
+
+            var appointment = await _unitOfWork.Appointments.GetById(appointmentId);
+            if (appointment == null)
+                throw new NotFoundException("Appointment not found.");
+
+            if (!_currentUser.IsAdmin)
+                await _scope.EnsureCompanyAccessAsync(appointment.CompanyId);
+
+            if (!appointment.CustomerId.HasValue)
+                throw new BadRequestException("The selected appointment does not have a customer linked to it.");
+
+            var customer = await _unitOfWork.Customers.GetById(appointment.CustomerId.Value);
+            if (customer == null)
+                throw new NotFoundException("Customer not found.");
+
+            if (customer.CompanyId != appointment.CompanyId)
+                throw new BadRequestException("The appointment customer does not belong to the same company.");
+
+            if (!customer.ReceiveEmail)
+                throw new BadRequestException("This customer has email notifications disabled.");
+
+            if (string.IsNullOrWhiteSpace(customer.Email))
+                throw new BadRequestException("This customer does not have an email address registered.");
+
+            var company = await _unitOfWork.Companies.GetById(appointment.CompanyId);
+            if (company == null)
+                throw new NotFoundException("Company not found.");
+
+            var resolvedBaseUrl = ResolvePublicReviewFormBaseUrl(publicFormBaseUrl);
+            if (string.IsNullOrWhiteSpace(resolvedBaseUrl))
+                throw new BadRequestException("Public review form URL is not configured. Set SendGrid:PublicReviewFormBaseUrl or AutoReviews:ReviewRequestAfterComplete:PublicReviewFormBaseUrl.");
+
+            var link = await GetOrCreateLinkForAppointmentAsync(appointmentId, resolvedBaseUrl);
+            if (string.IsNullOrWhiteSpace(link.Url))
+                throw new BadRequestException("Failed to generate the public review URL.");
+
+            var appointmentTitle = string.IsNullOrWhiteSpace(appointment.Title) ? "Your service" : appointment.Title.Trim();
+            var addressLine = await BuildAppointmentAddressLineAsync(appointment);
+            var subject = string.IsNullOrWhiteSpace(_sendGridOptions.ReviewRequestSubject)
+                ? "How was your service?"
+                : _sendGridOptions.ReviewRequestSubject.Trim();
+            var supportUrl = string.IsNullOrWhiteSpace(_sendGridOptions.SupportUrl) ? string.Empty : _sendGridOptions.SupportUrl.Trim();
+            var (_, plainText) = ReviewRequestEmailTemplate.Render(new ReviewRequestEmailTemplate.Model(
+                CustomerName: customer.Name ?? string.Empty,
+                CompanyName: company.Name ?? string.Empty,
+                AppointmentTitle: appointmentTitle,
+                AppointmentStartLocal: appointment.Start,
+                AddressLine: addressLine,
+                ReviewUrl: link.Url!,
+                SupportUrl: supportUrl
+            ));
+            var sentAtUtc = DateTime.UtcNow;
+
+            try
+            {
+                await _reviewRequestEmailService.SendReviewRequestAsync(
+                    companyId: appointment.CompanyId,
+                    customerId: customer.Id,
+                    reviewUrl: link.Url!,
+                    appointmentTitle: appointmentTitle,
+                    appointmentStartLocal: appointment.Start,
+                    addressLine: addressLine);
+
+                await AddReviewEmailLogAsync(
+                    appointment: appointment,
+                    occurrenceStartUtc: appointment.Start.Kind == DateTimeKind.Utc ? appointment.Start : null,
+                    occurrenceEndUtc: appointment.End.Kind == DateTimeKind.Utc ? appointment.End : null,
+                    recipientEmail: customer.Email!.Trim(),
+                    subject: subject,
+                    bodyText: plainText,
+                    reviewUrl: link.Url!,
+                    reviewId: link.ReviewId,
+                    customerId: customer.Id,
+                    customerName: customer.Name,
+                    status: AppointmentMessageStatus.Sent,
+                    providerStatus: "Sent",
+                    sentAtUtc: sentAtUtc,
+                    lastError: null,
+                    lastErrorRaw: null,
+                    isManual: true);
+            }
+            catch (Exception ex)
+            {
+                await AddReviewEmailLogAsync(
+                    appointment: appointment,
+                    occurrenceStartUtc: appointment.Start.Kind == DateTimeKind.Utc ? appointment.Start : null,
+                    occurrenceEndUtc: appointment.End.Kind == DateTimeKind.Utc ? appointment.End : null,
+                    recipientEmail: customer.Email!.Trim(),
+                    subject: subject,
+                    bodyText: plainText,
+                    reviewUrl: link.Url!,
+                    reviewId: link.ReviewId,
+                    customerId: customer.Id,
+                    customerName: customer.Name,
+                    status: AppointmentMessageStatus.Failed,
+                    providerStatus: "Failed",
+                    sentAtUtc: null,
+                    lastError: ex.Message,
+                    lastErrorRaw: ex.ToString(),
+                    isManual: true);
+                throw;
+            }
+
+            return new ReviewEmailDispatchDTO
+            {
+                ReviewId = link.ReviewId,
+                Token = link.Token,
+                Url = link.Url!,
+                AppointmentId = appointment.Id,
+                CustomerId = customer.Id,
+                CustomerName = customer.Name ?? string.Empty,
+                RecipientEmail = customer.Email!.Trim(),
+                Subject = subject,
+                SentAtUtc = sentAtUtc
+            };
+        }
+
+        private async Task AddReviewEmailLogAsync(
+            Appointment appointment,
+            DateTime? occurrenceStartUtc,
+            DateTime? occurrenceEndUtc,
+            string recipientEmail,
+            string subject,
+            string bodyText,
+            string reviewUrl,
+            int reviewId,
+            int customerId,
+            string? customerName,
+            AppointmentMessageStatus status,
+            string providerStatus,
+            DateTime? sentAtUtc,
+            string? lastError,
+            string? lastErrorRaw,
+            bool isManual)
+        {
+            var nextAttempt = await _unitOfWork.AppointmentMessageLogs.GetNextAttemptAsync(
+                appointment.Id,
+                AppointmentMessageKind.ReviewRequestEmail,
+                AppointmentMessageChannel.Email,
+                occurrenceStartUtc,
+                occurrenceEndUtc);
+
+            var payloadJson = JsonSerializer.Serialize(new
+            {
+                reviewId,
+                reviewUrl,
+                appointmentId = appointment.Id,
+                appointmentTitle = appointment.Title,
+                appointmentStart = appointment.Start,
+                appointmentEnd = appointment.End,
+                companyId = appointment.CompanyId,
+                customerId,
+                customerName,
+                customerAddressId = appointment.CustomerAddressId,
+                occurrenceStartUtc,
+                occurrenceEndUtc,
+                manual = isManual
+            });
+
+            await _unitOfWork.AppointmentMessageLogs.Add(new AppointmentMessageLog
+            {
+                AppointmentId = appointment.Id,
+                SeriesId = appointment.SeriesId,
+                OccurrenceStartUtc = occurrenceStartUtc,
+                OccurrenceEndUtc = occurrenceEndUtc,
+                Kind = AppointmentMessageKind.ReviewRequestEmail,
+                Channel = AppointmentMessageChannel.Email,
+                Status = status,
+                ScheduledForUtc = sentAtUtc ?? DateTime.UtcNow,
+                SentAtUtc = sentAtUtc,
+                Attempt = nextAttempt,
+                RequestedByUserId = _currentUser.UserId,
+                RequestedByRole = _currentUser.Role,
+                RecipientEmail = recipientEmail,
+                Subject = subject,
+                BodyText = bodyText,
+                TemplateKey = "review-request-email",
+                PayloadJson = payloadJson,
+                Provider = "SendGrid",
+                ProviderStatus = providerStatus,
+                LastError = lastError,
+                LastErrorRaw = lastErrorRaw,
+                CreatedDate = DateTime.UtcNow,
+                UpdatedDate = DateTime.UtcNow
+            });
+
+            await _unitOfWork.SaveAsync();
+        }
+
+        private string? ResolvePublicReviewFormBaseUrl(string? preferred)
+        {
+            if (!string.IsNullOrWhiteSpace(preferred))
+                return preferred.Trim();
+
+            if (!string.IsNullOrWhiteSpace(_sendGridOptions.PublicReviewFormBaseUrl))
+                return _sendGridOptions.PublicReviewFormBaseUrl.Trim();
+
+            var fallback = _configuration["AutoReviews:ReviewRequestAfterComplete:PublicReviewFormBaseUrl"];
+            return string.IsNullOrWhiteSpace(fallback) ? null : fallback.Trim();
+        }
+
+        private async Task<string?> BuildAppointmentAddressLineAsync(Appointment appointment)
+        {
+            if (appointment.CustomerAddressId.HasValue)
+            {
+                var address = await _unitOfWork.CustomerAddresses.GetByIdAsync(appointment.CustomerAddressId.Value);
+                if (address != null)
+                {
+                    var parts = new[]
+                    {
+                        address.AddressLine1,
+                        address.AddressLine2,
+                        address.City,
+                        address.State,
+                        address.ZipCode
+                    }
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(x => x!.Trim())
+                    .ToArray();
+
+                    if (parts.Length > 0)
+                        return string.Join(", ", parts);
+                }
+            }
+
+            return string.IsNullOrWhiteSpace(appointment.Address) ? null : appointment.Address.Trim();
         }
 
         // ===== Public (AllowAnonymous no Controller) =====

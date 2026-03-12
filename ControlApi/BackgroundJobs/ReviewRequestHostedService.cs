@@ -2,7 +2,9 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.Json;
 using Core.Enums;
+using Core.Enums.Messaging;
 using Core.Models;
 using Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -224,6 +226,15 @@ namespace ControlApi.BackgroundJobs
 
             foreach (var d in pendings)
             {
+                Appointment? appointment = null;
+                AppointmentCompletion? completion = null;
+                Review? review = null;
+                Customer? customer = null;
+                string? reviewUrl = null;
+                string? addressLine = null;
+                string? subject = null;
+                string? plainText = null;
+
                 try
                 {
                     d.AttemptCount += 1;
@@ -233,17 +244,22 @@ namespace ControlApi.BackgroundJobs
                     db.AppointmentReviewRequestDispatches.Update(d);
                     await db.SaveChangesAsync(ct);
 
-                    var review = await db.Reviews.AsNoTracking().FirstOrDefaultAsync(r => r.Id == d.ReviewId, ct);
+                    review = await db.Reviews.AsNoTracking().FirstOrDefaultAsync(r => r.Id == d.ReviewId, ct);
                     if (review == null || review.PublicToken == null)
                         throw new InvalidOperationException("Review not found or missing token.");
 
-                    var appointment = await db.Appointments.AsNoTracking().FirstOrDefaultAsync(a => a.Id == review.AppointmentId, ct);
+                    appointment = await db.Appointments.AsNoTracking().FirstOrDefaultAsync(a => a.Id == review.AppointmentId, ct);
                     if (appointment == null)
                         throw new InvalidOperationException("Appointment not found.");
 
-                    var customer = await db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.Id == d.CustomerId, ct);
+                    completion = await db.AppointmentCompletions.AsNoTracking().FirstOrDefaultAsync(c => c.Id == d.AppointmentCompletionId, ct);
+
+                    customer = await db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.Id == d.CustomerId, ct);
                     if (customer == null || !customer.ReceiveEmail || string.IsNullOrWhiteSpace(customer.Email))
                         throw new InvalidOperationException("Customer has no email or opted out.");
+
+                    var company = await db.Companies.AsNoTracking().FirstOrDefaultAsync(co => co.Id == appointment.CompanyId, ct);
+                    var companyName = company?.Name ?? string.Empty;
 
                     // Build review URL
                     var baseUrl = cfg.GetValue<string>("AutoReviews:ReviewRequestAfterComplete:PublicReviewFormBaseUrl");
@@ -251,9 +267,8 @@ namespace ControlApi.BackgroundJobs
                     if (string.IsNullOrWhiteSpace(baseUrl))
                         throw new InvalidOperationException("PublicReviewFormBaseUrl is not configured.");
 
-                    var reviewUrl = $"{baseUrl.TrimEnd('/')}/{review.PublicToken.Value}";
+                    reviewUrl = $"{baseUrl.TrimEnd('/')}/{review.PublicToken.Value}";
 
-                    string? addressLine = null;
                     if (review.CustomerAddressId.HasValue)
                     {
                         var addr = await db.CustomerAddresses.AsNoTracking().FirstOrDefaultAsync(a => a.Id == review.CustomerAddressId.Value, ct);
@@ -264,6 +279,21 @@ namespace ControlApi.BackgroundJobs
                                 : $"{addr.Label} • {addr.AddressLine1}";
                         }
                     }
+
+                    subject = string.IsNullOrWhiteSpace(sgOpt.ReviewRequestSubject)
+                        ? "How was your service?"
+                        : sgOpt.ReviewRequestSubject.Trim();
+
+                    var (_, renderedPlainText) = ReviewRequestEmailTemplate.Render(new ReviewRequestEmailTemplate.Model(
+                        CustomerName: customer.Name ?? string.Empty,
+                        CompanyName: companyName,
+                        AppointmentTitle: string.IsNullOrWhiteSpace(appointment.Title) ? "Your service" : appointment.Title,
+                        AppointmentStartLocal: review.Date,
+                        AddressLine: addressLine,
+                        ReviewUrl: reviewUrl,
+                        SupportUrl: string.IsNullOrWhiteSpace(sgOpt.SupportUrl) ? string.Empty : sgOpt.SupportUrl.Trim()
+                    ));
+                    plainText = renderedPlainText;
 
                     await emailSvc.SendReviewRequestAsync(
                         companyId: d.CompanyId,
@@ -280,6 +310,8 @@ namespace ControlApi.BackgroundJobs
                     d.UpdatedDate = nowUtc;
                     db.AppointmentReviewRequestDispatches.Update(d);
                     await db.SaveChangesAsync(ct);
+
+                    await AddReviewEmailLogAsync(db, appointment, completion, d, customer.Email!.Trim(), subject, plainText, reviewUrl, review.Id, customer.Name, AppointmentMessageStatus.Sent, "Sent", nowUtc, null, null, ct);
                 }
                 catch (Exception ex)
                 {
@@ -289,8 +321,94 @@ namespace ControlApi.BackgroundJobs
                     d.UpdatedDate = nowUtc;
                     db.AppointmentReviewRequestDispatches.Update(d);
                     await db.SaveChangesAsync(ct);
+
+                    if (appointment != null)
+                    {
+                        await AddReviewEmailLogAsync(db, appointment, completion, d, d.RecipientEmail, subject ?? (string.IsNullOrWhiteSpace(sgOpt.ReviewRequestSubject) ? "How was your service?" : sgOpt.ReviewRequestSubject.Trim()), plainText, reviewUrl, review?.Id, customer?.Name, AppointmentMessageStatus.Failed, "Failed", null, ex.Message, ex.ToString(), ct);
+                    }
                 }
             }
+        }
+
+        private static async Task AddReviewEmailLogAsync(
+            DbContextClass db,
+            Appointment appointment,
+            AppointmentCompletion? completion,
+            AppointmentReviewRequestDispatch dispatch,
+            string? recipientEmail,
+            string? subject,
+            string? bodyText,
+            string? reviewUrl,
+            int? reviewId,
+            string? customerName,
+            AppointmentMessageStatus status,
+            string providerStatus,
+            DateTime? sentAtUtc,
+            string? lastError,
+            string? lastErrorRaw,
+            CancellationToken ct)
+        {
+            var occurrenceStartUtc = completion?.OccurrenceStart.Kind == DateTimeKind.Utc ? completion.OccurrenceStart : (DateTime?)null;
+            var occurrenceEndUtc = completion?.OccurrenceEnd.Kind == DateTimeKind.Utc ? completion.OccurrenceEnd : (DateTime?)null;
+
+            var lastAttempt = await db.AppointmentMessageLogs.AsNoTracking()
+                .Where(x => x.AppointmentId == appointment.Id
+                    && x.Kind == AppointmentMessageKind.ReviewRequestEmail
+                    && x.Channel == AppointmentMessageChannel.Email
+                    && ((occurrenceStartUtc == null && occurrenceEndUtc == null)
+                        || (x.OccurrenceStartUtc == occurrenceStartUtc && x.OccurrenceEndUtc == occurrenceEndUtc)))
+                .OrderByDescending(x => x.Attempt)
+                .Select(x => x.Attempt)
+                .FirstOrDefaultAsync(ct);
+            var nextAttempt = lastAttempt <= 0 ? 1 : lastAttempt + 1;
+
+            var payloadJson = JsonSerializer.Serialize(new
+            {
+                dispatchId = dispatch.Id,
+                appointmentCompletionId = dispatch.AppointmentCompletionId,
+                reviewId,
+                reviewUrl,
+                appointmentId = appointment.Id,
+                appointmentTitle = appointment.Title,
+                appointmentStart = appointment.Start,
+                appointmentEnd = appointment.End,
+                occurrenceStartUtc,
+                occurrenceEndUtc,
+                seriesId = appointment.SeriesId,
+                companyId = appointment.CompanyId,
+                customerId = dispatch.CustomerId,
+                customerName,
+                customerAddressId = appointment.CustomerAddressId,
+                automatic = true
+            });
+
+            await db.AppointmentMessageLogs.AddAsync(new AppointmentMessageLog
+            {
+                AppointmentId = appointment.Id,
+                SeriesId = appointment.SeriesId,
+                OccurrenceStartUtc = occurrenceStartUtc,
+                OccurrenceEndUtc = occurrenceEndUtc,
+                Kind = AppointmentMessageKind.ReviewRequestEmail,
+                Channel = AppointmentMessageChannel.Email,
+                Status = status,
+                ScheduledForUtc = dispatch.LastAttemptAtUtc,
+                SentAtUtc = sentAtUtc,
+                Attempt = nextAttempt,
+                RequestedByUserId = null,
+                RequestedByRole = "system",
+                RecipientEmail = recipientEmail,
+                Subject = subject,
+                BodyText = bodyText,
+                TemplateKey = "review-request-email",
+                PayloadJson = payloadJson,
+                Provider = "SendGrid",
+                ProviderStatus = providerStatus,
+                LastError = lastError,
+                LastErrorRaw = lastErrorRaw,
+                CreatedDate = DateTime.UtcNow,
+                UpdatedDate = DateTime.UtcNow
+            }, ct);
+            await db.SaveChangesAsync(ct);
         }
     }
 }

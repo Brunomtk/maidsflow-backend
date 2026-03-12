@@ -39,6 +39,13 @@ namespace ControlApi.Controllers
             return Ok(link);
         }
 
+        [HttpPost("appointment/{appointmentId:int}/send-email")]
+        public async Task<IActionResult> SendReviewLinkByEmailForAppointment(int appointmentId)
+        {
+            var result = await _reviewService.SendReviewLinkByEmailAsync(appointmentId);
+            return Ok(result);
+        }
+
         /// <summary>
         /// Public endpoint: fetch review form data by token.
         /// </summary>

@@ -9,4 +9,5 @@ public enum AppointmentMessageKind
     // Operational / realtime
     OnMyWaySms = 10,
     OnMyWayEmail = 11,
+    ReviewRequestEmail = 12,
 }
