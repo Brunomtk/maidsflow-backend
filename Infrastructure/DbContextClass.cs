@@ -201,6 +201,8 @@ namespace Infrastructure
             {
                 entity.ToTable("Companies");
                 entity.HasKey(c => c.Id);
+                entity.Property(c => c.Email).IsRequired().HasMaxLength(256);
+                entity.HasIndex(c => c.Email).IsUnique();
                 entity.Property(c => c.StripeCustomerId).HasMaxLength(128);
                 // Plan agora é opcional: uma Company pode existir sem estar vinculada a um plano.
                 entity.HasOne(c => c.Plan)

@@ -28,6 +28,21 @@ namespace Infrastructure.Repositories
                 .FirstOrDefaultAsync(x => x.Cnpj == cnpj);
         }
 
+        public async Task<Company?> GetByEmailAsync(string email, int? excludeCompanyId = null)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return null;
+
+            var normalizedEmail = email.Trim().ToLowerInvariant();
+            var query = _dbContext.Companies
+                .AsNoTracking()
+                .Where(x => x.Email.ToLower() == normalizedEmail);
+
+            if (excludeCompanyId.HasValue)
+                query = query.Where(x => x.Id != excludeCompanyId.Value);
+
+            return await query.FirstOrDefaultAsync();
+        }
+
         /// <summary>
         /// Gets a company by ID.
         /// </summary>
@@ -109,6 +124,7 @@ namespace Infrastructure.Repositories
     public interface ICompanyRepository : IGenericRepository<Company>
     {
         Task<Company?> GetByCnpj(string cnpj);
+        Task<Company?> GetByEmailAsync(string email, int? excludeCompanyId = null);
         Task<Company?> GetByIdAsync(int companyId);
         Task<int?> GetPlanIdByCompanyId(int companyId);
         Task<Company?> GetByStripeCustomerIdAsync(string stripeCustomerId);
