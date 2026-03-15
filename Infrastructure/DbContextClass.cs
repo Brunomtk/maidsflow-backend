@@ -202,7 +202,6 @@ namespace Infrastructure
                 entity.ToTable("Companies");
                 entity.HasKey(c => c.Id);
                 entity.Property(c => c.StripeCustomerId).HasMaxLength(128);
-                entity.Property(c => c.HasCompletedInitialSetup).HasDefaultValue(false);
                 // Plan agora é opcional: uma Company pode existir sem estar vinculada a um plano.
                 entity.HasOne(c => c.Plan)
                       .WithMany()

@@ -2,6 +2,7 @@ using Core.DTO.Customer;
 using Core.Models;
 using Infrastructure.Repositories;
 using Infrastructure.ServiceExtension;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -116,6 +117,7 @@ namespace Services
                 customer.CompanyId = scopedCompanyId.Value;
             }
 
+            NormalizeCustomerForPersistence(customer);
             EnsurePrimaryAddress(customer);
             await _unitOfWork.Customers.Add(customer);
             var result = await _unitOfWork.SaveAsync();
@@ -136,6 +138,7 @@ namespace Services
             if (!_currentUser.IsAdmin)
                 customer.CompanyId = existing.CompanyId;
 
+            NormalizeCustomerForPersistence(customer);
             EnsurePrimaryAddress(customer);
             _unitOfWork.Customers.Update(customer);
             var result = await _unitOfWork.SaveAsync();
@@ -255,6 +258,7 @@ namespace Services
                     CompanyId = companyId
                 };
 
+                NormalizeCustomerForPersistence(customer);
                 EnsurePrimaryAddress(customer);
 
                 toCreate.Add(customer);
@@ -282,6 +286,51 @@ namespace Services
             _ = saved;
             response.CreatedCount = toCreate.Count;
             return response;
+        }
+
+        private static void NormalizeCustomerForPersistence(Customer customer)
+        {
+            customer.Name = (customer.Name ?? string.Empty).Trim();
+            customer.Email = string.IsNullOrWhiteSpace(customer.Email) ? null : customer.Email.Trim();
+            customer.Phone = string.IsNullOrWhiteSpace(customer.Phone) ? string.Empty : customer.Phone.Trim();
+            customer.Address = (customer.Address ?? string.Empty).Trim();
+            customer.ZipCode = string.IsNullOrWhiteSpace(customer.ZipCode) ? null : customer.ZipCode.Trim();
+            customer.City = string.IsNullOrWhiteSpace(customer.City) ? string.Empty : customer.City.Trim();
+            customer.State = NormalizeState(customer.State);
+            customer.Observations = string.IsNullOrWhiteSpace(customer.Observations) ? null : customer.Observations.Trim();
+            customer.Frequency = string.IsNullOrWhiteSpace(customer.Frequency) ? null : customer.Frequency.Trim();
+            customer.PaymentMethod = string.IsNullOrWhiteSpace(customer.PaymentMethod) ? null : customer.PaymentMethod.Trim();
+        }
+
+        private static string NormalizeState(string? state)
+        {
+            var value = (state ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+
+            if (value.Length == 2)
+                return value.ToUpperInvariant();
+
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Alabama"] = "AL", ["Alaska"] = "AK", ["Arizona"] = "AZ", ["Arkansas"] = "AR",
+                ["California"] = "CA", ["Colorado"] = "CO", ["Connecticut"] = "CT", ["Delaware"] = "DE",
+                ["Florida"] = "FL", ["Georgia"] = "GA", ["Hawaii"] = "HI", ["Idaho"] = "ID",
+                ["Illinois"] = "IL", ["Indiana"] = "IN", ["Iowa"] = "IA", ["Kansas"] = "KS",
+                ["Kentucky"] = "KY", ["Louisiana"] = "LA", ["Maine"] = "ME", ["Maryland"] = "MD",
+                ["Massachusetts"] = "MA", ["Michigan"] = "MI", ["Minnesota"] = "MN", ["Mississippi"] = "MS",
+                ["Missouri"] = "MO", ["Montana"] = "MT", ["Nebraska"] = "NE", ["Nevada"] = "NV",
+                ["New Hampshire"] = "NH", ["New Jersey"] = "NJ", ["New Mexico"] = "NM", ["New York"] = "NY",
+                ["North Carolina"] = "NC", ["North Dakota"] = "ND", ["Ohio"] = "OH", ["Oklahoma"] = "OK",
+                ["Oregon"] = "OR", ["Pennsylvania"] = "PA", ["Rhode Island"] = "RI", ["South Carolina"] = "SC",
+                ["South Dakota"] = "SD", ["Tennessee"] = "TN", ["Texas"] = "TX", ["Utah"] = "UT",
+                ["Vermont"] = "VT", ["Virginia"] = "VA", ["Washington"] = "WA", ["West Virginia"] = "WV",
+                ["Wisconsin"] = "WI", ["Wyoming"] = "WY", ["District of Columbia"] = "DC"
+            };
+
+            if (map.TryGetValue(value, out var abbreviation))
+                return abbreviation;
+
+            throw new BadRequestException("Invalid state. Use a 2-letter abbreviation like WA or a valid US state name.");
         }
 
         private static void EnsurePrimaryAddress(Customer customer)
