@@ -9218,6 +9218,9 @@
           "status": {
             "$ref": "#/components/schemas/StatusEnum"
           },
+          "hasCompletedInitialSetup": {
+            "type": "boolean"
+          },
           "plan": {
             "$ref": "#/components/schemas/Plan"
           },

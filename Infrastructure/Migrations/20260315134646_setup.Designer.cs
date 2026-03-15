@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DbContextClass))]
-    [Migration("20260315131813_Emailrecuperar")]
-    partial class Emailrecuperar
+    [Migration("20260315134646_setup")]
+    partial class setup
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -876,8 +876,7 @@ namespace Infrastructure.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("text");
 
                     b.Property<string>("GuestyAccessToken")
                         .HasColumnType("text");
@@ -905,6 +904,11 @@ namespace Infrastructure.Migrations
 
                     b.Property<DateTime?>("GuestyTokenUpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("HasCompletedInitialSetup")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -938,9 +942,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Email")
-                        .IsUnique();
 
                     b.HasIndex("PlanId");
 

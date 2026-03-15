@@ -1,5 +1,4 @@
-﻿using Core.Exceptions;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using System.Net;
 
@@ -28,22 +27,13 @@ namespace Infrastructure
 
 		private static Task HandleExceptionAsync(HttpContext context, Exception exception)
 		{
-			var code = exception switch
-			{
-				BadRequestException => HttpStatusCode.BadRequest,
-				ForbiddenException => HttpStatusCode.Forbidden,
-				NotFoundException => HttpStatusCode.NotFound,
-				ConflictException => HttpStatusCode.Conflict,
-				BadGatewayException => HttpStatusCode.BadGateway,
-				_ => HttpStatusCode.InternalServerError
-			};
+			var code = HttpStatusCode.InternalServerError; // 500 if unexpected
 
-			var payload = new
-			{
-				message = exception.Message,
-				status = (int)code
-			};
-			var result = JsonConvert.SerializeObject(payload);
+			// if (exception is Exception) code = HttpStatusCode.NotFound;
+			// else if (exception is MyUnauthorizedException) code = HttpStatusCode.Unauthorized;
+			// else if (exception is MyException)             code = HttpStatusCode.BadRequest;
+
+			var result = JsonConvert.SerializeObject(exception);
 			context.Response.ContentType = "application/json";
 			context.Response.StatusCode = (int)code;
 			return context.Response.WriteAsync(result);

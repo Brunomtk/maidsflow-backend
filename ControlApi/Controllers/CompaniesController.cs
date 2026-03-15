@@ -40,6 +40,7 @@ namespace ControlApi.Controllers
                 AvatarKey = c.AvatarKey,
                 AvatarUrl = string.IsNullOrWhiteSpace(c.AvatarKey) ? null : _s3.CreateDownloadUrl(c.AvatarKey),
                 Status = c.Status,
+                HasCompletedInitialSetup = c.HasCompletedInitialSetup,
                 CreatedDate = c.CreatedDate,
                 UpdatedDate = c.UpdatedDate
             };

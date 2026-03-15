@@ -48,6 +48,9 @@ namespace Core.Models
 
         public StatusEnum Status { get; set; } = StatusEnum.Active;
 
+        // Controls whether the company has already completed the initial post-signup setup flow.
+        public bool HasCompletedInitialSetup { get; set; } = false;
+
         public Plan? Plan { get; set; }
 
         public ICollection<User>? Users { get; set; }

@@ -6,8 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Core.Exceptions;
-using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using Services.Security;
 
 namespace Services
@@ -23,18 +21,6 @@ namespace Services
             _unitOfWork = unitOfWork;
             _currentUser = currentUser;
             _scope = scope;
-        }
-
-        private static string NormalizeEmail(string? email)
-        {
-            return (email ?? string.Empty).Trim().ToLowerInvariant();
-        }
-
-        private static bool IsUniqueCompanyEmailViolation(DbUpdateException ex)
-        {
-            return ex.InnerException is PostgresException postgres &&
-                   postgres.SqlState == PostgresErrorCodes.UniqueViolation &&
-                   (postgres.ConstraintName == "IX_Companies_Email" || postgres.ConstraintName == "IX_Companies_Email_Unique");
         }
 
         public async Task<IEnumerable<Company>> GetAllCompanies()
@@ -132,24 +118,9 @@ namespace Services
             if (!_currentUser.IsAdmin && !isAnonymous && !isCompanyWithoutScope)
                 throw new ForbiddenException("Somente admin ou signup podem criar companies.");
 
-            company.Email = NormalizeEmail(company.Email);
-            if (string.IsNullOrWhiteSpace(company.Email))
-                throw new BadRequestException("Company email is required.");
-
-            var existingCompany = await _unitOfWork.Companies.GetByEmailAsync(company.Email);
-            if (existingCompany != null)
-                throw new ConflictException("A company with this email already exists.");
-
-            try
-            {
-                await _unitOfWork.Companies.Add(company);
-                var result = await _unitOfWork.SaveAsync();
-                return result > 0;
-            }
-            catch (DbUpdateException ex) when (IsUniqueCompanyEmailViolation(ex))
-            {
-                throw new ConflictException("A company with this email already exists.");
-            }
+            await _unitOfWork.Companies.Add(company);
+            var result = await _unitOfWork.SaveAsync();
+            return result > 0;
         }
 
         public async Task<bool> UpdateCompany(CreateCompanyRequest request, int companyId)
@@ -163,18 +134,10 @@ namespace Services
             var company = await _unitOfWork.Companies.GetByIdAsync(companyId);
             if (company == null) return false;
 
-            var normalizedEmail = NormalizeEmail(request.Email);
-            if (string.IsNullOrWhiteSpace(normalizedEmail))
-                throw new BadRequestException("Company email is required.");
-
-            var existingCompany = await _unitOfWork.Companies.GetByEmailAsync(normalizedEmail, companyId);
-            if (existingCompany != null)
-                throw new ConflictException("A company with this email already exists.");
-
             company.Name = request.Name;
             company.Cnpj = request.Cnpj;
             company.Responsible = request.Responsible;
-            company.Email = normalizedEmail;
+            company.Email = request.Email;
             company.Phone = request.Phone;
             company.ReceiveSms = request.ReceiveSms;
             company.ReceiveEmail = request.ReceiveEmail;
@@ -182,15 +145,8 @@ namespace Services
             company.Status = request.Status;
 
             _unitOfWork.Companies.Update(company);
-            try
-            {
-                var result = await _unitOfWork.SaveAsync();
-                return result > 0;
-            }
-            catch (DbUpdateException ex) when (IsUniqueCompanyEmailViolation(ex))
-            {
-                throw new ConflictException("A company with this email already exists.");
-            }
+            var result = await _unitOfWork.SaveAsync();
+            return result > 0;
         }
 
         public async Task<bool> DeleteCompany(int companyId)
