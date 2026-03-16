@@ -143,6 +143,8 @@ namespace Services
             company.ReceiveEmail = request.ReceiveEmail;
             if (request.PlanId.HasValue) company.PlanId = request.PlanId;
             company.Status = request.Status;
+            if (request.HasCompletedInitialSetup.HasValue)
+                company.HasCompletedInitialSetup = request.HasCompletedInitialSetup.Value;
 
             _unitOfWork.Companies.Update(company);
             var result = await _unitOfWork.SaveAsync();
@@ -158,6 +160,29 @@ namespace Services
             if (company == null) return false;
 
             _unitOfWork.Companies.Delete(company);
+            var result = await _unitOfWork.SaveAsync();
+            return result > 0;
+        }
+
+        public async Task<bool?> GetInitialSetupStatusAsync(int companyId)
+        {
+            var company = await GetCompanyById(companyId);
+            return company?.HasCompletedInitialSetup;
+        }
+
+        public async Task<bool> SetInitialSetupStatusAsync(int companyId, bool hasCompletedInitialSetup)
+        {
+            if (!_currentUser.IsAdmin && !_currentUser.IsCompany)
+                throw new ForbiddenException("Você não tem permissão para atualizar o setup da company.");
+
+            if (!_currentUser.IsAdmin)
+                await _scope.EnsureCompanyAccessAsync(companyId);
+
+            var company = await _unitOfWork.Companies.GetByIdAsync(companyId);
+            if (company == null) return false;
+
+            company.HasCompletedInitialSetup = hasCompletedInitialSetup;
+            _unitOfWork.Companies.Update(company);
             var result = await _unitOfWork.SaveAsync();
             return result > 0;
         }
@@ -179,6 +204,8 @@ public async Task<bool> CompanyExists(int companyId)
         Task<bool> CreateCompany(Company company);
         Task<bool> UpdateCompany(CreateCompanyRequest request, int companyId);
         Task<bool> DeleteCompany(int companyId);
+        Task<bool?> GetInitialSetupStatusAsync(int companyId);
+        Task<bool> SetInitialSetupStatusAsync(int companyId, bool hasCompletedInitialSetup);
         Task<bool> CompanyExists(int companyId);
     }
 }

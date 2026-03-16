@@ -40,6 +40,7 @@ namespace ControlApi.Controllers
                 AvatarKey = c.AvatarKey,
                 AvatarUrl = string.IsNullOrWhiteSpace(c.AvatarKey) ? null : _s3.CreateDownloadUrl(c.AvatarKey),
                 Status = c.Status,
+                HasCompletedInitialSetup = c.HasCompletedInitialSetup,
                 CreatedDate = c.CreatedDate,
                 UpdatedDate = c.UpdatedDate
             };
@@ -83,7 +84,8 @@ namespace ControlApi.Controllers
                 ReceiveSms = request.ReceiveSms,
                 ReceiveEmail = request.ReceiveEmail,
                 PlanId = request.PlanId,
-                Status = request.Status
+                Status = request.Status,
+                HasCompletedInitialSetup = request.HasCompletedInitialSetup ?? false
             };
 
             var ok = await _companyService.CreateCompany(company);
@@ -117,6 +119,35 @@ namespace ControlApi.Controllers
             var ok = await _companyService.DeleteCompany(id);
             if (!ok) return NotFound();
             return NoContent();
+        }
+
+
+        // GET api/Companies/{id}/initial-setup-status
+        [HttpGet("{id:int}/initial-setup-status")]
+        public async Task<IActionResult> GetInitialSetupStatus(int id)
+        {
+            var status = await _companyService.GetInitialSetupStatusAsync(id);
+            if (!status.HasValue) return NotFound();
+
+            return Ok(new CompanyInitialSetupStatusDTO
+            {
+                CompanyId = id,
+                HasCompletedInitialSetup = status.Value
+            });
+        }
+
+        // PUT api/Companies/{id}/initial-setup-status
+        [HttpPut("{id:int}/initial-setup-status")]
+        public async Task<IActionResult> UpdateInitialSetupStatus(int id, [FromBody] UpdateCompanyInitialSetupStatusRequest request)
+        {
+            var ok = await _companyService.SetInitialSetupStatusAsync(id, request.HasCompletedInitialSetup);
+            if (!ok) return NotFound();
+
+            return Ok(new CompanyInitialSetupStatusDTO
+            {
+                CompanyId = id,
+                HasCompletedInitialSetup = request.HasCompletedInitialSetup
+            });
         }
 
         // GET api/Companies/paged?Page=1&PageSize=10&Name=...&PlanId=...&Status=...

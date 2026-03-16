@@ -48,6 +48,9 @@ namespace Core.Models
 
         public StatusEnum Status { get; set; } = StatusEnum.Active;
 
+        // Tracks whether the company has completed the initial onboarding/setup wizard.
+        public bool HasCompletedInitialSetup { get; set; } = false;
+
         public Plan? Plan { get; set; }
 
         public ICollection<User>? Users { get; set; }

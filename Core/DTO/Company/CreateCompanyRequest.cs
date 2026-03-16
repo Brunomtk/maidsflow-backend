@@ -16,5 +16,6 @@ namespace Core.DTO.Company
         // Agora é opcional (pode ser atribuído depois).
         public int? PlanId { get; set; }
         public StatusEnum Status { get; set; } = StatusEnum.Active;
+        public bool? HasCompletedInitialSetup { get; set; }
     }
 }

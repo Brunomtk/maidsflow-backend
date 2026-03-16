@@ -22,6 +22,7 @@ namespace Core.DTO.Company
         public string? AvatarUrl { get; set; }
 
         public StatusEnum Status { get; set; }     // Status da empresa (Active/Inactive/etc.)
+        public bool HasCompletedInitialSetup { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime UpdatedDate { get; set; }
     }

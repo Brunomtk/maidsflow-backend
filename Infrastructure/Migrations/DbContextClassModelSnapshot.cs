@@ -559,6 +559,9 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("HasCompletedInitialSetup")
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("PlanId")
                         .HasColumnType("integer");
 
