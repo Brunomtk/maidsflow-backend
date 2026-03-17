@@ -30,6 +30,7 @@ namespace ControlApi.BackgroundJobs
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<CheckoutReminderHostedService> _logger;
         private readonly IConfiguration _config;
+        private readonly Services.IBackgroundJobMonitorService _jobMonitor;
 
         private const int DefaultTickSeconds = 60;
         private const int DefaultDelayMinutesAfterEnd = 10;
@@ -45,19 +46,23 @@ namespace ControlApi.BackgroundJobs
         public CheckoutReminderHostedService(
             IServiceScopeFactory scopeFactory,
             ILogger<CheckoutReminderHostedService> logger,
-            IConfiguration config)
+            IConfiguration config,
+            Services.IBackgroundJobMonitorService jobMonitor)
         {
             _scopeFactory = scopeFactory;
             _logger = logger;
             _config = config;
+            _jobMonitor = jobMonitor;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            await _jobMonitor.EnsureDefaultsRegisteredAsync(stoppingToken);
             var enabled = _config.GetValue("AutoNotifications:CheckoutReminder:Enabled", true);
             if (!enabled)
             {
                 _logger.LogInformation("[CheckoutReminder] Desabilitado por configuração.");
+                await _jobMonitor.MarkDisabledAsync(Services.BackgroundJobKeys.CheckoutReminder, "Checkout Reminder", "Notifications", "Disabled by configuration.", null, stoppingToken);
                 return;
             }
 
@@ -66,9 +71,12 @@ namespace ControlApi.BackgroundJobs
 
             while (!stoppingToken.IsCancellationRequested)
             {
+                var nextRunUtc = DateTime.UtcNow.Add(tick);
+                var run = await _jobMonitor.MarkStartedAsync(Services.BackgroundJobKeys.CheckoutReminder, "Checkout Reminder", "Notifications", nextRunUtc, stoppingToken);
                 try
                 {
-                    await RunTickAsync(stoppingToken);
+                    var result = await RunTickAsync(stoppingToken);
+                    await _jobMonitor.MarkSucceededAsync(run, result.summary, result.processed, result.succeeded, result.failed, nextRunUtc, stoppingToken);
                 }
                 catch (TaskCanceledException)
                 {
@@ -77,19 +85,23 @@ namespace ControlApi.BackgroundJobs
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "[CheckoutReminder] Erro no tick. Tentando novamente no próximo ciclo.");
+                    await _jobMonitor.MarkFailedAsync(run, ex, "Checkout reminder tick failed.", nextPlannedRunAtUtc: nextRunUtc, ct: stoppingToken);
                 }
 
                 try { await Task.Delay(tick, stoppingToken); } catch (TaskCanceledException) { break; }
             }
         }
 
-        private async Task RunTickAsync(CancellationToken ct)
+        private async Task<(int processed, int succeeded, int failed, string summary)> RunTickAsync(CancellationToken ct)
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<DbContextClass>();
             var pushSender = scope.ServiceProvider.GetRequiredService<Services.IPushNotificationSender>();
 
             var nowUtc = DateTime.UtcNow;
+
+            var processed = 0;
+            var succeeded = 0;
 
             // ---- Cleanup rápido (TTL 30min) ----
             var ttlMinutes = _config.GetValue("AutoNotifications:CheckoutReminder:NotificationTtlMinutes", DefaultNotificationTtlMinutes);
@@ -100,10 +112,12 @@ namespace ControlApi.BackgroundJobs
                 .Select(n => n.Id)
                 .ToListAsync(ct);
 
+            processed += expiredIds.Count;
             if (expiredIds.Count > 0)
             {
                 db.Notifications.RemoveRange(db.Notifications.Where(n => expiredIds.Contains(n.Id)));
                 await db.SaveChangesAsync(ct);
+                succeeded += expiredIds.Count;
                 _logger.LogInformation("[CheckoutReminder] Removidas {Count} notificações expiradas (cutoff {CutoffUtc:o}).", expiredIds.Count, cutoffUtc);
             }
 
@@ -134,10 +148,11 @@ namespace ControlApi.BackgroundJobs
                 )
                 .ToListAsync(ct);
 
+            processed += openChecks.Count;
             if (openChecks.Count == 0)
             {
                 _logger.LogDebug("[CheckoutReminder] Nenhum check-in pendente na janela. endFromUtc={From:o} endToUtc={To:o}", endFromUtc, endToUtc);
-                return;
+                return (processed, succeeded, 0, "No open checkout reminders in current window.");
             }
 
             // Carregar users profissionais relacionados
@@ -211,11 +226,12 @@ namespace ControlApi.BackgroundJobs
             }
 
             if (createdNotifications.Count == 0)
-                return;
+                return (processed, succeeded, Math.Max(0, processed - succeeded), $"OpenChecks={openChecks.Count}, ExpiredRemoved={expiredIds.Count}, NotificationsCreated=0");
 
             await db.Notifications.AddRangeAsync(createdNotifications, ct);
             await db.AppointmentReminderDispatches.AddRangeAsync(createdDispatches, ct);
             await db.SaveChangesAsync(ct);
+            succeeded += createdNotifications.Count;
 
             // Envia push via WebPush
             // Agrupa por idioma para mensagem correta (como no Reminder30Min).
@@ -247,6 +263,9 @@ namespace ControlApi.BackgroundJobs
 
                 _logger.LogInformation("[CheckoutReminder] ENVIADO EN users=[{Users}] count={Count}", string.Join(",", enUsers), enUsers.Count);
             }
+
+            var failed = Math.Max(0, processed - succeeded);
+            return (processed, succeeded, failed, $"OpenChecks={openChecks.Count}, ExpiredRemoved={expiredIds.Count}, NotificationsCreated={createdNotifications.Count}");
         }
 
         private static bool IsPtBr(string? lang)

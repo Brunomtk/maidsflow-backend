@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Services;
 using Services.Email;
 using Services.Integrations.SendGrid;
 
@@ -29,31 +30,25 @@ namespace ControlApi.BackgroundJobs
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<ReviewRequestHostedService> _logger;
+        private readonly IBackgroundJobMonitorService _jobMonitor;
 
         // Default loop: every 60s. Configurable via AutoReviews:ReviewRequestAfterComplete:LoopSeconds
         private static readonly TimeSpan DefaultLoopDelay = TimeSpan.FromSeconds(60);
 
-        public ReviewRequestHostedService(IServiceScopeFactory scopeFactory, ILogger<ReviewRequestHostedService> logger)
+        public ReviewRequestHostedService(IServiceScopeFactory scopeFactory, ILogger<ReviewRequestHostedService> logger, IBackgroundJobMonitorService jobMonitor)
         {
             _scopeFactory = scopeFactory;
             _logger = logger;
+            _jobMonitor = jobMonitor;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            await _jobMonitor.EnsureDefaultsRegisteredAsync(stoppingToken);
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                try
-                {
-                    await RunOnceAsync(stoppingToken);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "[Reviews] Unexpected error in review request job.");
-                }
-
                 var delay = DefaultLoopDelay;
                 try
                 {
@@ -64,11 +59,24 @@ namespace ControlApi.BackgroundJobs
                 }
                 catch { /* ignore */ }
 
+                var nextRunUtc = DateTime.UtcNow.Add(delay);
+                var run = await _jobMonitor.MarkStartedAsync(BackgroundJobKeys.ReviewRequest, "Review Request", "Reviews", nextRunUtc, stoppingToken);
+                try
+                {
+                    var result = await RunOnceAsync(stoppingToken);
+                    await _jobMonitor.MarkSucceededAsync(run, result.summary, result.processed, result.succeeded, result.failed, nextRunUtc, stoppingToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[Reviews] Unexpected error in review request job.");
+                    await _jobMonitor.MarkFailedAsync(run, ex, "Unexpected error in review request job.", nextPlannedRunAtUtc: nextRunUtc, ct: stoppingToken);
+                }
+
                 await Task.Delay(delay, stoppingToken);
             }
         }
 
-        private async Task RunOnceAsync(CancellationToken ct)
+        private async Task<(int processed, int succeeded, int failed, string summary)> RunOnceAsync(CancellationToken ct)
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<DbContextClass>();
@@ -80,7 +88,7 @@ namespace ControlApi.BackgroundJobs
             if (!enabled)
             {
                 _logger.LogDebug("[Reviews] AutoReviews:ReviewRequestAfterComplete disabled.");
-                return;
+                return (0, 0, 0, "Disabled by configuration.");
             }
 
             var delayMinutes = cfg.GetValue("AutoReviews:ReviewRequestAfterComplete:DelayMinutes", 30);
@@ -102,12 +110,19 @@ namespace ControlApi.BackgroundJobs
             var cutoff = nowUtc.AddMinutes(-delayMinutes);
             var lookback = nowUtc.AddDays(-lookbackDays);
 
+            var processed = 0;
+            var succeeded = 0;
+            var failures = 0;
+            var dispatchesCreated = 0;
+
             // 1) Ensure dispatches exist for eligible completions
             var completions = await db.AppointmentCompletions.AsNoTracking()
                 .Where(c => c.CompletedAt <= cutoff && c.CompletedAt >= lookback)
                 .OrderBy(c => c.CompletedAt)
                 .Take(batchSize)
                 .ToListAsync(ct);
+
+            processed += completions.Count;
 
             foreach (var comp in completions)
             {
@@ -205,6 +220,7 @@ namespace ControlApi.BackgroundJobs
                     };
                     db.AppointmentReviewRequestDispatches.Add(dispatch);
                     await db.SaveChangesAsync(ct);
+                    dispatchesCreated += 1;
                 }
                 catch (DbUpdateException)
                 {
@@ -223,6 +239,8 @@ namespace ControlApi.BackgroundJobs
                 .OrderBy(d => d.CreatedDate)
                 .Take(batchSize)
                 .ToListAsync(ct);
+
+            processed += pendings.Count;
 
             foreach (var d in pendings)
             {
@@ -312,6 +330,7 @@ namespace ControlApi.BackgroundJobs
                     await db.SaveChangesAsync(ct);
 
                     await AddReviewEmailLogAsync(db, appointment, completion, d, customer.Email!.Trim(), subject, plainText, reviewUrl, review.Id, customer.Name, AppointmentMessageStatus.Sent, "Sent", nowUtc, null, null, ct);
+                    succeeded += 1;
                 }
                 catch (Exception ex)
                 {
@@ -326,8 +345,12 @@ namespace ControlApi.BackgroundJobs
                     {
                         await AddReviewEmailLogAsync(db, appointment, completion, d, d.RecipientEmail, subject ?? (string.IsNullOrWhiteSpace(sgOpt.ReviewRequestSubject) ? "How was your service?" : sgOpt.ReviewRequestSubject.Trim()), plainText, reviewUrl, review?.Id, customer?.Name, AppointmentMessageStatus.Failed, "Failed", null, ex.Message, ex.ToString(), ct);
                     }
+
+                    failures += 1;
                 }
             }
+
+            return (processed, succeeded, failures, $"CompletionsScanned={completions.Count}, DispatchesCreated={dispatchesCreated}, PendingProcessed={pendings.Count}, EmailsSent={succeeded}, Failures={failures}");
         }
 
         private static async Task AddReviewEmailLogAsync(

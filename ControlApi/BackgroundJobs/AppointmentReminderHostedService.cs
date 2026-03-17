@@ -28,37 +28,44 @@ namespace ControlApi.BackgroundJobs
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<AppointmentReminderHostedService> _logger;
+        private readonly IBackgroundJobMonitorService _jobMonitor;
 
         // Intervalo do job.
         private static readonly TimeSpan LoopDelay = TimeSpan.FromSeconds(60);
 
-        public AppointmentReminderHostedService(IServiceScopeFactory scopeFactory, ILogger<AppointmentReminderHostedService> logger)
+        public AppointmentReminderHostedService(IServiceScopeFactory scopeFactory, ILogger<AppointmentReminderHostedService> logger, IBackgroundJobMonitorService jobMonitor)
         {
             _scopeFactory = scopeFactory;
             _logger = logger;
+            _jobMonitor = jobMonitor;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             // Pequeno atraso para a API subir com tudo pronto
             await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            await _jobMonitor.EnsureDefaultsRegisteredAsync(stoppingToken);
 
             while (!stoppingToken.IsCancellationRequested)
             {
+                var nextRunUtc = DateTime.UtcNow.Add(LoopDelay);
+                var run = await _jobMonitor.MarkStartedAsync(BackgroundJobKeys.AppointmentReminder, "Appointment Reminder", "Notifications", nextRunUtc, stoppingToken);
                 try
                 {
-                    await RunOnceAsync(stoppingToken);
+                    var result = await RunOnceAsync(stoppingToken);
+                    await _jobMonitor.MarkSucceededAsync(run, result.summary, result.processed, result.succeeded, result.failed, nextRunUtc, stoppingToken);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "[Reminders] Erro inesperado no job de lembretes.");
+                    await _jobMonitor.MarkFailedAsync(run, ex, "Unexpected error in appointment reminder job.", nextPlannedRunAtUtc: nextRunUtc, ct: stoppingToken);
                 }
 
                 await Task.Delay(LoopDelay, stoppingToken);
             }
         }
 
-        private async Task RunOnceAsync(CancellationToken ct)
+        private async Task<(int processed, int succeeded, int failed, string summary)> RunOnceAsync(CancellationToken ct)
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<DbContextClass>();
@@ -75,7 +82,7 @@ namespace ControlApi.BackgroundJobs
             if (!enabled)
             {
                 _logger.LogDebug("[Reminders] AutoNotifications:Reminder30Min desabilitado.");
-                return;
+                return (0, 0, 0, "Disabled by configuration.");
             }
 
             var nowUtc = DateTime.UtcNow;
@@ -90,6 +97,9 @@ namespace ControlApi.BackgroundJobs
             _logger.LogInformation(
                 "[Reminders] Tick nowUtc={NowUtc:o} windowStartUtc={Ws:o} windowEndUtc={We:o}",
                 nowUtc, windowStartUtc, windowEndUtc);
+
+            var processed = 0;
+            var succeeded = 0;
 
             // ---------------
             // 1) Não recorrentes
@@ -122,7 +132,8 @@ namespace ControlApi.BackgroundJobs
                     "[Reminders] Match non-recurring appointmentId={Id} startLocal={StartLocal:o} startUtc={StartUtc:o} tz={Tz}",
                     a.Id, a.Start, startUtc, tz.Id);
 
-                await SendReminderForOccurrenceAsync(
+                processed++;
+                succeeded += await SendReminderForOccurrenceAsync(
                     db,
                     pushSender,
                     appointmentAnchor: a,
@@ -196,7 +207,8 @@ namespace ControlApi.BackgroundJobs
                         if (effectiveStartUtc < windowStartUtc || effectiveStartUtc >= windowEndUtc)
                             continue;
 
-                        await SendReminderForOccurrenceAsync(
+                        processed++;
+                        succeeded += await SendReminderForOccurrenceAsync(
                             db,
                             pushSender,
                             appointmentAnchor: anchor,
@@ -214,7 +226,8 @@ namespace ControlApi.BackgroundJobs
                     if (occStartUtc < windowStartUtc || occStartUtc >= windowEndUtc)
                         continue;
 
-                    await SendReminderForOccurrenceAsync(
+                    processed++;
+                    succeeded += await SendReminderForOccurrenceAsync(
                         db,
                         pushSender,
                         appointmentAnchor: anchor,
@@ -225,9 +238,12 @@ namespace ControlApi.BackgroundJobs
                         ct);
                 }
             }
+
+            var failed = Math.Max(0, processed - succeeded);
+            return (processed, succeeded, failed, $"Matches={processed}, NotificationsSent={succeeded}, Skipped={failed}");
         }
 
-        private async Task SendReminderForOccurrenceAsync(
+        private async Task<int> SendReminderForOccurrenceAsync(
             DbContextClass db,
             IPushNotificationSender pushSender,
             Appointment appointmentAnchor,
@@ -240,7 +256,7 @@ namespace ControlApi.BackgroundJobs
             if (professionalIds == null || professionalIds.Count == 0)
             {
                 _logger.LogDebug("[Reminders] Skip appointmentId={Id}: no professionalIds", appointmentAnchor.Id);
-                return;
+                return 0;
             }
 
             // Mapeia ProfessionalIds -> Users
@@ -254,7 +270,7 @@ namespace ControlApi.BackgroundJobs
                 _logger.LogWarning(
                     "[Reminders] No users mapped for appointmentId={Id} seriesId={SeriesId} proIds=[{ProIds}]",
                     appointmentAnchor.Id, seriesId, string.Join(",", proIds));
-                return;
+                return 0;
             }
 
             // Filtra usuários elegíveis (ativos)
@@ -268,7 +284,7 @@ namespace ControlApi.BackgroundJobs
                 _logger.LogWarning(
                     "[Reminders] No eligible professional users for appointmentId={Id} seriesId={SeriesId}",
                     appointmentAnchor.Id, seriesId);
-                return;
+                return 0;
             }
 
             // Idempotência: remove os que já receberam
@@ -288,7 +304,7 @@ namespace ControlApi.BackgroundJobs
                 _logger.LogDebug(
                     "[Reminders] Already dispatched appointmentId={Id} seriesId={SeriesId} startUtc={StartUtc:o}",
                     appointmentAnchor.Id, seriesId, occurrenceStartUtc);
-                return;
+                return 0;
             }
 
             // Cria logs de dispatch antes (idempotência via índice único)
@@ -355,6 +371,8 @@ namespace ControlApi.BackgroundJobs
                     "[Reminders] Created EN notifications appointmentId={Id} users=[{Users}]",
                     appointmentAnchor.Id, string.Join(",", enUsers));
             }
+
+            return toSendUsers.Count;
         }
 
         private static bool IsPtBr(User u)

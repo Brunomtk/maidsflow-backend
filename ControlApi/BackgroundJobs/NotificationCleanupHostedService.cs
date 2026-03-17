@@ -21,6 +21,7 @@ namespace ControlApi.BackgroundJobs
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<NotificationCleanupHostedService> _logger;
         private readonly IConfiguration _config;
+        private readonly Services.IBackgroundJobMonitorService _jobMonitor;
 
         // Defaults (caso não exista config)
         private const int DefaultRunHour = 3; // 03:00
@@ -43,15 +44,18 @@ namespace ControlApi.BackgroundJobs
         public NotificationCleanupHostedService(
             IServiceScopeFactory scopeFactory,
             ILogger<NotificationCleanupHostedService> logger,
-            IConfiguration config)
+            IConfiguration config,
+            Services.IBackgroundJobMonitorService jobMonitor)
         {
             _scopeFactory = scopeFactory;
             _logger = logger;
             _config = config;
+            _jobMonitor = jobMonitor;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            await _jobMonitor.EnsureDefaultsRegisteredAsync(stoppingToken);
             // Opções de agendamento:
             // - Por intervalo (AutoNotifications:Cleanup:RunIntervalMinutes)
             // - Diário (RunAtLocalHour/RunAtLocalMinute)
@@ -64,9 +68,12 @@ namespace ControlApi.BackgroundJobs
 
                 while (!stoppingToken.IsCancellationRequested)
                 {
+                    var nextRunUtc = DateTime.UtcNow.Add(interval);
+                    var run = await _jobMonitor.MarkStartedAsync(Services.BackgroundJobKeys.NotificationCleanup, "Notification Cleanup", "Maintenance", nextRunUtc, stoppingToken);
                     try
                     {
-                        await RunCleanupAsync(stoppingToken);
+                        var result = await RunCleanupAsync(stoppingToken);
+                        await _jobMonitor.MarkSucceededAsync(run, result.summary, result.processed, result.succeeded, result.failed, nextRunUtc, stoppingToken);
                         await Task.Delay(interval, stoppingToken);
                     }
                     catch (TaskCanceledException)
@@ -76,6 +83,7 @@ namespace ControlApi.BackgroundJobs
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "[AutoNotifications] Erro na limpeza por intervalo. Tentando novamente em 5 minutos.");
+                        await _jobMonitor.MarkFailedAsync(run, ex, "Interval cleanup failed.", nextPlannedRunAtUtc: DateTime.UtcNow.AddMinutes(5), ct: stoppingToken);
                         try { await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken); } catch { /* ignore */ }
                     }
                 }
@@ -91,6 +99,7 @@ namespace ControlApi.BackgroundJobs
                     var tz = ResolveCleanupTimeZone();
                     var (runHour, runMinute) = GetRunTime();
                     var nextRunUtc = GetNextRunUtc(tz, runHour, runMinute);
+                    await _jobMonitor.UpdateHeartbeatAsync(Services.BackgroundJobKeys.NotificationCleanup, nextRunUtc.UtcDateTime, true, stoppingToken);
 
                     var delay = nextRunUtc - DateTimeOffset.UtcNow;
                     if (delay < TimeSpan.Zero) delay = TimeSpan.Zero;
@@ -102,7 +111,18 @@ namespace ControlApi.BackgroundJobs
                     if (stoppingToken.IsCancellationRequested)
                         break;
 
-                    await RunCleanupAsync(stoppingToken);
+                    var nextPlannedRunUtc = GetNextRunUtc(tz, runHour, runMinute).UtcDateTime;
+                    var run = await _jobMonitor.MarkStartedAsync(Services.BackgroundJobKeys.NotificationCleanup, "Notification Cleanup", "Maintenance", nextPlannedRunUtc, stoppingToken);
+                    try
+                    {
+                        var result = await RunCleanupAsync(stoppingToken);
+                        await _jobMonitor.MarkSucceededAsync(run, result.summary, result.processed, result.succeeded, result.failed, nextPlannedRunUtc, stoppingToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        await _jobMonitor.MarkFailedAsync(run, ex, "Daily cleanup failed.", nextPlannedRunAtUtc: DateTime.UtcNow.AddMinutes(5), ct: stoppingToken);
+                        throw;
+                    }
                 }
                 catch (TaskCanceledException)
                 {
@@ -121,13 +141,13 @@ namespace ControlApi.BackgroundJobs
             }
         }
 
-        private async Task RunCleanupAsync(CancellationToken ct)
+        private async Task<(int processed, int succeeded, int failed, string summary)> RunCleanupAsync(CancellationToken ct)
         {
             var enabled = _config.GetValue("AutoNotifications:Cleanup:Enabled", true);
             if (!enabled)
             {
                 _logger.LogInformation("[AutoNotifications] Limpeza diária desabilitada por configuração.");
-                return;
+                return (0, 0, 0, "Disabled by configuration.");
             }
 
             var reminderRetentionMinutes = _config.GetValue<int?>("AutoNotifications:Cleanup:ReminderNotificationsRetentionMinutes")
@@ -148,18 +168,23 @@ namespace ControlApi.BackgroundJobs
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<DbContextClass>();
 
+            var processed = 0;
+            var succeeded = 0;
+
             // 1) Limpar logs de dispatch antigos
             var dispatchesToDelete = await db.AppointmentReminderDispatches
                 .Where(d => d.CreatedDate < dispatchCutoffUtc)
                 .Select(d => d.Id)
                 .ToListAsync(ct);
 
+            processed += dispatchesToDelete.Count;
             if (dispatchesToDelete.Count > 0)
             {
                 db.AppointmentReminderDispatches.RemoveRange(
                     db.AppointmentReminderDispatches.Where(d => dispatchesToDelete.Contains(d.Id))
                 );
                 await db.SaveChangesAsync(ct);
+                succeeded += dispatchesToDelete.Count;
                 _logger.LogInformation("[AutoNotifications] Removidos {Count} dispatches antigos (cutoff {CutoffUtc}).", dispatchesToDelete.Count, dispatchCutoffUtc);
             }
             else
@@ -173,12 +198,14 @@ namespace ControlApi.BackgroundJobs
                 .Select(n => n.Id)
                 .ToListAsync(ct);
 
+            processed += remindersToDelete.Count;
             if (remindersToDelete.Count > 0)
             {
                 db.Notifications.RemoveRange(
                     db.Notifications.Where(n => remindersToDelete.Contains(n.Id))
                 );
                 await db.SaveChangesAsync(ct);
+                succeeded += remindersToDelete.Count;
                 _logger.LogInformation("[AutoNotifications] Removidas {Count} notificações de lembrete antigas (cutoff {CutoffUtc}).", remindersToDelete.Count, notifCutoffUtc);
             }
             else
@@ -193,18 +220,22 @@ namespace ControlApi.BackgroundJobs
                 .Select(n => n.Id)
                 .ToListAsync(ct);
 
+            processed += readToDelete.Count;
             if (readToDelete.Count > 0)
             {
                 db.Notifications.RemoveRange(
                     db.Notifications.Where(n => readToDelete.Contains(n.Id))
                 );
                 await db.SaveChangesAsync(ct);
+                succeeded += readToDelete.Count;
                 _logger.LogInformation("[AutoNotifications] Removidas {Count} notificações lidas antigas (cutoff {CutoffUtc}).", readToDelete.Count, readCutoffUtc);
             }
             else
             {
                 _logger.LogInformation("[AutoNotifications] Nenhuma notificação lida antiga para remover (cutoff {CutoffUtc}).", readCutoffUtc);
             }
+            var failed = Math.Max(0, processed - succeeded);
+            return (processed, succeeded, failed, $"Candidates={processed}, Removed={succeeded}, Skipped={failed}");
         }
 
         private (int hour, int minute) GetRunTime()

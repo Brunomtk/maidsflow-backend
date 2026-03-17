@@ -73,6 +73,7 @@ builder.Services.AddScoped<IAppointmentCompletionService, AppointmentCompletionS
             builder.Services.AddScoped<INotificationService, NotificationService>();
             builder.Services.AddScoped<IPushSubscriptionService, PushSubscriptionService>();
             builder.Services.AddScoped<IReportsService, ReportsService>();
+            builder.Services.AddSingleton<IBackgroundJobMonitorService, BackgroundJobMonitorService>();
             builder.Services.AddScoped<IPushNotificationSender, WebPushNotificationSender>();
 
             builder.Services.AddScoped<IStripeBillingService, StripeBillingService>();

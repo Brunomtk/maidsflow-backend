@@ -53,12 +53,40 @@ namespace Infrastructure
         public DbSet<AppointmentReminderDispatch> AppointmentReminderDispatches { get; set; }
         public DbSet<AppointmentReviewRequestDispatch> AppointmentReviewRequestDispatches { get; set; }
         public DbSet<AppointmentMessageLog> AppointmentMessageLogs { get; set; }
+        public DbSet<BackgroundJobStatus> BackgroundJobStatuses { get; set; }
+        public DbSet<BackgroundJobExecution> BackgroundJobExecutions { get; set; }
         
         
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             
+
+            modelBuilder.Entity<BackgroundJobStatus>(entity =>
+            {
+                entity.ToTable("BackgroundJobStatuses");
+                entity.HasKey(x => x.Id);
+                entity.HasIndex(x => x.JobKey).IsUnique();
+                entity.Property(x => x.JobKey).IsRequired().HasMaxLength(100);
+                entity.Property(x => x.DisplayName).IsRequired().HasMaxLength(160);
+                entity.Property(x => x.Category).HasMaxLength(80);
+                entity.Property(x => x.CurrentStatus).HasConversion<string>();
+                entity.Property(x => x.LastError).HasMaxLength(2000);
+                entity.Property(x => x.LastSummary).HasMaxLength(2000);
+            });
+
+            modelBuilder.Entity<BackgroundJobExecution>(entity =>
+            {
+                entity.ToTable("BackgroundJobExecutions");
+                entity.HasKey(x => x.Id);
+                entity.HasIndex(x => new { x.JobKey, x.StartedAtUtc });
+                entity.Property(x => x.JobKey).IsRequired().HasMaxLength(100);
+                entity.Property(x => x.Status).HasConversion<string>();
+                entity.Property(x => x.Summary).HasMaxLength(2000);
+                entity.Property(x => x.Error).HasMaxLength(4000);
+                entity.Property(x => x.TriggeredBy).IsRequired().HasMaxLength(30);
+            });
+
             // Checklist module
             modelBuilder.Entity<CustomerArea>(entity =>
             {
