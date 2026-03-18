@@ -2,6 +2,7 @@
 using Infrastructure;
 using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,7 +14,9 @@ namespace Infrastructure.ServiceExtension
         {
             var connectionString = configuration.GetConnectionString("DefaultConnection");
             services.AddDbContext<DbContextClass>(options =>
-                options.UseNpgsql(connectionString)
+                options
+                    .UseNpgsql(connectionString)
+                    .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning))
             );
 
             services.AddScoped<IUserRepository, UserRepository>();
