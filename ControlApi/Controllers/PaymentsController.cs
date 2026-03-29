@@ -1,4 +1,3 @@
-﻿// ControlApi/Controllers/PaymentsController.cs
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Threading.Tasks;
@@ -6,11 +5,12 @@ using Services;
 using Core.DTO.Payments;
 using Infrastructure.ServiceExtension;
 using Core.Models;
+using Core.Enums.Payment;
 
 namespace ControlApi.Controllers
 {
     [ApiController]
-[Authorize]
+    [Authorize]
     [Route("api/[controller]")]
     public class PaymentsController : ControllerBase
     {
@@ -21,7 +21,6 @@ namespace ControlApi.Controllers
             _paymentService = paymentService;
         }
 
-        // GET: api/payments
         [HttpGet]
         public async Task<ActionResult<PagedResult<Payment>>> Get([FromQuery] PaymentFiltersDto filters)
         {
@@ -29,7 +28,22 @@ namespace ControlApi.Controllers
             return Ok(paged);
         }
 
-        // GET: api/payments/5
+        [HttpGet("accounts-payable")]
+        public async Task<ActionResult<PagedResult<Payment>>> GetAccountsPayable([FromQuery] PaymentFiltersDto filters)
+        {
+            filters.FinancialType = PaymentFinancialType.Expense;
+            var paged = await _paymentService.GetPagedAsync(filters);
+            return Ok(paged);
+        }
+
+        [HttpGet("accounts-receivable")]
+        public async Task<ActionResult<PagedResult<Payment>>> GetAccountsReceivable([FromQuery] PaymentFiltersDto filters)
+        {
+            filters.FinancialType = PaymentFinancialType.Income;
+            var paged = await _paymentService.GetPagedAsync(filters);
+            return Ok(paged);
+        }
+
         [HttpGet("{id}")]
         public async Task<ActionResult<Payment>> Get(int id)
         {
@@ -38,7 +52,6 @@ namespace ControlApi.Controllers
             return Ok(payment);
         }
 
-        // POST: api/payments
         [HttpPost]
         public async Task<ActionResult<Payment>> Post([FromBody] CreatePaymentDto dto)
         {
@@ -46,7 +59,22 @@ namespace ControlApi.Controllers
             return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
         }
 
-        // PUT: api/payments/5
+        [HttpPost("accounts-payable")]
+        public async Task<ActionResult<Payment>> PostAccountsPayable([FromBody] CreatePaymentDto dto)
+        {
+            dto.FinancialType = PaymentFinancialType.Expense;
+            var created = await _paymentService.CreateAsync(dto);
+            return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
+        }
+
+        [HttpPost("accounts-receivable")]
+        public async Task<ActionResult<Payment>> PostAccountsReceivable([FromBody] CreatePaymentDto dto)
+        {
+            dto.FinancialType = PaymentFinancialType.Income;
+            var created = await _paymentService.CreateAsync(dto);
+            return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
+        }
+
         [HttpPut("{id}")]
         public async Task<ActionResult<Payment>> Put(int id, [FromBody] UpdatePaymentDto dto)
         {
@@ -55,7 +83,6 @@ namespace ControlApi.Controllers
             return Ok(updated);
         }
 
-        // DELETE: api/payments/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -64,7 +91,6 @@ namespace ControlApi.Controllers
             return NoContent();
         }
 
-        // POST: api/payments/5/status
         [HttpPost("{id}/status")]
         public async Task<ActionResult<Payment>> ProcessStatus(int id, [FromBody] ProcessPaymentStatusDto dto)
         {

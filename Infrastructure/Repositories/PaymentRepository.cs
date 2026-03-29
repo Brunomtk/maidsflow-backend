@@ -46,7 +46,16 @@ namespace Infrastructure.Repositories
             if (filters.PlanId.HasValue)
                 query = query.Where(p => p.PlanId == filters.PlanId.Value);
 
-            return query.GetPagedAsync(filters.Page, filters.PageSize);
+            if (filters.FinancialType.HasValue)
+                query = query.Where(p => p.FinancialType == filters.FinancialType.Value);
+
+            if (filters.PaymentCategoryId.HasValue)
+                query = query.Where(p => p.PaymentCategoryId == filters.PaymentCategoryId.Value);
+
+            if (!string.IsNullOrWhiteSpace(filters.PaymentCategoryName))
+                query = query.Where(p => p.PaymentCategoryName != null && p.PaymentCategoryName.ToLower().Contains(filters.PaymentCategoryName.ToLower()));
+
+            return query.OrderByDescending(p => p.DueDate).GetPagedAsync(filters.Page, filters.PageSize);
         }
 
         public Task<Payment?> GetByIdAsync(int id)

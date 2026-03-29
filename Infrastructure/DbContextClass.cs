@@ -48,6 +48,7 @@ namespace Infrastructure
         public DbSet<InternalFeedback> InternalFeedbacks { get; set; }
         public DbSet<Cancellation> Cancellations { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<PaymentCategory> PaymentCategories { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<PushSubscription> PushSubscriptions { get; set; }
         public DbSet<AppointmentReminderDispatch> AppointmentReminderDispatches { get; set; }
@@ -55,6 +56,7 @@ namespace Infrastructure
         public DbSet<AppointmentMessageLog> AppointmentMessageLogs { get; set; }
         public DbSet<BackgroundJobStatus> BackgroundJobStatuses { get; set; }
         public DbSet<BackgroundJobExecution> BackgroundJobExecutions { get; set; }
+        public DbSet<AutomationFailureLog> AutomationFailureLogs { get; set; }
         
         
 
@@ -132,6 +134,28 @@ namespace Infrastructure
                       .WithMany(t => t.Items)
                       .HasForeignKey(x => x.ChecklistTemplateId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+
+            modelBuilder.Entity<AutomationFailureLog>(entity =>
+            {
+                entity.ToTable("AutomationFailureLogs");
+                entity.HasKey(x => x.Id);
+                entity.HasIndex(x => new { x.Source, x.OccurredAtUtc });
+                entity.HasIndex(x => x.ExecutionId);
+                entity.Property(x => x.Source).IsRequired().HasMaxLength(40);
+                entity.Property(x => x.WorkflowKey).IsRequired().HasMaxLength(120);
+                entity.Property(x => x.WorkflowName).IsRequired().HasMaxLength(200);
+                entity.Property(x => x.NodeName).HasMaxLength(200);
+                entity.Property(x => x.ErrorMessage).IsRequired().HasMaxLength(2000);
+                entity.Property(x => x.ErrorDetails).HasMaxLength(8000);
+                entity.Property(x => x.ExecutionId).HasMaxLength(120);
+                entity.Property(x => x.AlertEmailTo).HasMaxLength(320);
+                entity.Property(x => x.PayloadJson).HasColumnType("jsonb");
+                entity.HasOne(x => x.Company)
+                      .WithMany()
+                      .HasForeignKey(x => x.CompanyId)
+                      .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<Checklist>(entity =>
@@ -875,6 +899,25 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
             });
 
             // Payments
+            modelBuilder.Entity<PaymentCategory>(entity =>
+            {
+                entity.ToTable("PaymentCategories");
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.CompanyId).IsRequired();
+                entity.Property(x => x.Name).IsRequired().HasMaxLength(120);
+                entity.Property(x => x.IsSystem).HasDefaultValue(false);
+                entity.Property(x => x.Active).HasDefaultValue(true);
+                entity.Property(x => x.CreatedDate).HasDefaultValueSql("now()");
+                entity.Property(x => x.UpdatedDate).HasDefaultValueSql("now()");
+
+                entity.HasOne(x => x.Company)
+                      .WithMany()
+                      .HasForeignKey(x => x.CompanyId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(x => new { x.CompanyId, x.Name }).IsUnique();
+            });
+
             modelBuilder.Entity<Payment>(entity =>
             {
                 entity.ToTable("Payments");
@@ -887,10 +930,13 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                 entity.Property(p => p.Status).HasConversion<string>().IsRequired();
                 entity.Property(p => p.Method).HasConversion<string>();
                 entity.Property(p => p.Reference).IsRequired();
+                entity.Property(p => p.FinancialType).HasConversion<string>().IsRequired();
+                entity.Property(p => p.PaymentCategoryName).HasMaxLength(120);
                 entity.Property(p => p.PlanId).IsRequired(false);
                 entity.Property(p => p.PlanName);
                 entity.Property(p => p.CustomerId).IsRequired(false);
                 entity.Property(p => p.CustomerAddressId).IsRequired(false);
+                entity.Property(p => p.PaymentCategoryId).IsRequired(false);
 
                 entity.HasOne(p => p.Customer)
                       .WithMany(c => c.Payments)
@@ -902,8 +948,15 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                       .HasForeignKey(p => p.CustomerAddressId)
                       .OnDelete(DeleteBehavior.SetNull);
 
+                entity.HasOne(p => p.PaymentCategory)
+                      .WithMany(c => c.Payments)
+                      .HasForeignKey(p => p.PaymentCategoryId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
                 entity.HasIndex(p => p.CustomerId);
                 entity.HasIndex(p => p.CustomerAddressId);
+                entity.HasIndex(p => p.PaymentCategoryId);
+                entity.HasIndex(p => new { p.CompanyId, p.FinancialType, p.DueDate });
                 entity.Property(p => p.CreatedDate).HasDefaultValueSql("now()");
                 entity.Property(p => p.UpdatedDate).HasDefaultValueSql("now()");
             });

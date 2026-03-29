@@ -1,14 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "Gu++ADhc83U=",
+  "dgSpecHash": "26WE9EsLv8k=",
   "success": true,
-  "projectFilePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
+  "projectFilePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_payments-english-cleanup_v3\\payfix\\Core\\Core.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\bruno\\.nuget\\packages\\bblanchon.pdfium.linux\\128.0.6569\\bblanchon.pdfium.linux.128.0.6569.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\bblanchon.pdfium.macos\\128.0.6569\\bblanchon.pdfium.macos.128.0.6569.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\bblanchon.pdfium.win32\\128.0.6569\\bblanchon.pdfium.win32.128.0.6569.nupkg.sha512",
-    "C:\\Users\\bruno\\.nuget\\packages\\bouncycastle\\1.8.9\\bouncycastle.1.8.9.nupkg.sha512",
-    "C:\\Users\\bruno\\.nuget\\packages\\bouncycastle.cryptography\\2.4.0\\bouncycastle.cryptography.2.4.0.nupkg.sha512",
+    "C:\\Users\\bruno\\.nuget\\packages\\bouncycastle.cryptography\\2.6.2\\bouncycastle.cryptography.2.6.2.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\csvhelper\\32.0.3\\csvhelper.32.0.3.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\imagesharpcommunity.formats.pdf\\0.2.0\\imagesharpcommunity.formats.pdf.0.2.0.nupkg.sha512",
@@ -77,162 +76,5 @@
     "C:\\Users\\bruno\\.nuget\\packages\\system.windows.extensions\\9.0.0\\system.windows.extensions.9.0.0.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\zstdsharp.port\\0.8.0\\zstdsharp.port.0.8.0.nupkg.sha512"
   ],
-  "logs": [
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "message": "O pacote 'BouncyCastle' 1.8.9 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-8xfc-gm6g-vgpv",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "libraryId": "BouncyCastle",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "message": "O pacote 'BouncyCastle' 1.8.9 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-m44j-cfrm-g8qc",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "libraryId": "BouncyCastle",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "message": "O pacote 'BouncyCastle' 1.8.9 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-v435-xc8x-wvr9",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "libraryId": "BouncyCastle",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1903",
-      "level": "Warning",
-      "message": "O pacote 'SixLabors.ImageSharp' 3.1.4 tem uma alta vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-2cmq-823j-5qj8",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "libraryId": "SixLabors.ImageSharp",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1903",
-      "level": "Warning",
-      "message": "O pacote 'SixLabors.ImageSharp' 3.1.4 tem uma alta vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-63p8-c4ww-9cg7",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "libraryId": "SixLabors.ImageSharp",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "message": "O pacote 'SixLabors.ImageSharp' 3.1.4 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-qxrv-gp6x-rc23",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "libraryId": "SixLabors.ImageSharp",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "message": "O pacote 'SixLabors.ImageSharp' 3.1.4 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-rxmq-m78w-7wmc",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "libraryId": "SixLabors.ImageSharp",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1903",
-      "level": "Warning",
-      "message": "O pacote 'SkiaSharp' 2.80.3 tem uma alta vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-j7hp-h8jx-5ppr",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "libraryId": "SkiaSharp",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1701",
-      "level": "Warning",
-      "message": "O pacote 'BouncyCastle 1.8.9' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net10.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "libraryId": "BouncyCastle",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1701",
-      "level": "Warning",
-      "message": "O pacote 'iTextSharp 5.5.13.4' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net10.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "libraryId": "iTextSharp",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1701",
-      "level": "Warning",
-      "message": "O pacote 'itextsharp.xmlworker 5.5.13.4' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net10.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "libraryId": "itextsharp.xmlworker",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1701",
-      "level": "Warning",
-      "message": "O pacote 'LiveCharts 0.9.7' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net10.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "libraryId": "LiveCharts",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1701",
-      "level": "Warning",
-      "message": "O pacote 'PdfiumViewer 2.13.0' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net10.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "warningLevel": 1,
-      "filePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_background-job-monitoring_v1_keep-last-3_dotnet10-adjusted_v5\\Core\\Core.csproj",
-      "libraryId": "PdfiumViewer",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    }
-  ]
+  "logs": []
 }

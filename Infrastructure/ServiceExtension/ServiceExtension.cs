@@ -41,6 +41,7 @@ namespace Infrastructure.ServiceExtension
             services.AddScoped<IInternalFeedbackRepository, InternalFeedbackRepository>();
             services.AddScoped<ICancellationRepository, CancellationRepository>();
             services.AddScoped<IPaymentRepository, PaymentRepository>();
+            services.AddScoped<IPaymentCategoryRepository, PaymentCategoryRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
             services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
             

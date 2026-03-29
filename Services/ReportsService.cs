@@ -133,50 +133,50 @@ namespace Services
                 ExecutiveSummary = executiveSummary,
                 OverviewCards = new List<ReportKpiCardDto>
                 {
-                    MakeCard("appointments_total", "Appointments no período", appointmentTotal, FormatInt(appointmentTotal), ChangePct(appointmentTotal, previousAppointmentTotal), "Volume total de atendimentos dentro do intervalo selecionado."),
-                    MakeCard("completed_rate", "Taxa de conclusão", completionRate, FormatPct(completionRate), ChangePct(completionRate, previousCompletionRate), "Percentual de appointments concluídos sobre o total do período."),
-                    MakeCard("revenue_paid", "Receita recebida", completedRevenue, FormatCurrency(completedRevenue), ChangePct(completedRevenue, previousCompletedRevenue), "Somente pagamentos marcados como pagos no período."),
-                    MakeCard("customers_active", "Clientes ativos", activeCustomerIds.Count, FormatInt(activeCustomerIds.Count), null, "Clientes com ao menos um atendimento no período."),
+                    MakeCard("appointments_total", "Appointments in period", appointmentTotal, FormatInt(appointmentTotal), ChangePct(appointmentTotal, previousAppointmentTotal), "Total appointment volume within the selected period."),
+                    MakeCard("completed_rate", "Completion rate", completionRate, FormatPct(completionRate), ChangePct(completionRate, previousCompletionRate), "Percentage of completed appointments out of the total for the period."),
+                    MakeCard("revenue_paid", "Revenue collected", completedRevenue, FormatCurrency(completedRevenue), ChangePct(completedRevenue, previousCompletedRevenue), "Somente pagamentos marcados como pagos no período."),
+                    MakeCard("customers_active", "Customers ativos", activeCustomerIds.Count, FormatInt(activeCustomerIds.Count), null, "Customers com ao menos um atendimento no período."),
                 },
                 Financial = new CompanyReportFinancialDto
                 {
                     Narrative = new ReportSectionNarrativeDto
                     {
-                        Title = "Financeiro",
-                        Summary = $"A empresa gerou {FormatCurrency(completedRevenue)} em receita recebida no período, com ticket médio de {FormatCurrency(averageTicket)} e eficiência de recebimento de {FormatPct(collectionRate)} sobre o valor faturado.",
+                        Title = "Financial",
+                        Summary = $"The company generated {FormatCurrency(completedRevenue)} in collected revenue during the period, with an average ticket of {FormatCurrency(averageTicket)} and a collection efficiency of {FormatPct(collectionRate)} over the billed amount.",
                         Highlights = new List<string>
                         {
-                            $"Receita recebida variou {FormatSignedPct(ChangePct(completedRevenue, previousCompletedRevenue))} em relação ao período anterior.",
-                            $"Cada cliente ativo gerou em média {FormatCurrency(revenuePerActiveCustomer)} em receita no intervalo analisado.",
-                            $"Existem {FormatCurrency(receivableAmount)} ainda em aberto, dos quais {FormatCurrency(overdueAmount)} já estão overdue."
+                            $"Revenue collected variou {FormatSignedPct(ChangePct(completedRevenue, previousCompletedRevenue))} compared with the previous period.",
+                            $"Each active customer generated an average of {FormatCurrency(revenuePerActiveCustomer)} in revenue during the analyzed period.",
+                            $"There is {FormatCurrency(receivableAmount)} still open, of which {FormatCurrency(overdueAmount)} is already overdue."
                         },
                         Alerts = BuildFinancialAlerts(receivableAmount, overdueAmount, collectionRate, completedRevenue, averageTicket)
                     },
                     Cards = new List<ReportKpiCardDto>
                     {
-                        MakeCard("revenue_total", "Receita recebida", completedRevenue, FormatCurrency(completedRevenue), ChangePct(completedRevenue, previousCompletedRevenue), "Pagamentos efetivamente recebidos dentro do período."),
-                        MakeCard("receivable_amount", "Valor em aberto", receivableAmount, FormatCurrency(receivableAmount), null, "Soma de pagamentos pendentes e overdue."),
-                        MakeCard("average_ticket", "Ticket médio", averageTicket, FormatCurrency(averageTicket), null, "Receita recebida dividida pelo total de appointments."),
-                        MakeCard("collection_rate", "Eficiência de recebimento", collectionRate, FormatPct(collectionRate), null, "Percentual do faturamento do período já marcado como pago."),
+                        MakeCard("revenue_total", "Revenue collected", completedRevenue, FormatCurrency(completedRevenue), ChangePct(completedRevenue, previousCompletedRevenue), "Payments effectively collected within the selected period."),
+                        MakeCard("receivable_amount", "Open balance", receivableAmount, FormatCurrency(receivableAmount), null, "Sum of pending and overdue payments."),
+                        MakeCard("average_ticket", "Ticket médio", averageTicket, FormatCurrency(averageTicket), null, "Revenue collected dividida pelo total de appointments."),
+                        MakeCard("collection_rate", "Collection efficiency", collectionRate, FormatPct(collectionRate), null, "Percentage of the billed amount in the period already marked as paid."),
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
-                        new() { Label = "Receita por cliente ativo", Value = FormatCurrency(revenuePerActiveCustomer), Description = "Quanto cada cliente ativo gerou em média no período." },
-                        new() { Label = "Receita por dia", Value = FormatCurrency(period.TotalDays > 0 ? completedRevenue / period.TotalDays : 0m), Description = "Média diária de receita recebida." },
-                        new() { Label = "Pendência sobre faturado", Value = FormatPct(totalBilledAmount > 0 ? receivableAmount / totalBilledAmount * 100m : 0m), Description = "Peso do saldo em aberto dentro do faturamento do período." },
+                        new() { Label = "Revenue per active customer", Value = FormatCurrency(revenuePerActiveCustomer), Description = "Quanto cada cliente ativo gerou em média no período." },
+                        new() { Label = "Revenue per day", Value = FormatCurrency(period.TotalDays > 0 ? completedRevenue / period.TotalDays : 0m), Description = "Média diária de receita recebida." },
+                        new() { Label = "Open balance vs. billed amount", Value = FormatPct(totalBilledAmount > 0 ? receivableAmount / totalBilledAmount * 100m : 0m), Description = "Peso do saldo em aberto dentro do faturamento do período." },
                     },
                     RevenueTrend = BuildDateSeries(period.StartDate, period.EndDate, paidPayments, x => x.PaymentDate ?? x.DueDate, x => x.Amount),
                     PaymentStatusBreakdown = BuildPaymentStatusBreakdown(payments),
                     TopCustomersByRevenue = customerRows.Take(8).ToList(),
                     RecentTransactions = new ReportTableDto
                     {
-                        Title = "Transações recentes",
-                        Description = "Base detalhada para o PDF com os recebimentos e cobranças mais recentes do período filtrado.",
+                        Title = "Recent transactions",
+                        Description = "Detailed dataset for the PDF with the most recent receipts and charges in the filtered period.",
                         Columns = new List<ReportTableColumnDto>
                         {
                             new() { Key = "date", Label = "Data" },
-                            new() { Key = "reference", Label = "Referência" },
-                            new() { Key = "customer", Label = "Cliente" },
+                            new() { Key = "reference", Label = "Reference" },
+                            new() { Key = "customer", Label = "Customer" },
                             new() { Key = "status", Label = "Status" },
                             new() { Key = "method", Label = "Método" },
                             new() { Key = "amount", Label = "Valor" },
@@ -238,7 +238,7 @@ namespace Services
                         {
                             new() { Key = "start", Label = "Data" },
                             new() { Key = "title", Label = "Appointment" },
-                            new() { Key = "customer", Label = "Cliente" },
+                            new() { Key = "customer", Label = "Customer" },
                             new() { Key = "service", Label = "Serviço" },
                             new() { Key = "status", Label = "Status" },
                             new() { Key = "team", Label = "Profissionais" },
@@ -295,7 +295,7 @@ namespace Services
                 {
                     Narrative = new ReportSectionNarrativeDto
                     {
-                        Title = "Clientes",
+                        Title = "Customers",
                         Summary = $"A base analisada teve {FormatInt(newCustomers)} novos clientes no período, {FormatInt(activeCustomerIds.Count)} clientes ativos e {FormatInt(recurringCustomerCount)} clientes recorrentes, indicando o nível de retenção e dependência da carteira atual.",
                         Highlights = new List<string>
                         {
@@ -307,10 +307,10 @@ namespace Services
                     },
                     Cards = new List<ReportKpiCardDto>
                     {
-                        MakeCard("new_customers", "Clientes novos", newCustomers, FormatInt(newCustomers), null, "Clientes cadastrados dentro do período selecionado."),
-                        MakeCard("active_customers", "Clientes ativos", activeCustomerIds.Count, FormatInt(activeCustomerIds.Count), null, "Clientes com ao menos um atendimento no período."),
-                        MakeCard("recurring_customers", "Clientes recorrentes", recurringCustomerCount, FormatInt(recurringCustomerCount), null, "Clientes com mais de um appointment no período."),
-                        MakeCard("avg_revenue_per_customer", "Receita por cliente ativo", revenuePerActiveCustomer, FormatCurrency(revenuePerActiveCustomer), null, "Receita recebida dividida pelos clientes ativos."),
+                        MakeCard("new_customers", "Customers novos", newCustomers, FormatInt(newCustomers), null, "Customers cadastrados dentro do período selecionado."),
+                        MakeCard("active_customers", "Customers ativos", activeCustomerIds.Count, FormatInt(activeCustomerIds.Count), null, "Customers com ao menos um atendimento no período."),
+                        MakeCard("recurring_customers", "Customers recorrentes", recurringCustomerCount, FormatInt(recurringCustomerCount), null, "Customers com mais de um appointment no período."),
+                        MakeCard("avg_revenue_per_customer", "Revenue per active customer", revenuePerActiveCustomer, FormatCurrency(revenuePerActiveCustomer), null, "Revenue collected dividida pelos clientes ativos."),
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
@@ -325,7 +325,7 @@ namespace Services
                         Description = "Tabela detalhada para compor o PDF com frequência de atendimento e participação de receita por cliente.",
                         Columns = new List<ReportTableColumnDto>
                         {
-                            new() { Key = "customer", Label = "Cliente" },
+                            new() { Key = "customer", Label = "Customer" },
                             new() { Key = "appointments", Label = "Appointments" },
                             new() { Key = "completed", Label = "Concluídos" },
                             new() { Key = "revenue", Label = "Receita" },
@@ -418,7 +418,7 @@ namespace Services
                     MakeCard("companies_total", "Companies", companies.Count, FormatInt(companies.Count), null, "Base total de empresas cadastradas."),
                     MakeCard("companies_active", "Companies ativas", activeCompanies, FormatInt(activeCompanies), null, "Empresas com status ativo."),
                     MakeCard("appointments_total", "Appointments", appointmentTotal, FormatInt(appointmentTotal), ChangePct(appointmentTotal, previousAppointmentTotal), "Volume operacional total do período."),
-                    MakeCard("revenue_paid", "Receita recebida", totalRevenue, FormatCurrency(totalRevenue), ChangePct(totalRevenue, previousRevenue), "Receita efetivamente paga no período."),
+                    MakeCard("revenue_paid", "Revenue collected", totalRevenue, FormatCurrency(totalRevenue), ChangePct(totalRevenue, previousRevenue), "Receita efetivamente paga no período."),
                 },
                 Billing = new AdminReportBillingDto
                 {
@@ -428,7 +428,7 @@ namespace Services
                         Summary = $"A plataforma registrou {FormatCurrency(totalRevenue)} em receita recebida, com eficiência de cobrança de {FormatPct(collectionRate)} e {FormatCurrency(overdueAmount)} em valores overdue no período filtrado.",
                         Highlights = new List<string>
                         {
-                            $"Existem {FormatInt(activeSubscriptions)} subscriptions ativas na base.",
+                            $"There is {FormatInt(activeSubscriptions)} subscriptions ativas na base.",
                             $"{FormatInt(companiesWithAppointments)} companies tiveram uso operacional dentro do período.",
                             $"A variação de receita em relação ao período anterior foi de {FormatSignedPct(ChangePct(totalRevenue, previousRevenue))}."
                         },
@@ -436,10 +436,10 @@ namespace Services
                     },
                     Cards = new List<ReportKpiCardDto>
                     {
-                        MakeCard("subscriptions_active", "Subscriptions ativas", activeSubscriptions, FormatInt(activeSubscriptions), null, "Assinaturas com status ativo."),
-                        MakeCard("companies_with_usage", "Companies com uso", companiesWithAppointments, FormatInt(companiesWithAppointments), null, "Empresas com ao menos um appointment no período."),
-                        MakeCard("overdue_amount", "Valor overdue", overdueAmount, FormatCurrency(overdueAmount), null, "Cobranças vencidas no período."),
-                        MakeCard("collection_rate", "Eficiência de cobrança", collectionRate, FormatPct(collectionRate), null, "Receita paga sobre total faturado no período."),
+                        MakeCard("subscriptions_active", "Active subscriptions", activeSubscriptions, FormatInt(activeSubscriptions), null, "Assinaturas com status ativo."),
+                        MakeCard("companies_with_usage", "Companies with usage", companiesWithAppointments, FormatInt(companiesWithAppointments), null, "Empresas com ao menos um appointment no período."),
+                        MakeCard("overdue_amount", "Overdue amount", overdueAmount, FormatCurrency(overdueAmount), null, "Overdue charges during the period."),
+                        MakeCard("collection_rate", "Collection efficiency", collectionRate, FormatPct(collectionRate), null, "Receita paga sobre total faturado no período."),
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
@@ -482,15 +482,15 @@ namespace Services
                     },
                     Cards = new List<ReportKpiCardDto>
                     {
-                        MakeCard("completion_rate", "Taxa de conclusão", completionRate, FormatPct(completionRate), null, "Concluídos sobre total de appointments."),
+                        MakeCard("completion_rate", "Completion rate", completionRate, FormatPct(completionRate), null, "Concluídos sobre total de appointments."),
                         MakeCard("completed_total", "Concluídos", completedTotal, FormatInt(completedTotal), null, "Appointments finalizados com sucesso."),
-                        MakeCard("customers_total", "Clientes", customers.Count, FormatInt(customers.Count), null, "Clientes totais na base."),
+                        MakeCard("customers_total", "Customers", customers.Count, FormatInt(customers.Count), null, "Customers totais na base."),
                         MakeCard("professionals_total", "Professionals", professionals.Count, FormatInt(professionals.Count), null, "Profissionais totais na base."),
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
                         new() { Label = "Appointments por company com uso", Value = companiesWithAppointments > 0 ? (appointmentTotal / (decimal)companiesWithAppointments).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", Description = "Intensidade média de uso por empresa ativa operacionalmente." },
-                        new() { Label = "Clientes por company", Value = companies.Count > 0 ? (customers.Count / (decimal)companies.Count).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", Description = "Escala média de carteira por empresa da base." },
+                        new() { Label = "Customers por company", Value = companies.Count > 0 ? (customers.Count / (decimal)companies.Count).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", Description = "Escala média de carteira por empresa da base." },
                         new() { Label = "Professionals por company", Value = companies.Count > 0 ? (professionals.Count / (decimal)companies.Count).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", Description = "Capacidade média de equipe por empresa." },
                     },
                     AppointmentsTrend = BuildDateSeries(period.StartDate, period.EndDate, appointments, x => x.Start, _ => 1m),
@@ -527,7 +527,7 @@ namespace Services
                             new() { Key = "status", Label = "Status" },
                             new() { Key = "revenue", Label = "Receita" },
                             new() { Key = "appointments", Label = "Appointments" },
-                            new() { Key = "customers", Label = "Clientes" },
+                            new() { Key = "customers", Label = "Customers" },
                             new() { Key = "professionals", Label = "Professionals" },
                         },
                         Rows = companyRanking
@@ -565,13 +565,13 @@ namespace Services
             foreach (var card in report.OverviewCards)
                 sb.AppendLine($"Overview,{Escape(card.Label)},{Escape(card.DisplayValue)}");
             foreach (var card in report.Financial.Cards)
-                sb.AppendLine($"Financeiro,{Escape(card.Label)},{Escape(card.DisplayValue)}");
+                sb.AppendLine($"Financial,{Escape(card.Label)},{Escape(card.DisplayValue)}");
             foreach (var card in report.Operations.Cards)
                 sb.AppendLine($"Operacoes,{Escape(card.Label)},{Escape(card.DisplayValue)}");
             foreach (var card in report.Team.Cards)
                 sb.AppendLine($"Equipe,{Escape(card.Label)},{Escape(card.DisplayValue)}");
             foreach (var card in report.Customers.Cards)
-                sb.AppendLine($"Clientes,{Escape(card.Label)},{Escape(card.DisplayValue)}");
+                sb.AppendLine($"Customers,{Escape(card.Label)},{Escape(card.DisplayValue)}");
             return Encoding.UTF8.GetBytes(sb.ToString());
         }
 
@@ -1118,7 +1118,7 @@ namespace Services
             if (overdueAmount > 0)
                 alerts.Add($"Saldo overdue identificado: {FormatCurrency(overdueAmount)}.");
             if (collectionRate < 70m)
-                alerts.Add($"Eficiência de recebimento abaixo do ideal: {FormatPct(collectionRate)}.");
+                alerts.Add($"Collection efficiency abaixo do ideal: {FormatPct(collectionRate)}.");
             if (receivableAmount > revenue && receivableAmount > 0)
                 alerts.Add("O valor em aberto já supera a receita recebida no período.");
             if (averageTicket <= 0)
@@ -1132,7 +1132,7 @@ namespace Services
             if (cancellationRate >= 15m)
                 alerts.Add("Cancelamento elevado para o período analisado.");
             if (completionRate < 70m)
-                alerts.Add("Taxa de conclusão abaixo de 70%, indicando espaço para ajuste operacional.");
+                alerts.Add("Completion rate abaixo de 70%, indicando espaço para ajuste operacional.");
             if (recurringShare < 20m)
                 alerts.Add("Baixo share de recorrência; a agenda depende mais de demanda pontual.");
             if (dailyAverageAppointments < 1m)
@@ -1168,9 +1168,9 @@ namespace Services
         {
             var alerts = new List<string>();
             if (overdueAmount > 0)
-                alerts.Add("Existem cobranças vencidas na base e elas devem entrar no radar do time financeiro.");
+                alerts.Add("There is cobranças vencidas na base e elas devem entrar no radar do time financeiro.");
             if (collectionRate < 70m)
-                alerts.Add("Eficiência de cobrança abaixo do ideal para uma base previsível.");
+                alerts.Add("Collection efficiency abaixo do ideal para uma base previsível.");
             if (activeSubscriptions < activeCompanies)
                 alerts.Add("Nem toda company ativa possui subscription ativa; revisar aderência comercial e status contratual.");
             return alerts;

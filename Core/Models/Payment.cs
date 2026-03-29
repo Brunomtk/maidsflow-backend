@@ -22,6 +22,11 @@ namespace Core.Models
 
         public string Reference { get; set; } = null!;
 
+        public PaymentFinancialType FinancialType { get; set; } = PaymentFinancialType.Income;
+        public int? PaymentCategoryId { get; set; }
+        public PaymentCategory? PaymentCategory { get; set; }
+        public string? PaymentCategoryName { get; set; }
+
         // Plan agora é opcional (não obrigatório)
         public int? PlanId { get; set; }
         public string? PlanName { get; set; }

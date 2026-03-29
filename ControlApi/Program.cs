@@ -23,6 +23,7 @@ using System.Net;
 using System.Text;
 using ControlApi.BackgroundJobs;
 using Services.Security;
+using Services.AutomationAlerts;
 
 
 
@@ -70,6 +71,7 @@ builder.Services.AddScoped<IAppointmentCompletionService, AppointmentCompletionS
             builder.Services.AddScoped<IInternalFeedbackService, InternalFeedbackService>();
             builder.Services.AddScoped<ICancellationService, CancellationService>();
             builder.Services.AddScoped<IPaymentService, PaymentService>();
+            builder.Services.AddScoped<IPaymentCategoryService, PaymentCategoryService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
             builder.Services.AddScoped<IPushSubscriptionService, PushSubscriptionService>();
             builder.Services.AddScoped<IReportsService, ReportsService>();
@@ -106,6 +108,7 @@ builder.Services.AddScoped<IGuestyCustomerAddressSyncService, GuestyCustomerAddr
             // SendGrid (Email)
             // -----------------------------
             builder.Services.Configure<SendGridOptions>(builder.Configuration.GetSection("SendGrid"));
+            builder.Services.Configure<AutomationAlertsOptions>(builder.Configuration.GetSection(AutomationAlertsOptions.SectionName));
 
             // -----------------------------
             // Google Maps (Reverse Geocoding - optional)
@@ -126,6 +129,7 @@ builder.Services.AddScoped<IGuestyCustomerAddressSyncService, GuestyCustomerAddr
             builder.Services.AddScoped<IPasswordResetEmailService, PasswordResetEmailService>();
             builder.Services.AddScoped<IPlanPaymentEmailService, PlanPaymentEmailService>();
             builder.Services.AddScoped<Services.Email.IReviewRequestEmailService, Services.Email.ReviewRequestEmailService>();
+            builder.Services.AddScoped<IAutomationFailureAlertService, AutomationFailureAlertService>();
 
             // -----------------------------
             // Background Jobs
@@ -135,6 +139,7 @@ builder.Services.AddHostedService<CheckoutReminderHostedService>();
             builder.Services.AddHostedService<ReviewRequestHostedService>();
             builder.Services.AddHostedService<NotificationCleanupHostedService>();
             builder.Services.AddHostedService<GpsTrackingRetentionHostedService>();
+            builder.Services.AddHostedService<PaymentDueReminderHostedService>();
             
             // -----------------------------
             // JWT

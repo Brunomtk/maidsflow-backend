@@ -8,7 +8,7 @@
     ".NETCoreApp,Version=v10.0": {
       "Core/1.0.0": {
         "dependencies": {
-          "BouncyCastle": "1.8.9",
+          "BouncyCastle.Cryptography": "2.6.2",
           "CsvHelper": "32.0.3",
           "ImageSharpCommunity.Formats.Pdf": "0.2.0",
           "LiveCharts": "0.9.7",
@@ -103,19 +103,11 @@
           }
         }
       },
-      "BouncyCastle/1.8.9": {
-        "runtime": {
-          "lib/BouncyCastle.Crypto.dll": {
-            "assemblyVersion": "1.8.9.0",
-            "fileVersion": "1.8.20343.1"
-          }
-        }
-      },
-      "BouncyCastle.Cryptography/2.4.0": {
+      "BouncyCastle.Cryptography/2.6.2": {
         "runtime": {
           "lib/net6.0/BouncyCastle.Cryptography.dll": {
             "assemblyVersion": "2.0.0.0",
-            "fileVersion": "2.4.0.33771"
+            "fileVersion": "2.6.2.46322"
           }
         }
       },
@@ -218,7 +210,7 @@
       },
       "iTextSharp/5.5.13.4": {
         "dependencies": {
-          "BouncyCastle.Cryptography": "2.4.0"
+          "BouncyCastle.Cryptography": "2.6.2"
         },
         "runtime": {
           "lib/net461/itextsharp.dll": {
@@ -1155,19 +1147,12 @@
       "path": "bblanchon.pdfium.win32/128.0.6569",
       "hashPath": "bblanchon.pdfium.win32.128.0.6569.nupkg.sha512"
     },
-    "BouncyCastle/1.8.9": {
+    "BouncyCastle.Cryptography/2.6.2": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-axnBgvdD5n+FnEG6efk/tfKuMFru7R/EoISH9zjh319yb3HD24TEHSAbNN/lTRT2ulOGRxDgOsCjkuk08iwWPg==",
-      "path": "bouncycastle/1.8.9",
-      "hashPath": "bouncycastle.1.8.9.nupkg.sha512"
-    },
-    "BouncyCastle.Cryptography/2.4.0": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-SwXsAV3sMvAU/Nn31pbjhWurYSjJ+/giI/0n6tCrYoupEK34iIHCuk3STAd9fx8yudM85KkLSVdn951vTng/vQ==",
-      "path": "bouncycastle.cryptography/2.4.0",
-      "hashPath": "bouncycastle.cryptography.2.4.0.nupkg.sha512"
+      "sha512": "sha512-7oWOcvnntmMKNzDLsdxAYqApt+AjpRpP2CShjMfIa3umZ42UQMvH0tl1qAliYPNYO6vTdcGMqnRrCPmsfzTI1w==",
+      "path": "bouncycastle.cryptography/2.6.2",
+      "hashPath": "bouncycastle.cryptography.2.6.2.nupkg.sha512"
     },
     "CsvHelper/32.0.3": {
       "type": "package",

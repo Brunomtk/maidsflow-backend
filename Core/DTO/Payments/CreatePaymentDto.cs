@@ -14,6 +14,9 @@ namespace Core.DTO.Payments
         public PaymentStatus Status { get; set; }
         public PaymentMethod? Method { get; set; }
         public string Reference { get; set; } = null!;
+        public PaymentFinancialType FinancialType { get; set; } = PaymentFinancialType.Income;
+        public int? PaymentCategoryId { get; set; }
+        public string? PaymentCategoryName { get; set; }
         public int? PlanId { get; set; }
     }
 }

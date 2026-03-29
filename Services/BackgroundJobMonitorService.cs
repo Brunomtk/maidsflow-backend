@@ -20,6 +20,7 @@ namespace Services
         public const string ReviewRequest = "review-request";
         public const string NotificationCleanup = "notification-cleanup";
         public const string GpsTrackingRetention = "gps-tracking-retention";
+        public const string PaymentDueReminder = "payment-due-reminder";
 
         public static readonly IReadOnlyList<(string Key, string DisplayName, string Category)> Defaults =
             new List<(string, string, string)>
@@ -28,7 +29,8 @@ namespace Services
                 (CheckoutReminder, "Checkout Reminder", "Notifications"),
                 (ReviewRequest, "Review Request", "Reviews"),
                 (NotificationCleanup, "Notification Cleanup", "Maintenance"),
-                (GpsTrackingRetention, "GPS Tracking Retention", "Maintenance")
+                (GpsTrackingRetention, "GPS Tracking Retention", "Maintenance"),
+                (PaymentDueReminder, "Payment Due Reminder", "Finance")
             };
     }
 

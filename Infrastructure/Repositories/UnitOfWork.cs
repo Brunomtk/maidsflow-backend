@@ -25,6 +25,7 @@ namespace Infrastructure.Repositories
         INotificationRepository Notifications { get; }
         IPushSubscriptionRepository PushSubscriptions { get; }
         IPaymentRepository Payments { get; }
+        IPaymentCategoryRepository PaymentCategories { get; }
         IPlanRepository Plans { get; }
         IPlanSubscriptionRepository PlanSubscriptions { get; }
         IProfessionalRepository Professionals { get; }
@@ -66,6 +67,7 @@ namespace Infrastructure.Repositories
             INotificationRepository notificationRepository,
             IPushSubscriptionRepository pushSubscriptionRepository,
             IPaymentRepository paymentRepository,
+            IPaymentCategoryRepository paymentCategoryRepository,
             IPlanRepository planRepository,
             IPlanSubscriptionRepository planSubscriptionRepository,
             IProfessionalRepository professionalRepository,
@@ -100,6 +102,7 @@ namespace Infrastructure.Repositories
             Notifications = notificationRepository;
             PushSubscriptions = pushSubscriptionRepository;
             Payments = paymentRepository;
+            PaymentCategories = paymentCategoryRepository;
             Plans = planRepository;
             PlanSubscriptions = planSubscriptionRepository;
             Professionals = professionalRepository;
@@ -133,6 +136,7 @@ namespace Infrastructure.Repositories
         public INotificationRepository Notifications { get; }
         public IPushSubscriptionRepository PushSubscriptions { get; }
         public IPaymentRepository Payments { get; }
+        public IPaymentCategoryRepository PaymentCategories { get; }
         public IPlanRepository Plans { get; }
         public IPlanSubscriptionRepository PlanSubscriptions { get; }
         public IProfessionalRepository Professionals { get; }

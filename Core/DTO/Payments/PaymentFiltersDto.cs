@@ -13,6 +13,9 @@ namespace Core.DTO.Payments
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public int? PlanId { get; set; }
+        public PaymentFinancialType? FinancialType { get; set; }
+        public int? PaymentCategoryId { get; set; }
+        public string? PaymentCategoryName { get; set; }
 
         // Paging
         public int Page { get; set; } = 1;
