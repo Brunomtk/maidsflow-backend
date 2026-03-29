@@ -5,7 +5,6 @@ using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Core.DTO.Notifications;
-using Core.Enums.User;
 using Core.Models;
 using Infrastructure;
 using Infrastructure.Repositories;
@@ -52,9 +51,7 @@ namespace Services
 
             if (dto.IsBroadcast)
             {
-                var roleEnum = Enum.Parse<UserRole>(dto.RecipientRole, ignoreCase: true);
-
-                var q = _db.Users.AsNoTracking().Where(u => u.Role == roleEnum.ToString());
+                var q = _db.Users.AsNoTracking().Where(u => u.Role == dto.RecipientRole);
                 if (dto.CompanyId.HasValue && dto.CompanyId.Value > 0)
                 {
                     q = q.Where(u => u.CompanyId == dto.CompanyId.Value);
@@ -75,56 +72,87 @@ namespace Services
             var client = new WebPushClient();
             var vapid = new VapidDetails(subject, publicKey, privateKey);
 
-            // URL padrão por papel (para abrir a tela correta ao clicar no push)
-            static string GetNotificationsUrlByRole(string role)
-            {
-                return role?.ToLowerInvariant() switch
-                {
-                    "admin" => "/admin/notifications",
-                    "company" => "/company/notifications",
-                    "professional" => "/professional/notifications",
-                    "customer" => "/customer/notifications",
-                    _ => "/notifications"
-                };
-            }
-
-            var baseUrl = GetNotificationsUrlByRole(dto.RecipientRole);
-
             foreach (var sub in subs)
             {
+                sub.LastPushAttemptAtUtc = DateTime.UtcNow;
+                sub.LastError = null;
+
                 try
                 {
-                    // Cada destinatário pode ter um NotificationId diferente (quando não for broadcast).
-                    var notifId = dto.IsBroadcast
-                        ? created.FirstOrDefault()?.Id
-                        : created.FirstOrDefault(n => n.RecipientId == sub.UserId)?.Id ?? created.FirstOrDefault()?.Id;
+                    var targetNotification = dto.IsBroadcast
+                        ? created.FirstOrDefault()
+                        : created.FirstOrDefault(n => n.RecipientId == sub.UserId) ?? created.FirstOrDefault();
 
                     var payload = JsonSerializer.Serialize(new
                     {
                         title = dto.Title,
                         message = dto.Message,
-                        url = baseUrl,
-                        notificationId = notifId
+                        body = dto.Message,
+                        url = ResolveUrl(sub, targetNotification, dto),
+                        notificationId = targetNotification?.Id,
+                        type = dto.Type,
+                        tag = targetNotification != null ? $"notification-{targetNotification.Id}" : $"notification-user-{sub.UserId}",
+                        data = new
+                        {
+                            notificationId = targetNotification?.Id,
+                            endpoint = sub.Endpoint,
+                            subscriptionId = sub.Id,
+                            companyId = sub.CompanyId,
+                            role = sub.UserRole
+                        }
                     });
 
                     var pushSub = new WebPush.PushSubscription(sub.Endpoint, sub.P256dh, sub.Auth);
                     await client.SendNotificationAsync(pushSub, payload, vapid);
+
+                    sub.LastSuccessfulPushAtUtc = DateTime.UtcNow;
+                    sub.LastError = null;
+                    sub.FailureCount = 0;
+                    sub.IsActive = true;
                 }
                 catch (WebPushException ex) when (ex.StatusCode == HttpStatusCode.Gone || ex.StatusCode == HttpStatusCode.NotFound)
                 {
-                    _logger.LogInformation("Push subscription inválida (removendo). UserId={UserId}", sub.UserId);
-                    var entity = await _unitOfWork.PushSubscriptions.GetByUserIdAndEndpointAsync(sub.UserId, sub.Endpoint);
-                    if (entity != null)
-                    {
-                        _unitOfWork.PushSubscriptions.Delete(entity);
-                        await _unitOfWork.SaveAsync();
-                    }
+                    sub.IsActive = false;
+                    sub.FailureCount += 1;
+                    sub.LastError = $"Subscription inválida: {(int)ex.StatusCode} {ex.StatusCode}";
+                    _logger.LogInformation("Push subscription inválida. UserId={UserId} SubscriptionId={SubscriptionId}", sub.UserId, sub.Id);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Erro ao enviar WebPush. UserId={UserId}", sub.UserId);
+                    sub.FailureCount += 1;
+                    sub.LastError = ex.Message;
+                    _logger.LogError(ex, "Erro ao enviar WebPush. UserId={UserId} SubscriptionId={SubscriptionId}", sub.UserId, sub.Id);
+                }
+                finally
+                {
+                    sub.UpdatedDate = DateTime.UtcNow;
+                    _unitOfWork.PushSubscriptions.Update(sub);
                 }
             }
+
+            await _unitOfWork.SaveAsync();
+        }
+
+        private static string ResolveUrl(Core.Models.PushSubscription sub, Notification? notification, CreateNotificationDTO dto)
+        {
+            if (notification?.Id > 0)
+            {
+                return (sub.UserRole ?? dto.RecipientRole)?.ToLowerInvariant() switch
+                {
+                    "admin" => $"/admin/notifications?id={notification.Id}",
+                    "company" => $"/company/notifications?id={notification.Id}",
+                    "professional" => $"/professional/notifications?id={notification.Id}",
+                    _ => $"/notifications?id={notification.Id}"
+                };
+            }
+
+            return (sub.UserRole ?? dto.RecipientRole)?.ToLowerInvariant() switch
+            {
+                "admin" => "/admin/notifications",
+                "company" => "/company/notifications",
+                "professional" => "/professional/notifications",
+                _ => "/notifications"
+            };
         }
     }
 }

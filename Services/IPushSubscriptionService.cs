@@ -10,8 +10,10 @@ namespace Services
     /// </summary>
     public interface IPushSubscriptionService
     {
-        Task<List<PushSubscription>> GetMySubscriptionsAsync(int userId);
-        Task<PushSubscription> UpsertAsync(int userId, BrowserPushSubscriptionDTO dto);
+        Task<List<PushSubscriptionSummaryDTO>> GetMySubscriptionsAsync(int userId);
+        Task<PushSubscriptionSummaryDTO> UpsertAsync(int userId, BrowserPushSubscriptionDTO dto);
         Task<bool> UnsubscribeAsync(int userId, string endpoint);
+        Task<bool> MarkOpenedAsync(int userId, PushNotificationOpenedDTO dto);
+        Task<PushSubscriptionSummaryDTO?> SendTestAsync(int userId, PushNotificationTestDTO dto);
     }
 }

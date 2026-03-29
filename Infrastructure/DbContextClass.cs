@@ -992,11 +992,23 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                 entity.Property(p => p.Endpoint).IsRequired();
                 entity.Property(p => p.P256dh).IsRequired();
                 entity.Property(p => p.Auth).IsRequired();
+                entity.Property(p => p.UserRole).HasMaxLength(50);
+                entity.Property(p => p.DeviceId).HasMaxLength(150);
+                entity.Property(p => p.DeviceName).HasMaxLength(200);
+                entity.Property(p => p.Platform).HasMaxLength(100);
+                entity.Property(p => p.BrowserName).HasMaxLength(100);
+                entity.Property(p => p.PermissionState).HasMaxLength(50);
+                entity.Property(p => p.LastError).HasMaxLength(2000);
+                entity.Property(p => p.IsPwaInstalled).HasDefaultValue(false);
+                entity.Property(p => p.IsActive).HasDefaultValue(true);
+                entity.Property(p => p.FailureCount).HasDefaultValue(0);
 
                 entity.Property(p => p.CreatedDate).HasDefaultValueSql("now()");
                 entity.Property(p => p.UpdatedDate).HasDefaultValueSql("now()");
 
                 entity.HasIndex(p => new { p.UserId, p.Endpoint }).IsUnique();
+                entity.HasIndex(p => new { p.UserId, p.IsActive });
+                entity.HasIndex(p => new { p.UserId, p.DeviceId });
 
                 entity.HasOne<User>()
                       .WithMany()

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "xE1B27SzA5Q=",
+  "dgSpecHash": "cX3oyPxakFM=",
   "success": true,
-  "projectFilePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_payments-english-cleanup_v3\\payfix\\Services\\Services.csproj",
+  "projectFilePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Services\\Services.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\bruno\\.nuget\\packages\\awssdk.core\\3.7.400\\awssdk.core.3.7.400.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\awssdk.s3\\3.7.400\\awssdk.s3.3.7.400.nupkg.sha512",

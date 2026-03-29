@@ -4299,6 +4299,22 @@
   },
   {
     "ContainingType": "ControlApi.Controllers.PushSubscriptionsController",
+    "Method": "MarkOpened",
+    "RelativePath": "api/PushSubscriptions/opened",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "Core.DTO.PushSubscriptions.PushNotificationOpenedDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.PushSubscriptionsController",
     "Method": "GetPublicConfig",
     "RelativePath": "api/PushSubscriptions/public-config",
     "HttpMethod": "GET",
@@ -4318,6 +4334,22 @@
       {
         "Name": "dto",
         "Type": "Core.DTO.PushSubscriptions.BrowserPushSubscriptionDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.PushSubscriptionsController",
+    "Method": "SendTest",
+    "RelativePath": "api/PushSubscriptions/test",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "Core.DTO.PushSubscriptions.PushNotificationTestDTO",
         "IsRequired": true
       }
     ],

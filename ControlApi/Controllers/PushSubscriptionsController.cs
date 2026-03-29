@@ -1,3 +1,4 @@
+using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Core.DTO.PushSubscriptions;
@@ -23,13 +24,12 @@ namespace ControlApi.Controllers
         }
 
         // GET: api/PushSubscriptions/public-config
-        // Endpoint público para o frontend obter a VAPID Public Key automaticamente.
         [HttpGet("public-config")]
         [AllowAnonymous]
         public IActionResult GetPublicConfig()
         {
             var key = _config["WebPush:PublicKey"] ?? string.Empty;
-            var configured = !string.IsNullOrWhiteSpace(key) && !key.StartsWith("CHANGE_ME", System.StringComparison.OrdinalIgnoreCase);
+            var configured = !string.IsNullOrWhiteSpace(key) && !key.StartsWith("CHANGE_ME", StringComparison.OrdinalIgnoreCase);
 
             return Ok(new PublicPushConfigDTO
             {
@@ -42,10 +42,7 @@ namespace ControlApi.Controllers
         [HttpPost("subscribe")]
         public async Task<IActionResult> Subscribe([FromBody] BrowserPushSubscriptionDTO dto)
         {
-            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrWhiteSpace(userIdStr) || !int.TryParse(userIdStr, out var userId))
-                return Unauthorized();
-
+            if (!TryGetUserId(out var userId)) return Unauthorized();
             var saved = await _service.UpsertAsync(userId, dto);
             return Ok(saved);
         }
@@ -54,10 +51,7 @@ namespace ControlApi.Controllers
         [HttpDelete("unsubscribe")]
         public async Task<IActionResult> Unsubscribe([FromBody] UnsubscribeDTO dto)
         {
-            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrWhiteSpace(userIdStr) || !int.TryParse(userIdStr, out var userId))
-                return Unauthorized();
-
+            if (!TryGetUserId(out var userId)) return Unauthorized();
             var ok = await _service.UnsubscribeAsync(userId, dto.Endpoint);
             if (!ok) return NotFound();
             return NoContent();
@@ -67,12 +61,36 @@ namespace ControlApi.Controllers
         [HttpGet("me")]
         public async Task<IActionResult> GetMine()
         {
-            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrWhiteSpace(userIdStr) || !int.TryParse(userIdStr, out var userId))
-                return Unauthorized();
-
+            if (!TryGetUserId(out var userId)) return Unauthorized();
             var list = await _service.GetMySubscriptionsAsync(userId);
             return Ok(list);
+        }
+
+        // POST: api/PushSubscriptions/test
+        [HttpPost("test")]
+        public async Task<IActionResult> SendTest([FromBody] PushNotificationTestDTO dto)
+        {
+            if (!TryGetUserId(out var userId)) return Unauthorized();
+            var result = await _service.SendTestAsync(userId, dto);
+            if (result == null) return NotFound(new { message = "Nenhuma subscription ativa encontrada para enviar o push de teste." });
+            return Ok(result);
+        }
+
+        // POST: api/PushSubscriptions/opened
+        [HttpPost("opened")]
+        public async Task<IActionResult> MarkOpened([FromBody] PushNotificationOpenedDTO dto)
+        {
+            if (!TryGetUserId(out var userId)) return Unauthorized();
+            var ok = await _service.MarkOpenedAsync(userId, dto);
+            if (!ok) return NotFound();
+            return NoContent();
+        }
+
+        private bool TryGetUserId(out int userId)
+        {
+            userId = 0;
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return !string.IsNullOrWhiteSpace(userIdStr) && int.TryParse(userIdStr, out userId);
         }
     }
 }
