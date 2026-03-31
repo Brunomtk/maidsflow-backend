@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace Core.DTO.Customer
@@ -21,5 +22,13 @@ namespace Core.DTO.Customer
         public string? PaymentMethod { get; set; }
 
         public bool IsPrimary { get; set; }
+
+        public string? HouseAccessNotes { get; set; }
+        public string? HouseGateCode { get; set; }
+        public bool? HouseHasPets { get; set; }
+        public string? HousePetNotes { get; set; }
+        public string? HouseRestrictionsNotes { get; set; }
+        public string? HousePriorityNotes { get; set; }
+        public List<string>? HousePhotoUrls { get; set; }
     }
 }

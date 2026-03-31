@@ -75,6 +75,37 @@ namespace ControlApi.Controllers
             return updated != null ? Ok(updated) : NotFound();
         }
 
+        [HttpGet("{id}/addresses/{addressId}/house-notes")]
+        public async Task<IActionResult> GetHouseNotes(int id, int addressId)
+        {
+            if (id <= 0 || addressId <= 0) return BadRequest("Invalid id.");
+
+            var addresses = await _customerAddressService.GetByCustomerAsync(id);
+            var address = addresses.FirstOrDefault(a => a.Id == addressId);
+            if (address == null) return NotFound();
+
+            return Ok(new
+            {
+                address.Id,
+                address.CustomerId,
+                address.HouseAccessNotes,
+                address.HouseGateCode,
+                address.HouseHasPets,
+                address.HousePetNotes,
+                address.HouseRestrictionsNotes,
+                address.HousePriorityNotes,
+                housePhotoUrls = address.HousePhotoUrls
+            });
+        }
+
+        [HttpPut("{id}/addresses/{addressId}/house-notes")]
+        public async Task<IActionResult> UpdateHouseNotes(int id, int addressId, [FromBody] UpdateCustomerAddressDTO dto)
+        {
+            if (id <= 0 || addressId <= 0) return BadRequest("Invalid id.");
+            var updated = await _customerAddressService.UpdateAsync(id, addressId, dto);
+            return updated != null ? Ok(updated) : NotFound();
+        }
+
         [HttpDelete("{id}/addresses/{addressId}")]
         public async Task<IActionResult> DeleteAddress(int id, int addressId)
         {

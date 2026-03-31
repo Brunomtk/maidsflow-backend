@@ -198,6 +198,22 @@
   },
   {
     "ContainingType": "ControlApi.Controllers.AppointmentController",
+    "Method": "GetHouseNotes",
+    "RelativePath": "api/Appointment/{id}/house-notes",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.AppointmentController",
     "Method": "SendOnMyWaySms",
     "RelativePath": "api/Appointment/{id}/on-my-way-sms",
     "HttpMethod": "POST",
@@ -500,6 +516,22 @@
         "Name": "scope",
         "Type": "Core.DTO.Appointment.RecurrenceScope",
         "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.AppointmentsRecurrenceController",
+    "Method": "GetInstanceHouseNotes",
+    "RelativePath": "api/AppointmentsRecurrence/instance/{instanceId}/house-notes",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "instanceId",
+        "Type": "System.String",
+        "IsRequired": true
       }
     ],
     "ReturnTypes": []
@@ -1934,6 +1966,53 @@
   },
   {
     "ContainingType": "ControlApi.Controllers.CustomerController",
+    "Method": "GetHouseNotes",
+    "RelativePath": "api/Customer/{id}/addresses/{addressId}/house-notes",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "addressId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.CustomerController",
+    "Method": "UpdateHouseNotes",
+    "RelativePath": "api/Customer/{id}/addresses/{addressId}/house-notes",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "addressId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "Core.DTO.Customer.UpdateCustomerAddressDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.CustomerController",
     "Method": "GetPaymentsByCustomerAddress",
     "RelativePath": "api/Customer/{id}/addresses/{addressId}/payments",
     "HttpMethod": "GET",
@@ -2674,6 +2753,85 @@
         "Name": "PageSize",
         "Type": "System.Int32",
         "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.IssuesController",
+    "Method": "GetCompanyIssues",
+    "RelativePath": "api/Issues",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.IssuesController",
+    "Method": "Create",
+    "RelativePath": "api/Issues",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "Core.DTO.Issues.CreateServiceIssueDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.IssuesController",
+    "Method": "GetById",
+    "RelativePath": "api/Issues/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.IssuesController",
+    "Method": "UpdateStatus",
+    "RelativePath": "api/Issues/{id}/status",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "Core.DTO.Issues.UpdateServiceIssueStatusDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.IssuesController",
+    "Method": "GetByAppointment",
+    "RelativePath": "api/Issues/appointment/{appointmentId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "appointmentId",
+        "Type": "System.Int32",
+        "IsRequired": true
       }
     ],
     "ReturnTypes": []

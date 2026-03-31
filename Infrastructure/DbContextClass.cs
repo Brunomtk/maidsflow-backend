@@ -57,6 +57,7 @@ namespace Infrastructure
         public DbSet<BackgroundJobStatus> BackgroundJobStatuses { get; set; }
         public DbSet<BackgroundJobExecution> BackgroundJobExecutions { get; set; }
         public DbSet<AutomationFailureLog> AutomationFailureLogs { get; set; }
+        public DbSet<ServiceIssue> ServiceIssues { get; set; }
         
         
 
@@ -158,6 +159,51 @@ namespace Infrastructure
                       .OnDelete(DeleteBehavior.SetNull);
             });
 
+
+            modelBuilder.Entity<ServiceIssue>(entity =>
+            {
+                entity.ToTable("ServiceIssues");
+                entity.HasKey(x => x.Id);
+                entity.HasIndex(x => new { x.CompanyId, x.Status, x.CreatedDate });
+                entity.HasIndex(x => x.AppointmentId);
+                entity.Property(x => x.Type).IsRequired().HasMaxLength(60);
+                entity.Property(x => x.Status).IsRequired().HasMaxLength(30);
+                entity.Property(x => x.Summary).IsRequired().HasMaxLength(200);
+                entity.Property(x => x.Description).HasMaxLength(2000);
+                entity.Property(x => x.InternalNotes).HasMaxLength(1000);
+                entity.Property(x => x.PhotoUrlsJson).HasColumnType("jsonb");
+                entity.Property(x => x.EstimatedAmount).HasColumnType("numeric(18,2)");
+                entity.Property(x => x.ApprovedAmount).HasColumnType("numeric(18,2)");
+                entity.HasOne(x => x.Company)
+                      .WithMany()
+                      .HasForeignKey(x => x.CompanyId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(x => x.Appointment)
+                      .WithMany()
+                      .HasForeignKey(x => x.AppointmentId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(x => x.Customer)
+                      .WithMany()
+                      .HasForeignKey(x => x.CustomerId)
+                      .OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(x => x.CustomerAddress)
+                      .WithMany()
+                      .HasForeignKey(x => x.CustomerAddressId)
+                      .OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(x => x.Professional)
+                      .WithMany()
+                      .HasForeignKey(x => x.ProfessionalId)
+                      .OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(x => x.ReportedByUser)
+                      .WithMany()
+                      .HasForeignKey(x => x.ReportedByUserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(x => x.ReviewedByUser)
+                      .WithMany()
+                      .HasForeignKey(x => x.ReviewedByUserId)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
             modelBuilder.Entity<Checklist>(entity =>
             {
                 entity.ToTable("Checklists");
@@ -228,7 +274,23 @@ namespace Infrastructure
                       .HasForeignKey(p => p.ChecklistItemId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
-    base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<CustomerAddress>(entity =>
+            {
+                entity.Property(x => x.HouseAccessNotes).HasMaxLength(600);
+                entity.Property(x => x.HouseGateCode).HasMaxLength(120);
+                entity.Property(x => x.HousePetNotes).HasMaxLength(600);
+                entity.Property(x => x.HouseRestrictionsNotes).HasMaxLength(800);
+                entity.Property(x => x.HousePriorityNotes).HasMaxLength(800);
+                entity.Property(x => x.HousePhotoUrlsJson).HasColumnType("jsonb");
+            });
+
+            modelBuilder.Entity<Appointment>(entity =>
+            {
+                entity.Property(x => x.HouseNotesSnapshotJson).HasColumnType("jsonb");
+            });
+
+            base.OnModelCreating(modelBuilder);
 
             // Users
             modelBuilder.Entity<User>(entity =>

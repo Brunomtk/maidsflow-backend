@@ -39,6 +39,7 @@ namespace Infrastructure.Repositories
         IChecklistItemPhotoRepository ChecklistItemPhotos { get; }
         IChecklistTemplateRepository ChecklistTemplates { get; }
         IChecklistTemplateItemRepository ChecklistTemplateItems { get; }
+        IServiceIssueRepository ServiceIssues { get; }
         int Save();
         Task<int> SaveAsync();
     }
@@ -80,7 +81,8 @@ namespace Infrastructure.Repositories
             IChecklistItemRepository checklistItemRepository,
             IChecklistItemPhotoRepository checklistItemPhotoRepository,
             IChecklistTemplateRepository checklistTemplateRepository,
-            IChecklistTemplateItemRepository checklistTemplateItemRepository
+            IChecklistTemplateItemRepository checklistTemplateItemRepository,
+            IServiceIssueRepository serviceIssueRepository
         )
         {
             _dbContext = dbContext;
@@ -116,6 +118,7 @@ namespace Infrastructure.Repositories
             ChecklistItemPhotos = checklistItemPhotoRepository;
             ChecklistTemplates = checklistTemplateRepository;
             ChecklistTemplateItems = checklistTemplateItemRepository;
+            ServiceIssues = serviceIssueRepository;
         }
 
         public IAppointmentRepository Appointments { get; }
@@ -150,6 +153,7 @@ namespace Infrastructure.Repositories
         public IChecklistItemPhotoRepository ChecklistItemPhotos { get; }
         public IChecklistTemplateRepository ChecklistTemplates { get; }
         public IChecklistTemplateItemRepository ChecklistTemplateItems { get; }
+        public IServiceIssueRepository ServiceIssues { get; }
 
         public int Save() => _dbContext.SaveChanges();
         public Task<int> SaveAsync() => _dbContext.SaveChangesAsync();

@@ -75,6 +75,22 @@ namespace ControlApi.Controllers
             return Ok(appointment);
         }
 
+        [HttpGet("{id}/house-notes")]
+        public async Task<IActionResult> GetHouseNotes(int id)
+        {
+            var appointment = await _appointmentService.GetById(id);
+            if (appointment == null)
+                return NotFound();
+
+            return Ok(new
+            {
+                appointment.Id,
+                appointment.CustomerId,
+                appointment.CustomerAddressId,
+                appointment.HouseNotesSnapshotJson
+            });
+        }
+
         /// <summary>
         /// Cria um novo agendamento.
         /// </summary>

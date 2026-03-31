@@ -48,7 +48,7 @@ namespace Services
         public async Task<CustomerAddress?> CreateAsync(int customerId, CreateCustomerAddressDTO dto)
         {
             if (!_currentUser.IsAdmin && !_currentUser.IsCompany)
-                throw new ForbiddenException("Você não tem permissão para criar endereços.");
+                throw new ForbiddenException("You do not have permission to create addresses.");
 
             var customer = await _uow.Customers.GetByIdAsync(customerId);
             if (customer == null) return null;
@@ -71,6 +71,8 @@ namespace Services
                 IsPrimary = dto.IsPrimary
             };
 
+            ApplyHouseNotes(addr, dto.HouseAccessNotes, dto.HouseGateCode, dto.HouseHasPets, dto.HousePetNotes, dto.HouseRestrictionsNotes, dto.HousePriorityNotes, dto.HousePhotoUrls);
+
             if (addr.IsPrimary)
                 await ClearPrimaryAsync(customerId);
 
@@ -87,7 +89,7 @@ namespace Services
         public async Task<CustomerAddress?> UpdateAsync(int customerId, int addressId, UpdateCustomerAddressDTO dto)
         {
             if (!_currentUser.IsAdmin && !_currentUser.IsCompany)
-                throw new ForbiddenException("Você não tem permissão para editar endereços.");
+                throw new ForbiddenException("You do not have permission to update addresses.");
 
             var customer = await _uow.Customers.GetByIdAsync(customerId);
             if (customer == null) return null;
@@ -106,6 +108,13 @@ namespace Services
             if (dto.Ticket.HasValue) addr.Ticket = dto.Ticket;
             if (dto.Frequency != null) addr.Frequency = string.IsNullOrWhiteSpace(dto.Frequency) ? null : dto.Frequency.Trim();
             if (dto.PaymentMethod != null) addr.PaymentMethod = string.IsNullOrWhiteSpace(dto.PaymentMethod) ? null : dto.PaymentMethod.Trim();
+            if (dto.HouseAccessNotes != null) addr.HouseAccessNotes = Clean(dto.HouseAccessNotes, 600);
+            if (dto.HouseGateCode != null) addr.HouseGateCode = Clean(dto.HouseGateCode, 120);
+            if (dto.HouseHasPets.HasValue) addr.HouseHasPets = dto.HouseHasPets;
+            if (dto.HousePetNotes != null) addr.HousePetNotes = Clean(dto.HousePetNotes, 600);
+            if (dto.HouseRestrictionsNotes != null) addr.HouseRestrictionsNotes = Clean(dto.HouseRestrictionsNotes, 800);
+            if (dto.HousePriorityNotes != null) addr.HousePriorityNotes = Clean(dto.HousePriorityNotes, 800);
+            if (dto.HousePhotoUrls != null) addr.HousePhotoUrls = dto.HousePhotoUrls;
             addr.UpdatedDate = DateTime.UtcNow;
 
             _uow.CustomerAddresses.Update(addr);
@@ -121,7 +130,7 @@ namespace Services
         public async Task<bool> DeleteAsync(int customerId, int addressId)
         {
             if (!_currentUser.IsAdmin && !_currentUser.IsCompany)
-                throw new ForbiddenException("Você não tem permissão para remover endereços.");
+                throw new ForbiddenException("You do not have permission to delete addresses.");
 
             var customer = await _uow.Customers.GetByIdAsync(customerId);
             if (customer == null) return false;
@@ -151,7 +160,7 @@ namespace Services
         public async Task<bool> SetPrimaryAsync(int customerId, int addressId)
         {
             if (!_currentUser.IsAdmin && !_currentUser.IsCompany)
-                throw new ForbiddenException("Você não tem permissão para definir endereço principal.");
+                throw new ForbiddenException("You do not have permission to set the primary address.");
 
             var customer = await _uow.Customers.GetByIdAsync(customerId);
             if (customer == null) return false;
@@ -187,6 +196,24 @@ namespace Services
             }
 
             await _uow.SaveAsync();
+        }
+
+        private static void ApplyHouseNotes(CustomerAddress address, string? accessNotes, string? gateCode, bool? hasPets, string? petNotes, string? restrictionsNotes, string? priorityNotes, List<string>? photoUrls)
+        {
+            address.HouseAccessNotes = Clean(accessNotes, 600);
+            address.HouseGateCode = Clean(gateCode, 120);
+            address.HouseHasPets = hasPets;
+            address.HousePetNotes = Clean(petNotes, 600);
+            address.HouseRestrictionsNotes = Clean(restrictionsNotes, 800);
+            address.HousePriorityNotes = Clean(priorityNotes, 800);
+            address.HousePhotoUrls = photoUrls ?? new List<string>();
+        }
+
+        private static string? Clean(string? value, int maxLength)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            var trimmed = value.Trim();
+            return trimmed.Length <= maxLength ? trimmed : trimmed.Substring(0, maxLength);
         }
 
         private async Task SyncCustomerLegacyFromPrimaryAsync(int customerId, CustomerAddress addr)

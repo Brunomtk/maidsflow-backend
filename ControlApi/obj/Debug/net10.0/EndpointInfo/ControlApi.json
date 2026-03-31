@@ -306,6 +306,29 @@
         }
       }
     },
+    "/api/Appointment/{id}/house-notes": {
+      "get": {
+        "tags": [
+          "Appointment"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/Appointment/from-guesty": {
       "post": {
         "tags": [
@@ -864,6 +887,28 @@
             "in": "query",
             "schema": {
               "$ref": "#/components/schemas/RecurrenceScope"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/AppointmentsRecurrence/instance/{instanceId}/house-notes": {
+      "get": {
+        "tags": [
+          "AppointmentsRecurrence"
+        ],
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -3115,6 +3160,87 @@
         }
       }
     },
+    "/api/Customer/{id}/addresses/{addressId}/house-notes": {
+      "get": {
+        "tags": [
+          "Customer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "addressId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Customer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "addressId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerAddressDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerAddressDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerAddressDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/Customer/{id}/addresses/{addressId}/set-primary": {
       "post": {
         "tags": [
@@ -4375,6 +4501,135 @@
             "application/*+json": {
               "schema": {
                 "$ref": "#/components/schemas/CreateInternalFeedbackCommentDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Issues": {
+      "get": {
+        "tags": [
+          "Issues"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Issues"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceIssueDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceIssueDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceIssueDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Issues/{id}": {
+      "get": {
+        "tags": [
+          "Issues"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Issues/appointment/{appointmentId}": {
+      "get": {
+        "tags": [
+          "Issues"
+        ],
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Issues/{id}/status": {
+      "post": {
+        "tags": [
+          "Issues"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateServiceIssueStatusDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateServiceIssueStatusDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateServiceIssueStatusDTO"
               }
             }
           }
@@ -9287,6 +9542,10 @@
           "externalStatus": {
             "type": "string",
             "nullable": true
+          },
+          "houseNotesSnapshotJson": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -10900,6 +11159,37 @@
           },
           "isPrimary": {
             "type": "boolean"
+          },
+          "houseAccessNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "houseGateCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "houseHasPets": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "housePetNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "houseRestrictionsNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "housePriorityNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "housePhotoUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -11583,6 +11873,48 @@
         },
         "additionalProperties": false
       },
+      "CreateServiceIssueDTO": {
+        "required": [
+          "appointmentId",
+          "summary",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "appointmentId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "type": {
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string"
+          },
+          "summary": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 2000,
+            "type": "string",
+            "nullable": true
+          },
+          "estimatedAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "photoUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateServiceTypeDTO": {
         "type": "object",
         "properties": {
@@ -11913,6 +12245,41 @@
           },
           "isPrimary": {
             "type": "boolean"
+          },
+          "houseAccessNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "houseGateCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "houseHasPets": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "housePetNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "houseRestrictionsNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "housePriorityNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "housePhotoUrlsJson": {
+            "type": "string",
+            "nullable": true
+          },
+          "housePhotoUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
           },
           "areas": {
             "type": "array",
@@ -14149,6 +14516,37 @@
           "paymentMethod": {
             "type": "string",
             "nullable": true
+          },
+          "houseAccessNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "houseGateCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "houseHasPets": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "housePetNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "houseRestrictionsNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "housePriorityNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "housePhotoUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -14850,6 +15248,30 @@
           "responseDate": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateServiceIssueStatusDTO": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "maxLength": 30,
+            "minLength": 1,
+            "type": "string"
+          },
+          "internalNotes": {
+            "maxLength": 1000,
+            "type": "string",
+            "nullable": true
+          },
+          "approvedAmount": {
+            "type": "number",
+            "format": "double",
             "nullable": true
           }
         },

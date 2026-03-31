@@ -1,4 +1,5 @@
 ﻿using Core.DTO.Appointment;
+using Core.DTO.Customer;
 using Core.Enums.Appointment;
 using Core.Models;
 using Infrastructure.Repositories;
@@ -223,6 +224,7 @@ namespace Services
                 if (resolvedAddress != null)
                 {
                     appointment.CustomerAddressId = resolvedAddress.Id;
+                    appointment.HouseNotesSnapshotJson = CaptureHouseNotesSnapshot(resolvedAddress);
 
                     if (string.IsNullOrWhiteSpace(appointment.Address))
                         appointment.Address = BuildAddressLine(resolvedAddress);
@@ -352,6 +354,7 @@ namespace Services
             if (resolvedAddress != null)
             {
                 appointment.CustomerAddressId = resolvedAddress.Id;
+                appointment.HouseNotesSnapshotJson = CaptureHouseNotesSnapshot(resolvedAddress);
                 if (string.IsNullOrWhiteSpace(appointment.Address))
                     appointment.Address = BuildAddressLine(resolvedAddress);
             }
@@ -362,6 +365,7 @@ namespace Services
                 if (primary != null)
                 {
                     appointment.CustomerAddressId = primary.Id;
+                    appointment.HouseNotesSnapshotJson = CaptureHouseNotesSnapshot(primary);
                     if (string.IsNullOrWhiteSpace(appointment.Address))
                         appointment.Address = BuildAddressLine(primary);
                 }
@@ -441,6 +445,7 @@ namespace Services
                 if (resolvedAddress != null)
                 {
                     appointment.CustomerAddressId = resolvedAddress.Id;
+                    appointment.HouseNotesSnapshotJson = CaptureHouseNotesSnapshot(resolvedAddress);
 
                     if (string.IsNullOrWhiteSpace(appointment.Address) && string.IsNullOrWhiteSpace(dto.Address))
                         appointment.Address = BuildAddressLine(resolvedAddress);
@@ -502,6 +507,36 @@ namespace Services
             }
 
             return await _unitOfWork.CustomerAddresses.GetPrimaryByCustomerAsync(customerId);
+        }
+
+        private static string? CaptureHouseNotesSnapshot(CustomerAddress address)
+        {
+            var hasAnyData =
+                !string.IsNullOrWhiteSpace(address.HouseAccessNotes) ||
+                !string.IsNullOrWhiteSpace(address.HouseGateCode) ||
+                address.HouseHasPets.HasValue ||
+                !string.IsNullOrWhiteSpace(address.HousePetNotes) ||
+                !string.IsNullOrWhiteSpace(address.HouseRestrictionsNotes) ||
+                !string.IsNullOrWhiteSpace(address.HousePriorityNotes) ||
+                (address.HousePhotoUrls != null && address.HousePhotoUrls.Count > 0);
+
+            if (!hasAnyData)
+                return null;
+
+            var snapshot = new HouseNotesSnapshotDTO
+            {
+                CustomerAddressId = address.Id,
+                Label = address.Label,
+                AccessNotes = address.HouseAccessNotes,
+                GateCode = address.HouseGateCode,
+                HasPets = address.HouseHasPets,
+                PetNotes = address.HousePetNotes,
+                RestrictionsNotes = address.HouseRestrictionsNotes,
+                PriorityNotes = address.HousePriorityNotes,
+                PhotoUrls = address.HousePhotoUrls ?? new List<string>()
+            };
+
+            return System.Text.Json.JsonSerializer.Serialize(snapshot);
         }
 
         private static string BuildAddressLine(CustomerAddress addr)

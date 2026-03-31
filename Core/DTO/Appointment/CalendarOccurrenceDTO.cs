@@ -31,6 +31,7 @@ namespace Core.DTO.Appointment
         public string? Title { get; set; }
         public string? Address { get; set; }
         public string? Notes { get; set; }
+        public string? HouseNotesSnapshotJson { get; set; }
 
         // Conveniência: alguns consumidores (n8n/notificações) preferem campos no nível raiz.
         // Também permanecem disponíveis dentro de Customer.

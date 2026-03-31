@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Core.DTO.Customer
 {
     public class UpdateCustomerAddressDTO
@@ -13,5 +15,13 @@ namespace Core.DTO.Customer
         public decimal? Ticket { get; set; }
         public string? Frequency { get; set; }
         public string? PaymentMethod { get; set; }
+
+        public string? HouseAccessNotes { get; set; }
+        public string? HouseGateCode { get; set; }
+        public bool? HouseHasPets { get; set; }
+        public string? HousePetNotes { get; set; }
+        public string? HouseRestrictionsNotes { get; set; }
+        public string? HousePriorityNotes { get; set; }
+        public List<string>? HousePhotoUrls { get; set; }
     }
 }

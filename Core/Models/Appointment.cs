@@ -100,5 +100,7 @@ namespace Core.Models
         public string? ExternalReservationId { get; set; }    // reservationId from external system
         public string? ExternalListingId { get; set; }        // listingId/propertyId from external system
         public string? ExternalStatus { get; set; }           // optional status snapshot (confirmed/cancelled/etc.)
+
+        public string? HouseNotesSnapshotJson { get; set; }
     }
 }

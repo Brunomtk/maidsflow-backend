@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\ControlApi\\ControlApi.csproj": {}
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\ControlApi\\ControlApi.csproj": {}
   },
   "projects": {
-    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\ControlApi\\ControlApi.csproj": {
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\ControlApi\\ControlApi.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\ControlApi\\ControlApi.csproj",
+        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\ControlApi\\ControlApi.csproj",
         "projectName": "ControlApi",
-        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\ControlApi\\ControlApi.csproj",
+        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\ControlApi\\ControlApi.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\ControlApi\\obj\\",
+        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\ControlApi\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -32,23 +32,21 @@
           "net10.0": {
             "targetAlias": "net10.0",
             "projectReferences": {
-              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Core\\Core.csproj": {
-                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Core\\Core.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Core\\Core.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Core\\Core.csproj"
               },
-              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Infrastructure\\Infrastructure.csproj": {
-                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Infrastructure\\Infrastructure.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Infrastructure\\Infrastructure.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Infrastructure\\Infrastructure.csproj"
               },
-              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Services\\Services.csproj": {
-                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Services\\Services.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Services\\Services.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Services\\Services.csproj"
               }
             }
           }
         },
         "warningProperties": {
           "noWarn": [
-            "NU1603",
             "NU1701",
-            "NU1901",
             "NU1902",
             "NU1903",
             "NU1904"
@@ -57,9 +55,7 @@
             "NU1605"
           ],
           "warnNotAsError": [
-            "NU1603",
             "NU1701",
-            "NU1901",
             "NU1902",
             "NU1903",
             "NU1904"
@@ -620,14 +616,14 @@
         }
       }
     },
-    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Core\\Core.csproj": {
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Core\\Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Core\\Core.csproj",
+        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Core\\Core.csproj",
         "projectName": "Core",
-        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Core\\Core.csproj",
+        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Core\\Core.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Core\\obj\\",
+        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Core\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -652,9 +648,7 @@
         },
         "warningProperties": {
           "noWarn": [
-            "NU1603",
             "NU1701",
-            "NU1901",
             "NU1902",
             "NU1903",
             "NU1904"
@@ -663,9 +657,7 @@
             "NU1605"
           ],
           "warnNotAsError": [
-            "NU1603",
             "NU1701",
-            "NU1901",
             "NU1902",
             "NU1903",
             "NU1904"
@@ -1194,14 +1186,14 @@
         }
       }
     },
-    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Infrastructure\\Infrastructure.csproj": {
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Infrastructure\\Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Infrastructure\\Infrastructure.csproj",
+        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Infrastructure\\Infrastructure.csproj",
         "projectName": "Infrastructure",
-        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Infrastructure\\Infrastructure.csproj",
+        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Infrastructure\\Infrastructure.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Infrastructure\\obj\\",
+        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -1222,17 +1214,15 @@
           "net10.0": {
             "targetAlias": "net10.0",
             "projectReferences": {
-              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Core\\Core.csproj": {
-                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Core\\Core.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Core\\Core.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Core\\Core.csproj"
               }
             }
           }
         },
         "warningProperties": {
           "noWarn": [
-            "NU1603",
             "NU1701",
-            "NU1901",
             "NU1902",
             "NU1903",
             "NU1904"
@@ -1241,9 +1231,7 @@
             "NU1605"
           ],
           "warnNotAsError": [
-            "NU1603",
             "NU1701",
-            "NU1901",
             "NU1902",
             "NU1903",
             "NU1904"
@@ -1798,14 +1786,14 @@
         }
       }
     },
-    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Services\\Services.csproj": {
+    "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Services\\Services.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Services\\Services.csproj",
+        "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Services\\Services.csproj",
         "projectName": "Services",
-        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Services\\Services.csproj",
+        "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Services\\Services.csproj",
         "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Services\\obj\\",
+        "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Services\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -1826,20 +1814,18 @@
           "net10.0": {
             "targetAlias": "net10.0",
             "projectReferences": {
-              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Core\\Core.csproj": {
-                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Core\\Core.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Core\\Core.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Core\\Core.csproj"
               },
-              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Infrastructure\\Infrastructure.csproj": {
-                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow_backend_push-background-v1-fix-namespace-v2\\payfix\\Infrastructure\\Infrastructure.csproj"
+              "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Infrastructure\\Infrastructure.csproj": {
+                "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Infrastructure\\Infrastructure.csproj"
               }
             }
           }
         },
         "warningProperties": {
           "noWarn": [
-            "NU1603",
             "NU1701",
-            "NU1901",
             "NU1902",
             "NU1903",
             "NU1904"
@@ -1848,9 +1834,7 @@
             "NU1605"
           ],
           "warnNotAsError": [
-            "NU1603",
             "NU1701",
-            "NU1901",
             "NU1902",
             "NU1903",
             "NU1904"
