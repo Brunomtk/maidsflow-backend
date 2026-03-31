@@ -53,14 +53,23 @@ namespace Services
 
         public async Task<List<ServiceIssue>> GetByCompanyAsync()
         {
-            if (!_currentUser.IsAdmin && !_currentUser.IsCompany)
-                throw new ForbiddenException("You do not have permission to list company issues.");
-
             var companyId = await _scope.GetScopedCompanyIdAsync();
             if (!companyId.HasValue)
                 throw new ForbiddenException("A company scope is required.");
 
-            return await _uow.ServiceIssues.GetByCompanyAsync(companyId.Value);
+            if (_currentUser.IsAdmin || _currentUser.IsCompany)
+                return await _uow.ServiceIssues.GetByCompanyAsync(companyId.Value);
+
+            if (_currentUser.IsProfessional)
+            {
+                var professionalId = await _scope.GetScopedProfessionalIdAsync();
+                if (!professionalId.HasValue)
+                    throw new ForbiddenException("A professional scope is required.");
+
+                return await _uow.ServiceIssues.GetByProfessionalAsync(companyId.Value, professionalId.Value);
+            }
+
+            throw new ForbiddenException("You do not have permission to list issues.");
         }
 
         public async Task<List<ServiceIssue>> GetByAppointmentAsync(int appointmentId)

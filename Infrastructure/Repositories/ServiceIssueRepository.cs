@@ -10,6 +10,7 @@ namespace Infrastructure.Repositories
     {
         Task<ServiceIssue?> GetByIdAsync(int id);
         Task<List<ServiceIssue>> GetByCompanyAsync(int companyId);
+        Task<List<ServiceIssue>> GetByProfessionalAsync(int companyId, int professionalId);
         Task<List<ServiceIssue>> GetByAppointmentAsync(int appointmentId);
     }
 
@@ -40,6 +41,19 @@ namespace Infrastructure.Repositories
                 .Include(x => x.CustomerAddress)
                 .Include(x => x.Professional)
                 .Where(x => x.CompanyId == companyId)
+                .OrderByDescending(x => x.CreatedDate)
+                .ToListAsync();
+        }
+
+
+        public async Task<List<ServiceIssue>> GetByProfessionalAsync(int companyId, int professionalId)
+        {
+            return await _context.ServiceIssues
+                .Include(x => x.Appointment)
+                .Include(x => x.Customer)
+                .Include(x => x.CustomerAddress)
+                .Include(x => x.Professional)
+                .Where(x => x.CompanyId == companyId && x.ProfessionalId == professionalId)
                 .OrderByDescending(x => x.CreatedDate)
                 .ToListAsync();
         }
