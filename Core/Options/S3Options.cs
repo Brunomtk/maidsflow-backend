@@ -18,6 +18,9 @@ public class S3Options
     // Root prefix for house notes photos. Example: "HouseNotes/"
     public string HouseNotesPrefix { get; set; } = "HouseNotes/";
 
+    // Root prefix for issue photos. Example: "IssuePhotos/"
+    public string IssuePhotoPrefix { get; set; } = "IssuePhotos/";
+
     // Optional explicit credentials. Prefer environment variables / IAM role.
     public string? AccessKeyId { get; set; }
     public string? SecretAccessKey { get; set; }

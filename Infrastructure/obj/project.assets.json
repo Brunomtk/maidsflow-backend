@@ -4970,11 +4970,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-s3-aligned_v5\\Infrastructure\\Infrastructure.csproj",
+      "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_issues-photos-s3_v3_clean\\Infrastructure\\Infrastructure.csproj",
       "projectName": "Infrastructure",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-s3-aligned_v5\\Infrastructure\\Infrastructure.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_issues-photos-s3_v3_clean\\Infrastructure\\Infrastructure.csproj",
       "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-      "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-s3-aligned_v5\\Infrastructure\\obj\\",
+      "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_issues-photos-s3_v3_clean\\Infrastructure\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -4995,8 +4995,8 @@
         "net10.0": {
           "targetAlias": "net10.0",
           "projectReferences": {
-            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-s3-aligned_v5\\Core\\Core.csproj": {
-              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-s3-aligned_v5\\Core\\Core.csproj"
+            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_issues-photos-s3_v3_clean\\Core\\Core.csproj": {
+              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_issues-photos-s3_v3_clean\\Core\\Core.csproj"
             }
           }
         }

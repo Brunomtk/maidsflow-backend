@@ -7,6 +7,7 @@ using Core.Exceptions;
 using Core.Models;
 using Infrastructure.Repositories;
 using Services.Security;
+using Services.Storage;
 
 namespace Services
 {
@@ -40,12 +41,14 @@ namespace Services
         private readonly IUnitOfWork _uow;
         private readonly ICurrentUser _currentUser;
         private readonly IScopeGuard _scope;
+        private readonly IS3StorageService _s3;
 
-        public ServiceIssueService(IUnitOfWork uow, ICurrentUser currentUser, IScopeGuard scope)
+        public ServiceIssueService(IUnitOfWork uow, ICurrentUser currentUser, IScopeGuard scope, IS3StorageService s3)
         {
             _uow = uow;
             _currentUser = currentUser;
             _scope = scope;
+            _s3 = s3;
         }
 
         public async Task<List<ServiceIssue>> GetByCompanyAsync()
@@ -107,7 +110,7 @@ namespace Services
                 Summary = (dto.Summary ?? string.Empty).Trim(),
                 Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim(),
                 EstimatedAmount = dto.EstimatedAmount,
-                PhotoUrls = dto.PhotoUrls ?? new List<string>()
+                PhotoUrls = NormalizePhotoValues(dto.PhotoKeys ?? dto.PhotoUrls)
             };
 
             await _uow.ServiceIssues.Add(issue);
@@ -156,6 +159,19 @@ namespace Services
                 throw new BadRequestException("Invalid issue status.");
 
             return normalized;
+        }
+
+        private List<string> NormalizePhotoValues(List<string>? values)
+        {
+            if (values == null || values.Count == 0) return new List<string>();
+
+            return values
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Select(x => _s3.TryGetKeyFromStoredValue(x, out var key) ? key : x)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
 
         private async Task<int?> ResolveReportedProfessionalIdAsync()

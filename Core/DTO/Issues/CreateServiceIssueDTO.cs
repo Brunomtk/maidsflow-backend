@@ -22,5 +22,7 @@ namespace Core.DTO.Issues
         public decimal? EstimatedAmount { get; set; }
 
         public List<string>? PhotoUrls { get; set; }
+
+        public List<string>? PhotoKeys { get; set; }
     }
 }

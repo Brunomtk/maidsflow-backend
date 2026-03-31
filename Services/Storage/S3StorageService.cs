@@ -167,6 +167,31 @@ public class S3StorageService : IS3StorageService
         return new PresignedUploadResult(key, url, expiresAt);
     }
 
+    public PresignedUploadResult CreateIssuePhotoUploadUrl(int appointmentId, int issueId, string fileName, string contentType)
+    {
+        if (appointmentId <= 0) throw new ArgumentOutOfRangeException(nameof(appointmentId));
+        if (string.IsNullOrWhiteSpace(_opt.BucketName))
+            throw new InvalidOperationException("S3 BucketName não configurado. Configure em appsettings (S3:BucketName) ou variável de ambiente.");
+
+        var ext = Path.GetExtension(fileName);
+        if (string.IsNullOrWhiteSpace(ext)) ext = ".jpg";
+
+        var key = BuildIssuePhotoKey(appointmentId, issueId, ext);
+        var expiresAt = DateTimeOffset.UtcNow.AddMinutes(_opt.UploadUrlExpiresMinutes <= 0 ? 10 : _opt.UploadUrlExpiresMinutes);
+
+        var req = new GetPreSignedUrlRequest
+        {
+            BucketName = _opt.BucketName,
+            Key = key,
+            Verb = HttpVerb.PUT,
+            Protocol = Protocol.HTTPS,
+            Expires = expiresAt.UtcDateTime
+        };
+
+        var url = _s3.GetPreSignedURL(req);
+        return new PresignedUploadResult(key, url, expiresAt);
+    }
+
     public string? CreateDownloadUrl(string key, int? expiresMinutes = null)
     {
         if (string.IsNullOrWhiteSpace(_opt.BucketName)) return key;
@@ -288,5 +313,15 @@ public class S3StorageService : IS3StorageService
 
         var name = $"{Guid.NewGuid():N}{ext}";
         return $"{prefix}customers/{customerId}/addresses/{addressId}/{name}";
+    }
+
+    private string BuildIssuePhotoKey(int appointmentId, int issueId, string ext)
+    {
+        var prefix = string.IsNullOrWhiteSpace(_opt.IssuePhotoPrefix) ? "IssuePhotos/" : _opt.IssuePhotoPrefix;
+        if (!prefix.EndsWith('/')) prefix += "/";
+
+        var issueSegment = issueId > 0 ? issueId.ToString() : "draft";
+        var name = $"{Guid.NewGuid():N}{ext}";
+        return $"{prefix}appointments/{appointmentId}/issues/{issueSegment}/{name}";
     }
 }
