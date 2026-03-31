@@ -67,9 +67,6 @@ namespace Infrastructure.Migrations
                     b.Property<string>("ExternalStatus")
                         .HasColumnType("text");
 
-                    b.Property<string>("HouseNotesSnapshotJson")
-                        .HasColumnType("jsonb");
-
                     b.Property<bool>("IsException")
                         .HasColumnType("boolean");
 
@@ -1290,32 +1287,6 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime?>("GuestySyncedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("HouseAccessNotes")
-                        .HasMaxLength(600)
-                        .HasColumnType("character varying(600)");
-
-                    b.Property<string>("HouseGateCode")
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<bool?>("HouseHasPets")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("HousePetNotes")
-                        .HasMaxLength(600)
-                        .HasColumnType("character varying(600)");
-
-                    b.Property<string>("HousePhotoUrlsJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("HousePriorityNotes")
-                        .HasMaxLength(800)
-                        .HasColumnType("character varying(800)");
-
-                    b.Property<string>("HouseRestrictionsNotes")
-                        .HasMaxLength(800)
-                        .HasColumnType("character varying(800)");
-
                     b.Property<bool>("IsPrimary")
                         .HasColumnType("boolean");
 
@@ -2436,95 +2407,6 @@ namespace Infrastructure.Migrations
                     b.ToTable("Reviews", (string)null);
                 });
 
-            modelBuilder.Entity("Core.Models.ServiceIssue", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AppointmentId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal?>("ApprovedAmount")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<int>("CompanyId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("CustomerAddressId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("CustomerId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<decimal?>("EstimatedAmount")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("InternalNotes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<string>("PhotoUrlsJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<int?>("ProfessionalId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ReportedByUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("ResolvedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("ReviewedByUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<string>("Summary")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(60)
-                        .HasColumnType("character varying(60)");
-
-                    b.Property<DateTime>("UpdatedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AppointmentId");
-
-                    b.HasIndex("CustomerAddressId");
-
-                    b.HasIndex("CustomerId");
-
-                    b.HasIndex("ProfessionalId");
-
-                    b.HasIndex("ReportedByUserId");
-
-                    b.HasIndex("ReviewedByUserId");
-
-                    b.HasIndex("CompanyId", "Status", "CreatedDate");
-
-                    b.ToTable("ServiceIssues", (string)null);
-                });
-
             modelBuilder.Entity("Core.Models.ServiceType", b =>
                 {
                     b.Property<int>("Id")
@@ -3298,61 +3180,6 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("CustomerAddress");
-                });
-
-            modelBuilder.Entity("Core.Models.ServiceIssue", b =>
-                {
-                    b.HasOne("Core.Models.Appointment", "Appointment")
-                        .WithMany()
-                        .HasForeignKey("AppointmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Core.Models.Company", "Company")
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Core.Models.CustomerAddress", "CustomerAddress")
-                        .WithMany()
-                        .HasForeignKey("CustomerAddressId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Core.Models.Customer", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Core.Models.Professional", "Professional")
-                        .WithMany()
-                        .HasForeignKey("ProfessionalId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Core.Models.User", "ReportedByUser")
-                        .WithMany()
-                        .HasForeignKey("ReportedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Core.Models.User", "ReviewedByUser")
-                        .WithMany()
-                        .HasForeignKey("ReviewedByUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Appointment");
-
-                    b.Navigation("Company");
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("CustomerAddress");
-
-                    b.Navigation("Professional");
-
-                    b.Navigation("ReportedByUser");
-
-                    b.Navigation("ReviewedByUser");
                 });
 
             modelBuilder.Entity("Core.Models.ServiceType", b =>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.Json;
+using Core.DTO.Customer;
 using System.Threading;
 using System.Threading.Tasks;
 using Core.DTO.RoutePlanning;
@@ -68,7 +69,7 @@ namespace Services
             // Get occurrences (normal + expanded recurring instances with exceptions) for the day for this professional.
             var occurrences = await GetCalendarOccurrencesForProfessionalAsync(rangeStart, rangeEnd, professionalId, companyId, ct);
 
-            var stopsRaw = new List<(int AppointmentId, string Title, string Address, DateTime Start, DateTime End)>();
+            var stopsRaw = new List<(int AppointmentId, int? CustomerId, int? CustomerAddressId, string? Status, string? HouseNotesSnapshotJson, string Title, string Address, DateTime Start, DateTime End)>();
 
             foreach (var o in occurrences.OrderBy(o => o.Start))
             {
@@ -89,7 +90,7 @@ namespace Services
                 var apptId = o.AppointmentId ?? o.AnchorAppointmentId ?? 0;
                 if (apptId <= 0) continue;
 
-                stopsRaw.Add((apptId, title, addr, o.Start, o.End));
+                stopsRaw.Add((apptId, o.CustomerId, o.CustomerAddressId, o.Status, o.HouseNotesSnapshotJson, title, addr, o.Start, o.End));
             }
 
             if (stopsRaw.Count == 0)
@@ -109,7 +110,7 @@ namespace Services
             var destination = string.IsNullOrWhiteSpace(request.EndAddress) ? stopsRaw.Last().Address : request.EndAddress!.Trim();
 
             // Waypoints: if origin/destination not overridden, optimize internal stops only.
-            List<(int AppointmentId, string Title, string Address, DateTime Start, DateTime End)> waypointStops;
+            List<(int AppointmentId, int? CustomerId, int? CustomerAddressId, string? Status, string? HouseNotesSnapshotJson, string Title, string Address, DateTime Start, DateTime End)> waypointStops;
             if (string.IsNullOrWhiteSpace(request.StartAddress) && string.IsNullOrWhiteSpace(request.EndAddress))
             {
                 waypointStops = stopsRaw.Skip(1).Take(Math.Max(0, stopsRaw.Count - 2)).ToList();
@@ -121,11 +122,31 @@ namespace Services
 
             // Geocode each stop address to ensure we can always render pins and build fallback polylines.
             // (Directions may be unavailable if API isn't enabled; we still return coords for every stop.)
-            var geocoded = new List<(int AppointmentId, string Title, string Address, double? Lat, double? Lng, DateTime Start, DateTime End)>();
+            var appointmentIds = stopsRaw.Select(x => x.AppointmentId).Where(x => x > 0).Distinct().ToList();
+            var addressIds = stopsRaw.Where(x => x.CustomerAddressId.HasValue).Select(x => x.CustomerAddressId!.Value).Distinct().ToList();
+
+            var issueCountsByAppointment = await _db.Set<ServiceIssue>().AsNoTracking()
+                .Where(x => appointmentIds.Contains(x.AppointmentId))
+                .GroupBy(x => x.AppointmentId)
+                .Select(g => new
+                {
+                    AppointmentId = g.Key,
+                    TotalCount = g.Count(),
+                    OpenCount = g.Count(x => x.Status == "open" || x.Status == "in-review")
+                })
+                .ToDictionaryAsync(x => x.AppointmentId, x => new { x.TotalCount, x.OpenCount }, ct);
+
+            var customerAddressMap = addressIds.Count > 0
+                ? await _db.Set<CustomerAddress>().AsNoTracking()
+                    .Where(x => addressIds.Contains(x.Id))
+                    .ToDictionaryAsync(x => x.Id, x => x, ct)
+                : new Dictionary<int, CustomerAddress>();
+
+            var geocoded = new List<(int AppointmentId, int? CustomerId, int? CustomerAddressId, string? Status, string? HouseNotesSnapshotJson, string Title, string Address, double? Lat, double? Lng, DateTime Start, DateTime End)>();
             foreach (var s in stopsRaw)
             {
                 var coords = await _geocoding.GeocodeAsync(s.Address, ct);
-                geocoded.Add((s.AppointmentId, s.Title, s.Address, coords?.Latitude, coords?.Longitude, s.Start, s.End));
+                geocoded.Add((s.AppointmentId, s.CustomerId, s.CustomerAddressId, s.Status, s.HouseNotesSnapshotJson, s.Title, s.Address, coords?.Latitude, coords?.Longitude, s.Start, s.End));
             }
 
             // Try to call Directions (if enabled) for true distance/duration and overview polyline.
@@ -153,7 +174,7 @@ namespace Services
                         {
                             var first = stopsRaw.First();
                             var last = stopsRaw.Last();
-                            stopsRaw = new List<(int, string, string, DateTime, DateTime)>();
+                            stopsRaw = new List<(int AppointmentId, int? CustomerId, int? CustomerAddressId, string? Status, string? HouseNotesSnapshotJson, string Title, string Address, DateTime Start, DateTime End)>();
                             stopsRaw.Add(first);
                             stopsRaw.AddRange(reordered);
                             stopsRaw.Add(last);
@@ -170,7 +191,7 @@ namespace Services
                             if (geoMap.TryGetValue((s.AppointmentId, s.Address), out var g))
                                 return g;
                             var coords = _geocoding.GeocodeAsync(s.Address, ct).GetAwaiter().GetResult();
-                            return (s.AppointmentId, s.Title, s.Address, coords?.Latitude, coords?.Longitude, s.Start, s.End);
+                            return (s.AppointmentId, s.CustomerId, s.CustomerAddressId, s.Status, s.HouseNotesSnapshotJson, s.Title, s.Address, coords?.Latitude, coords?.Longitude, s.Start, s.End);
                         }).ToList();
                     }
                 }
@@ -189,15 +210,34 @@ namespace Services
                 TotalDistanceKm = totalKm,
                 TotalDurationMinutes = totalMinutes,
                 OverviewPolyline = overviewPolyline,
-                Stops = geocoded.Select(s => new RoutePlanStopDTO
+                Stops = geocoded.Select((s, index) =>
                 {
-                    AppointmentId = s.AppointmentId,
-                    Title = s.Title,
-                    Address = s.Address,
-                    Latitude = s.Lat,
-                    Longitude = s.Lng,
-                    Start = s.Start,
-                    End = s.End
+                    var houseNotes = ResolveHouseNotesSnapshotDto(s.HouseNotesSnapshotJson, s.CustomerAddressId, customerAddressMap);
+                    issueCountsByAppointment.TryGetValue(s.AppointmentId, out var counts);
+
+                    return new RoutePlanStopDTO
+                    {
+                        Sequence = index + 1,
+                        AppointmentId = s.AppointmentId,
+                        CustomerId = s.CustomerId,
+                        CustomerAddressId = s.CustomerAddressId,
+                        Title = s.Title,
+                        Address = s.Address,
+                        Latitude = s.Lat,
+                        Longitude = s.Lng,
+                        Start = s.Start,
+                        End = s.End,
+                        Status = s.Status,
+                        HasHouseNotes = houseNotes != null,
+                        HasPets = houseNotes?.HasPets == true,
+                        HasGateCode = !string.IsNullOrWhiteSpace(houseNotes?.GateCode),
+                        HasRestrictions = !string.IsNullOrWhiteSpace(houseNotes?.RestrictionsNotes),
+                        HasPriorityNotes = !string.IsNullOrWhiteSpace(houseNotes?.PriorityNotes),
+                        HouseNotes = houseNotes,
+                        TotalIssueCount = counts?.TotalCount ?? 0,
+                        OpenIssueCount = counts?.OpenCount ?? 0,
+                        HasOpenIssues = (counts?.OpenCount ?? 0) > 0
+                    };
                 }).ToList()
             };
         }
@@ -249,11 +289,14 @@ namespace Services
                 {
                     AppointmentId = a.Id,
                     AnchorAppointmentId = null,
+                    CustomerId = a.CustomerId,
                     Start = a.Start,
                     End = a.End,
                     Title = a.Title ?? a.Customer?.Name ?? "Appointment",
                     Address = ResolveAddressString(a.Address, null, a.CustomerAddress),
-                    CustomerAddressId = a.CustomerAddressId
+                    CustomerAddressId = a.CustomerAddressId,
+                    Status = a.Status.ToString(),
+                    HouseNotesSnapshotJson = string.IsNullOrWhiteSpace(a.HouseNotesSnapshotJson) ? SerializeHouseNotesSnapshot(a.CustomerAddress) : a.HouseNotesSnapshotJson
                 });
             }
 
@@ -334,11 +377,14 @@ namespace Services
                         {
                             AppointmentId = anchor.Id,
                             AnchorAppointmentId = anchor.Id,
+                            CustomerId = anchor.CustomerId,
                             Start = startFinal,
                             End = endFinal,
                             Title = !string.IsNullOrWhiteSpace(ex.OverrideTitle) ? ex.OverrideTitle! : (anchor.Title ?? anchor.Customer?.Name ?? "Appointment"),
                             Address = resolvedAddress,
-                            CustomerAddressId = finalCustomerAddressId
+                            CustomerAddressId = finalCustomerAddressId,
+                            Status = (ex.OverrideStatus ?? anchor.Status).ToString(),
+                            HouseNotesSnapshotJson = ResolveOccurrenceHouseNotesSnapshot(ex.OverrideCustomerAddressId ?? anchor.CustomerAddressId, anchor.HouseNotesSnapshotJson, anchor.CustomerAddress, ex.OverrideCustomerAddressId.HasValue)
                         });
 
                         continue;
@@ -352,11 +398,14 @@ namespace Services
                     {
                         AppointmentId = anchor.Id,
                         AnchorAppointmentId = anchor.Id,
+                        CustomerId = anchor.CustomerId,
                         Start = occStart,
                         End = occEnd,
                         Title = anchor.Title ?? anchor.Customer?.Name ?? "Appointment",
                         Address = ResolveAddressString(null, anchor.Address, anchor.CustomerAddress),
-                        CustomerAddressId = anchor.CustomerAddressId
+                        CustomerAddressId = anchor.CustomerAddressId,
+                        Status = anchor.Status.ToString(),
+                        HouseNotesSnapshotJson = ResolveOccurrenceHouseNotesSnapshot(anchor.CustomerAddressId, anchor.HouseNotesSnapshotJson, anchor.CustomerAddress, false)
                     });
                 }
             }
@@ -573,15 +622,96 @@ namespace Services
             return d;
         }
 
+        private string? ResolveOccurrenceHouseNotesSnapshot(int? customerAddressId, string? existingSnapshotJson, CustomerAddress? fallbackAddress, bool forceAddressRefresh)
+        {
+            if (!forceAddressRefresh && !string.IsNullOrWhiteSpace(existingSnapshotJson))
+                return existingSnapshotJson;
+
+            if (customerAddressId.HasValue)
+            {
+                var addr = _db.Set<CustomerAddress>().AsNoTracking().FirstOrDefault(x => x.Id == customerAddressId.Value);
+                if (addr != null)
+                    return SerializeHouseNotesSnapshot(addr);
+            }
+
+            return SerializeHouseNotesSnapshot(fallbackAddress);
+        }
+
+        private static HouseNotesSnapshotDTO? ResolveHouseNotesSnapshotDto(string? snapshotJson, int? customerAddressId, IReadOnlyDictionary<int, CustomerAddress> customerAddressMap)
+        {
+            if (!string.IsNullOrWhiteSpace(snapshotJson))
+            {
+                try
+                {
+                    var parsed = JsonSerializer.Deserialize<HouseNotesSnapshotDTO>(snapshotJson);
+                    if (HasHouseNotes(parsed))
+                        return parsed;
+                }
+                catch
+                {
+                }
+            }
+
+            if (customerAddressId.HasValue && customerAddressMap.TryGetValue(customerAddressId.Value, out var addr))
+            {
+                var fromAddress = BuildHouseNotesSnapshot(addr);
+                if (HasHouseNotes(fromAddress))
+                    return fromAddress;
+            }
+
+            return null;
+        }
+
+        private static string? SerializeHouseNotesSnapshot(CustomerAddress? customerAddress)
+        {
+            var dto = BuildHouseNotesSnapshot(customerAddress);
+            return HasHouseNotes(dto) ? JsonSerializer.Serialize(dto) : null;
+        }
+
+        private static HouseNotesSnapshotDTO? BuildHouseNotesSnapshot(CustomerAddress? customerAddress)
+        {
+            if (customerAddress == null)
+                return null;
+
+            return new HouseNotesSnapshotDTO
+            {
+                CustomerAddressId = customerAddress.Id,
+                Label = customerAddress.Label,
+                AccessNotes = customerAddress.HouseAccessNotes,
+                GateCode = customerAddress.HouseGateCode,
+                HasPets = customerAddress.HouseHasPets,
+                PetNotes = customerAddress.HousePetNotes,
+                RestrictionsNotes = customerAddress.HouseRestrictionsNotes,
+                PriorityNotes = customerAddress.HousePriorityNotes,
+                PhotoUrls = customerAddress.HousePhotoUrls ?? new List<string>()
+            };
+        }
+
+        private static bool HasHouseNotes(HouseNotesSnapshotDTO? snapshot)
+        {
+            if (snapshot == null) return false;
+
+            return !string.IsNullOrWhiteSpace(snapshot.AccessNotes)
+                   || !string.IsNullOrWhiteSpace(snapshot.GateCode)
+                   || snapshot.HasPets == true
+                   || !string.IsNullOrWhiteSpace(snapshot.PetNotes)
+                   || !string.IsNullOrWhiteSpace(snapshot.RestrictionsNotes)
+                   || !string.IsNullOrWhiteSpace(snapshot.PriorityNotes)
+                   || (snapshot.PhotoUrls?.Count ?? 0) > 0;
+        }
+
         private class CalendarRow
         {
             public int? AppointmentId { get; set; }
             public int? AnchorAppointmentId { get; set; }
+            public int? CustomerId { get; set; }
             public DateTime Start { get; set; }
             public DateTime End { get; set; }
             public string? Title { get; set; }
             public string? Address { get; set; }
             public int? CustomerAddressId { get; set; }
+            public string? Status { get; set; }
+            public string? HouseNotesSnapshotJson { get; set; }
         }
     }
 }

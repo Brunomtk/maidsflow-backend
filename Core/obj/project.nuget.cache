@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "J1SPkORP7ro=",
+  "dgSpecHash": "j85ylZ7iC0k=",
   "success": true,
-  "projectFilePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-issues_recurrence-fix_v7\\Core\\Core.csproj",
+  "projectFilePath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route-day-house-notes-issues_v1\\Core\\Core.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\bruno\\.nuget\\packages\\bblanchon.pdfium.linux\\128.0.6569\\bblanchon.pdfium.linux.128.0.6569.nupkg.sha512",
     "C:\\Users\\bruno\\.nuget\\packages\\bblanchon.pdfium.macos\\128.0.6569\\bblanchon.pdfium.macos.128.0.6569.nupkg.sha512",
