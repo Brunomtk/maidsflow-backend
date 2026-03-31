@@ -7,12 +7,14 @@ using Core.DTO.Customer;
 using Core.Models;
 using Infrastructure.Repositories;
 using Services.Security;
+using Services.Storage;
 
 namespace Services
 {
     public interface ICustomerAddressService
     {
         Task<List<CustomerAddress>> GetByCustomerAsync(int customerId);
+        Task<CustomerAddress?> GetByIdForCustomerAsync(int customerId, int addressId);
         Task<CustomerAddress?> CreateAsync(int customerId, CreateCustomerAddressDTO dto);
         Task<CustomerAddress?> UpdateAsync(int customerId, int addressId, UpdateCustomerAddressDTO dto);
         Task<bool> DeleteAsync(int customerId, int addressId);
@@ -24,12 +26,30 @@ namespace Services
         private readonly IUnitOfWork _uow;
         private readonly ICurrentUser _currentUser;
         private readonly IScopeGuard _scope;
+        private readonly IS3StorageService _s3;
 
-        public CustomerAddressService(IUnitOfWork uow, ICurrentUser currentUser, IScopeGuard scope)
+        public CustomerAddressService(IUnitOfWork uow, ICurrentUser currentUser, IScopeGuard scope, IS3StorageService s3)
         {
             _uow = uow;
             _currentUser = currentUser;
             _scope = scope;
+            _s3 = s3;
+        }
+
+        public async Task<CustomerAddress?> GetByIdForCustomerAsync(int customerId, int addressId)
+        {
+            if (_currentUser.IsPropertyManager)
+                await _scope.EnsureCustomerInCompanyAsync(customerId);
+
+            var customer = await _uow.Customers.GetByIdAsync(customerId);
+            if (customer == null) return null;
+
+            await _scope.EnsureCompanyAccessAsync(customer.CompanyId);
+
+            var address = await _uow.CustomerAddresses.GetByIdAsync(addressId);
+            if (address == null || address.CustomerId != customerId) return null;
+
+            return address;
         }
 
         public async Task<List<CustomerAddress>> GetByCustomerAsync(int customerId)
@@ -83,6 +103,8 @@ namespace Services
             if (addr.IsPrimary)
                 await SyncCustomerLegacyFromPrimaryAsync(customerId, addr);
 
+            await SyncRelatedHouseNotesSnapshotsAsync(addr);
+
             return addr;
         }
 
@@ -114,7 +136,7 @@ namespace Services
             if (dto.HousePetNotes != null) addr.HousePetNotes = Clean(dto.HousePetNotes, 600);
             if (dto.HouseRestrictionsNotes != null) addr.HouseRestrictionsNotes = Clean(dto.HouseRestrictionsNotes, 800);
             if (dto.HousePriorityNotes != null) addr.HousePriorityNotes = Clean(dto.HousePriorityNotes, 800);
-            if (dto.HousePhotoUrls != null) addr.HousePhotoUrls = dto.HousePhotoUrls;
+            if (dto.HousePhotoUrls != null) addr.HousePhotoUrls = NormalizePhotoValues(dto.HousePhotoUrls);
             addr.UpdatedDate = DateTime.UtcNow;
 
             _uow.CustomerAddresses.Update(addr);
@@ -123,6 +145,8 @@ namespace Services
 
             if (addr.IsPrimary)
                 await SyncCustomerLegacyFromPrimaryAsync(customerId, addr);
+
+            await SyncRelatedHouseNotesSnapshotsAsync(addr);
 
             return addr;
         }
@@ -198,7 +222,7 @@ namespace Services
             await _uow.SaveAsync();
         }
 
-        private static void ApplyHouseNotes(CustomerAddress address, string? accessNotes, string? gateCode, bool? hasPets, string? petNotes, string? restrictionsNotes, string? priorityNotes, List<string>? photoUrls)
+        private void ApplyHouseNotes(CustomerAddress address, string? accessNotes, string? gateCode, bool? hasPets, string? petNotes, string? restrictionsNotes, string? priorityNotes, List<string>? photoUrls)
         {
             address.HouseAccessNotes = Clean(accessNotes, 600);
             address.HouseGateCode = Clean(gateCode, 120);
@@ -206,7 +230,32 @@ namespace Services
             address.HousePetNotes = Clean(petNotes, 600);
             address.HouseRestrictionsNotes = Clean(restrictionsNotes, 800);
             address.HousePriorityNotes = Clean(priorityNotes, 800);
-            address.HousePhotoUrls = photoUrls ?? new List<string>();
+            address.HousePhotoUrls = NormalizePhotoValues(photoUrls);
+        }
+
+
+        private List<string> NormalizePhotoValues(List<string>? photoUrls)
+        {
+            if (photoUrls == null || photoUrls.Count == 0)
+                return new List<string>();
+
+            var normalized = new List<string>();
+            foreach (var item in photoUrls)
+            {
+                if (string.IsNullOrWhiteSpace(item))
+                    continue;
+
+                var trimmed = item.Trim();
+                if (_s3.TryGetKeyFromStoredValue(trimmed, out var key) && !string.IsNullOrWhiteSpace(key))
+                    normalized.Add(key);
+                else
+                    normalized.Add(trimmed);
+            }
+
+            return normalized
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
 
         private static string? Clean(string? value, int maxLength)
@@ -214,6 +263,69 @@ namespace Services
             if (string.IsNullOrWhiteSpace(value)) return null;
             var trimmed = value.Trim();
             return trimmed.Length <= maxLength ? trimmed : trimmed.Substring(0, maxLength);
+        }
+
+        private async Task SyncRelatedHouseNotesSnapshotsAsync(CustomerAddress addr)
+        {
+            try
+            {
+                var appointments = (await _uow.Appointments.GetAppointmentsByCustomerAsync(addr.CustomerId))
+                    .Where(x => x.CustomerAddressId == addr.Id)
+                    .ToList();
+
+                if (appointments.Count == 0)
+                    return;
+
+                var snapshot = BuildHouseNotesSnapshotJson(addr);
+                var changed = false;
+
+                foreach (var appointment in appointments)
+                {
+                    if (appointment.HouseNotesSnapshotJson == snapshot)
+                        continue;
+
+                    appointment.HouseNotesSnapshotJson = snapshot;
+                    appointment.UpdatedDate = DateTime.UtcNow;
+                    _uow.Appointments.Update(appointment);
+                    changed = true;
+                }
+
+                if (changed)
+                    await _uow.SaveAsync();
+            }
+            catch
+            {
+                // Best-effort sync only. Address save should not fail because of snapshot propagation.
+            }
+        }
+
+        private static string? BuildHouseNotesSnapshotJson(CustomerAddress address)
+        {
+            var hasAny =
+                !string.IsNullOrWhiteSpace(address.HouseAccessNotes) ||
+                !string.IsNullOrWhiteSpace(address.HouseGateCode) ||
+                address.HouseHasPets.HasValue ||
+                !string.IsNullOrWhiteSpace(address.HousePetNotes) ||
+                !string.IsNullOrWhiteSpace(address.HouseRestrictionsNotes) ||
+                !string.IsNullOrWhiteSpace(address.HousePriorityNotes) ||
+                (address.HousePhotoUrls?.Count ?? 0) > 0;
+
+            if (!hasAny)
+                return null;
+
+            var snapshot = new HouseNotesSnapshotDTO
+            {
+                CustomerAddressId = address.Id,
+                AccessNotes = address.HouseAccessNotes,
+                GateCode = address.HouseGateCode,
+                HasPets = address.HouseHasPets,
+                PetNotes = address.HousePetNotes,
+                RestrictionsNotes = address.HouseRestrictionsNotes,
+                PriorityNotes = address.HousePriorityNotes,
+                PhotoUrls = address.HousePhotoUrls
+            };
+
+            return System.Text.Json.JsonSerializer.Serialize(snapshot);
         }
 
         private async Task SyncCustomerLegacyFromPrimaryAsync(int customerId, CustomerAddress addr)

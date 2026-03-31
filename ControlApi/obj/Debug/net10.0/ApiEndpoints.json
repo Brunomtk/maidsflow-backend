@@ -522,22 +522,6 @@
   },
   {
     "ContainingType": "ControlApi.Controllers.AppointmentsRecurrenceController",
-    "Method": "GetInstanceHouseNotes",
-    "RelativePath": "api/AppointmentsRecurrence/instance/{instanceId}/house-notes",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "instanceId",
-        "Type": "System.String",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "ControlApi.Controllers.AppointmentsRecurrenceController",
     "Method": "SendOnMyWaySmsInstance",
     "RelativePath": "api/AppointmentsRecurrence/instance/{instanceId}/on-my-way-sms",
     "HttpMethod": "POST",
@@ -2006,6 +1990,32 @@
       {
         "Name": "dto",
         "Type": "Core.DTO.Customer.UpdateCustomerAddressDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ControlApi.Controllers.CustomerController",
+    "Method": "PresignHouseNotesPhotoUpload",
+    "RelativePath": "api/Customer/{id}/addresses/{addressId}/house-notes/photos/presign",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "addressId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "Core.DTO.Customer.PresignHouseNotesPhotoUploadRequest",
         "IsRequired": true
       }
     ],

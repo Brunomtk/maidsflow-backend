@@ -14,6 +14,10 @@ public class S3Options
     // Root prefix for user avatars. Example: "UserAvatar/"
     public string UserAvatarPrefix { get; set; } = "UserAvatar/";
 
+
+    // Root prefix for house notes photos. Example: "HouseNotes/"
+    public string HouseNotesPrefix { get; set; } = "HouseNotes/";
+
     // Optional explicit credentials. Prefer environment variables / IAM role.
     public string? AccessKeyId { get; set; }
     public string? SecretAccessKey { get; set; }

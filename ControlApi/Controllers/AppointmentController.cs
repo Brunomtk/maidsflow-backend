@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 using Services;
 using Services.Integrations.Twilio;
 using Services.Security;
+using Services.Storage;
+using System.Text.Json;
+using Core.DTO.Customer;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -22,17 +25,20 @@ namespace ControlApi.Controllers
         private readonly DbContextClass _db;
         private readonly IScopeGuard _scope;
         private readonly ITwilioSmsSender _sms;
+        private readonly IS3StorageService _s3;
 
         public AppointmentController(
             IAppointmentService appointmentService,
             DbContextClass db,
             IScopeGuard scope,
-            ITwilioSmsSender sms)
+            ITwilioSmsSender sms,
+            IS3StorageService s3)
         {
             _appointmentService = appointmentService;
             _db = db;
             _scope = scope;
             _sms = sms;
+            _s3 = s3;
         }
 
         private static string BuildCustomerAddressLine(CustomerAddress addr)
@@ -50,6 +56,45 @@ namespace ControlApi.Controllers
             if (!string.IsNullOrWhiteSpace(zip)) parts.Add(zip!);
 
             return string.Join(" - ", parts);
+        }
+
+
+        private HouseNotesResponseDTO? ResolveHouseNotesResponse(string? snapshotJson, int? customerAddressId)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(snapshotJson))
+                    return null;
+
+                var snapshot = JsonSerializer.Deserialize<HouseNotesSnapshotDTO>(snapshotJson);
+                if (snapshot == null)
+                    return null;
+
+                var photoKeys = (snapshot.PhotoUrls ?? new List<string>())
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(x => _s3.TryGetKeyFromStoredValue(x, out var key) ? key : x)
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Distinct(System.StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                return new HouseNotesResponseDTO
+                {
+                    AddressId = snapshot.CustomerAddressId ?? customerAddressId ?? 0,
+                    CustomerId = 0,
+                    AccessNotes = snapshot.AccessNotes,
+                    GateCode = snapshot.GateCode,
+                    HasPets = snapshot.HasPets,
+                    PetNotes = snapshot.PetNotes,
+                    RestrictionsNotes = snapshot.RestrictionsNotes,
+                    PriorityNotes = snapshot.PriorityNotes,
+                    PhotoKeys = photoKeys,
+                    PhotoUrls = photoKeys.Select(x => _s3.CreateDownloadUrl(x) ?? x).ToList()
+                };
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         /// <summary>
@@ -87,7 +132,8 @@ namespace ControlApi.Controllers
                 appointment.Id,
                 appointment.CustomerId,
                 appointment.CustomerAddressId,
-                appointment.HouseNotesSnapshotJson
+                appointment.HouseNotesSnapshotJson,
+                HouseNotes = ResolveHouseNotesResponse(appointment.HouseNotesSnapshotJson, appointment.CustomerAddressId)
             });
         }
 

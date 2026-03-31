@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations;
 
 namespace Core.DTO.Customer
@@ -30,5 +31,27 @@ namespace Core.DTO.Customer
         public string? HouseRestrictionsNotes { get; set; }
         public string? HousePriorityNotes { get; set; }
         public List<string>? HousePhotoUrls { get; set; }
+
+
+        [JsonPropertyName("accessNotes")]
+        public string? AccessNotes { set => HouseAccessNotes = value; }
+
+        [JsonPropertyName("gateCode")]
+        public string? GateCode { set => HouseGateCode = value; }
+
+        [JsonPropertyName("hasPets")]
+        public bool? HasPets { set => HouseHasPets = value; }
+
+        [JsonPropertyName("petNotes")]
+        public string? PetNotes { set => HousePetNotes = value; }
+
+        [JsonPropertyName("restrictionsNotes")]
+        public string? RestrictionsNotes { set => HouseRestrictionsNotes = value; }
+
+        [JsonPropertyName("priorityNotes")]
+        public string? PriorityNotes { set => HousePriorityNotes = value; }
+
+        [JsonPropertyName("photoUrls")]
+        public List<string>? PhotoUrls { set => HousePhotoUrls = value; }
     }
 }

@@ -19,6 +19,8 @@ namespace Services.Storage
 
         PresignedUploadResult CreateUserAvatarUploadUrl(int userId, string fileName, string contentType);
 
+        PresignedUploadResult CreateHouseNotesPhotoUploadUrl(int customerId, int addressId, string fileName, string contentType);
+
         Task DeleteIfExistsAsync(string key);
     }
 }

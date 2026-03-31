@@ -6283,11 +6283,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route-day-house-notes-issues_v1\\Services\\Services.csproj",
+      "projectUniqueName": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-s3-aligned_v5\\Services\\Services.csproj",
       "projectName": "Services",
-      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route-day-house-notes-issues_v1\\Services\\Services.csproj",
+      "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-s3-aligned_v5\\Services\\Services.csproj",
       "packagesPath": "C:\\Users\\bruno\\.nuget\\packages\\",
-      "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route-day-house-notes-issues_v1\\Services\\obj\\",
+      "outputPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-s3-aligned_v5\\Services\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -6308,30 +6308,18 @@
         "net10.0": {
           "targetAlias": "net10.0",
           "projectReferences": {
-            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route-day-house-notes-issues_v1\\Core\\Core.csproj": {
-              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route-day-house-notes-issues_v1\\Core\\Core.csproj"
+            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-s3-aligned_v5\\Core\\Core.csproj": {
+              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-s3-aligned_v5\\Core\\Core.csproj"
             },
-            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route-day-house-notes-issues_v1\\Infrastructure\\Infrastructure.csproj": {
-              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_route-day-house-notes-issues_v1\\Infrastructure\\Infrastructure.csproj"
+            "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-s3-aligned_v5\\Infrastructure\\Infrastructure.csproj": {
+              "projectPath": "E:\\Projetos B7\\maidsflow\\DEV\\maidsflow-backend_house-notes-s3-aligned_v5\\Infrastructure\\Infrastructure.csproj"
             }
           }
         }
       },
       "warningProperties": {
-        "noWarn": [
-          "NU1701",
-          "NU1902",
-          "NU1903",
-          "NU1904"
-        ],
         "warnAsError": [
           "NU1605"
-        ],
-        "warnNotAsError": [
-          "NU1701",
-          "NU1902",
-          "NU1903",
-          "NU1904"
         ]
       },
       "restoreAuditProperties": {
@@ -6888,5 +6876,117 @@
         }
       }
     }
-  }
+  },
+  "logs": [
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "O pacote 'SixLabors.ImageSharp' 3.1.4 tem uma alta vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-2cmq-823j-5qj8",
+      "libraryId": "SixLabors.ImageSharp",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "O pacote 'SixLabors.ImageSharp' 3.1.4 tem uma alta vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-63p8-c4ww-9cg7",
+      "libraryId": "SixLabors.ImageSharp",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "O pacote 'SixLabors.ImageSharp' 3.1.4 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-qxrv-gp6x-rc23",
+      "libraryId": "SixLabors.ImageSharp",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "O pacote 'SixLabors.ImageSharp' 3.1.4 tem uma moderado vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-rxmq-m78w-7wmc",
+      "libraryId": "SixLabors.ImageSharp",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "O pacote 'SkiaSharp' 2.80.3 tem uma alta vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-j7hp-h8jx-5ppr",
+      "libraryId": "SkiaSharp",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "O pacote 'System.IO.Packaging' 6.0.0 tem uma alta vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-f32c-w444-8ppv",
+      "libraryId": "System.IO.Packaging",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "O pacote 'System.IO.Packaging' 6.0.0 tem uma alta vulnerabilidade de gravidade conhecida, https://github.com/advisories/GHSA-qj66-m88j-hmgj",
+      "libraryId": "System.IO.Packaging",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "O pacote 'iTextSharp 5.5.13.4' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net10.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
+      "libraryId": "iTextSharp",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "O pacote 'itextsharp.xmlworker 5.5.13.4' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net10.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
+      "libraryId": "itextsharp.xmlworker",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "O pacote 'LiveCharts 0.9.7' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net10.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
+      "libraryId": "LiveCharts",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "O pacote 'PdfiumViewer 2.13.0' foi restaurado usando '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' em vez da estrutura de destino do projeto 'net10.0'. Esse pacote pode não ser totalmente compatível com o seu projeto.",
+      "libraryId": "PdfiumViewer",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    }
+  ]
 }

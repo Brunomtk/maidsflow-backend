@@ -2,9 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Text.Json;
 using Core.DTO.Appointment;
-using Core.DTO.Customer;
 using Core.Exceptions;
 using Core.Models;
 using Infrastructure;
@@ -64,7 +62,6 @@ namespace ControlApi.Controllers
             if (!dto.IsRecurring)
             {
                 var appointment = MapAppointment(dto, startLocal, endLocal, tz, false, null);
-                await ApplyCustomerAddressAndHouseNotesAsync(appointment, dto.CustomerAddressId);
                 await _db.Set<Appointment>().AddAsync(appointment);
                 await _db.SaveChangesAsync();
                 return Ok(appointment);
@@ -81,7 +78,6 @@ namespace ControlApi.Controllers
 
             var seriesId = Guid.NewGuid();
             var recurringAppointment = MapAppointment(dto, startLocal, endLocal, tz, true, seriesId);
-            await ApplyCustomerAddressAndHouseNotesAsync(recurringAppointment, dto.CustomerAddressId);
 
             await _db.Set<Appointment>().AddAsync(recurringAppointment);
             await _db.SaveChangesAsync();
@@ -412,26 +408,6 @@ public async Task<IActionResult> GetCalendar(
         return legacyCustomerAddress ?? string.Empty;
     }
 
-
-    string? ResolveHouseNotesSnapshotForCalendar(
-        int? finalCustomerAddressId,
-        string? fallbackSnapshotJson,
-        CustomerAddress? navCustomerAddress)
-    {
-        if (finalCustomerAddressId.HasValue && customerAddressMap.TryGetValue(finalCustomerAddressId.Value, out var addr))
-        {
-            var currentSnapshot = CaptureHouseNotesSnapshot(addr);
-            if (!string.IsNullOrWhiteSpace(currentSnapshot))
-                return currentSnapshot;
-        }
-
-        var navSnapshot = CaptureHouseNotesSnapshot(navCustomerAddress);
-        if (!string.IsNullOrWhiteSpace(navSnapshot))
-            return navSnapshot;
-
-        return fallbackSnapshotJson;
-    }
-
     var outList = new List<CalendarOccurrenceDTO>();
 
     // Normal -> Calendar DTO
@@ -477,7 +453,6 @@ public async Task<IActionResult> GetCalendar(
             Title = title,
             Address = resolvedAddress,
             Notes = a.Notes,
-            HouseNotesSnapshotJson = a.HouseNotesSnapshotJson,
 
             CustomerEmail = a.Customer?.Email,
             CustomerPhone = a.Customer?.Phone,
@@ -614,7 +589,6 @@ public async Task<IActionResult> GetCalendar(
                     Title = title,
                     Address = resolvedAddress,
                     Notes = ex.OverrideNotes ?? anchor.Notes,
-                    HouseNotesSnapshotJson = ResolveHouseNotesSnapshotForCalendar(finalCustomerAddressId, anchor.HouseNotesSnapshotJson, anchor.CustomerAddress),
 
                     CustomerEmail = anchor.Customer?.Email,
                     CustomerPhone = anchor.Customer?.Phone,
@@ -686,7 +660,6 @@ public async Task<IActionResult> GetCalendar(
                 Title = baseTitle,
                 Address = resolvedAddressNoEx,
                 Notes = anchor.Notes,
-                HouseNotesSnapshotJson = ResolveHouseNotesSnapshotForCalendar(anchor.CustomerAddressId, anchor.HouseNotesSnapshotJson, anchor.CustomerAddress),
 
                 CustomerEmail = anchor.Customer?.Email,
                 CustomerPhone = anchor.Customer?.Phone,
@@ -746,45 +719,6 @@ public async Task<IActionResult> UpdateInstance(string instanceId, [FromBody] Up
 }
 
 
-
-[HttpGet("instance/{instanceId}/house-notes")]
-public async Task<IActionResult> GetInstanceHouseNotes(string instanceId, CancellationToken ct)
-{
-    if (!TryDecodeInstanceId(instanceId, out var seriesId, out var occStart))
-        return BadRequest("Invalid instanceId.");
-
-    var anchor = await _db.Set<Appointment>()
-        .AsNoTracking()
-        .Include(a => a.CustomerAddress)
-        .FirstOrDefaultAsync(a => a.IsRecurring && a.SeriesId == seriesId, ct);
-
-    if (anchor == null)
-        return NotFound();
-
-    var ex = await _db.Set<AppointmentRecurrenceException>()
-        .AsNoTracking()
-        .Where(e => e.SeriesId == seriesId && e.OccurrenceStart == occStart)
-        .OrderByDescending(e => e.UpdatedDate)
-        .FirstOrDefaultAsync(ct);
-
-    if (ex != null && ex.IsCancelled)
-        return BadRequest("Occurrence is cancelled.");
-
-    var finalCustomerAddressId = ex?.OverrideCustomerAddressId ?? anchor.CustomerAddressId;
-    var snapshotJson = ResolveHouseNotesSnapshot(finalCustomerAddressId, anchor.HouseNotesSnapshotJson, anchor.CustomerAddress);
-
-    return Ok(new
-    {
-        instanceId,
-        appointmentId = anchor.Id,
-        anchorAppointmentId = anchor.Id,
-        seriesId,
-        occurrenceStart = occStart,
-        customerId = anchor.CustomerId,
-        customerAddressId = finalCustomerAddressId,
-        houseNotesSnapshotJson = snapshotJson
-    });
-}
 
 /// <summary>
 /// Envia SMS "On my way" para uma ocorrência recorrente (InstanceId) via Twilio.
@@ -1069,103 +1003,6 @@ public async Task<IActionResult> DeleteInstance(
 
             _db.Set<AppointmentRecurrenceException>().RemoveRange(future);
         }
-        private async Task<CustomerAddress?> ResolveCustomerAddressAsync(int customerId, int? customerAddressId)
-        {
-            if (customerAddressId.HasValue && customerAddressId.Value > 0)
-            {
-                var selected = await _db.Set<CustomerAddress>()
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(ca => ca.Id == customerAddressId.Value && ca.CustomerId == customerId);
-
-                return selected;
-            }
-
-            return await _db.Set<CustomerAddress>()
-                .AsNoTracking()
-                .Where(ca => ca.CustomerId == customerId)
-                .OrderByDescending(ca => ca.IsPrimary)
-                .ThenByDescending(ca => ca.CreatedDate)
-                .FirstOrDefaultAsync();
-        }
-
-        private async Task ApplyCustomerAddressAndHouseNotesAsync(Appointment appointment, int? requestedCustomerAddressId)
-        {
-            if (!appointment.CustomerId.HasValue)
-            {
-                appointment.CustomerAddressId = null;
-                appointment.HouseNotesSnapshotJson = null;
-                return;
-            }
-
-            var resolvedAddress = await ResolveCustomerAddressAsync(appointment.CustomerId.Value, requestedCustomerAddressId);
-            if (resolvedAddress == null)
-            {
-                if (requestedCustomerAddressId.HasValue && requestedCustomerAddressId.Value > 0)
-                    throw new BadRequestException("Invalid CustomerAddressId for the selected customer.");
-
-                appointment.CustomerAddressId = null;
-                appointment.HouseNotesSnapshotJson = null;
-                return;
-            }
-
-            appointment.CustomerAddressId = resolvedAddress.Id;
-            appointment.HouseNotesSnapshotJson = CaptureHouseNotesSnapshot(resolvedAddress);
-
-            if (string.IsNullOrWhiteSpace(appointment.Address))
-                appointment.Address = BuildCustomerAddressLine(resolvedAddress);
-        }
-
-        private static string? CaptureHouseNotesSnapshot(CustomerAddress? address)
-        {
-            if (address == null)
-                return null;
-
-            var hasAnyData =
-                !string.IsNullOrWhiteSpace(address.HouseAccessNotes) ||
-                !string.IsNullOrWhiteSpace(address.HouseGateCode) ||
-                address.HouseHasPets.HasValue ||
-                !string.IsNullOrWhiteSpace(address.HousePetNotes) ||
-                !string.IsNullOrWhiteSpace(address.HouseRestrictionsNotes) ||
-                !string.IsNullOrWhiteSpace(address.HousePriorityNotes) ||
-                (address.HousePhotoUrls != null && address.HousePhotoUrls.Count > 0);
-
-            if (!hasAnyData)
-                return null;
-
-            return JsonSerializer.Serialize(new HouseNotesSnapshotDTO
-            {
-                CustomerAddressId = address.Id,
-                Label = address.Label,
-                AccessNotes = address.HouseAccessNotes,
-                GateCode = address.HouseGateCode,
-                HasPets = address.HouseHasPets,
-                PetNotes = address.HousePetNotes,
-                RestrictionsNotes = address.HouseRestrictionsNotes,
-                PriorityNotes = address.HousePriorityNotes,
-                PhotoUrls = address.HousePhotoUrls ?? new List<string>()
-            });
-        }
-
-        private string? ResolveHouseNotesSnapshot(int? customerAddressId, string? fallbackSnapshotJson, CustomerAddress? fallbackAddress)
-        {
-            if (customerAddressId.HasValue && customerAddressId.Value > 0)
-            {
-                var addr = _db.Set<CustomerAddress>()
-                    .AsNoTracking()
-                    .FirstOrDefault(ca => ca.Id == customerAddressId.Value);
-
-                var currentSnapshot = CaptureHouseNotesSnapshot(addr);
-                if (!string.IsNullOrWhiteSpace(currentSnapshot))
-                    return currentSnapshot;
-            }
-
-            var navSnapshot = CaptureHouseNotesSnapshot(fallbackAddress);
-            if (!string.IsNullOrWhiteSpace(navSnapshot))
-                return navSnapshot;
-
-            return fallbackSnapshotJson;
-        }
-
         private Appointment MapAppointment(
             CreateAppointmentDTO dto, DateTime start, DateTime end, TimeZoneInfo tz, bool isRecurring, Guid? seriesId)
         {
@@ -1540,8 +1377,6 @@ public async Task<IActionResult> DeleteInstance(
             // Relationships / Professionals
             if (dto.CustomerId.HasValue) current.CustomerId = dto.CustomerId.Value;
             if (dto.CustomerAddressId.HasValue) current.CustomerAddressId = dto.CustomerAddressId.Value <= 0 ? null : dto.CustomerAddressId.Value;
-            if (dto.CustomerId.HasValue || dto.CustomerAddressId.HasValue)
-                await ApplyCustomerAddressAndHouseNotesAsync(current, dto.CustomerAddressId);
             if (dto.TeamId.HasValue) current.TeamId = dto.TeamId.Value;
             if (dto.ProfessionalIds != null) current.ProfessionalIds = dto.ProfessionalIds.Distinct().ToList();
             if (dto.Start.HasValue && dto.End.HasValue)
@@ -1592,14 +1427,12 @@ public async Task<IActionResult> DeleteInstance(
                 TimeZoneId = anchor.TimeZoneId,
                 CompanyId = anchor.CompanyId,
                 CustomerId = anchor.CustomerId,
-                CustomerAddressId = anchor.CustomerAddressId,
                 TeamId = anchor.TeamId,
                 Status = anchor.Status,
                 Type = anchor.Type,
                 Category = anchor.Category ?? anchor.Type.ToString(),
                 ServiceTypeId = anchor.ServiceTypeId,
                 ProfessionalIdsData = anchor.ProfessionalIdsData,
-                HouseNotesSnapshotJson = anchor.HouseNotesSnapshotJson,
 
                 IsRecurring = true,
                 RecurrenceRule = anchor.RecurrenceRule,
@@ -1662,9 +1495,6 @@ private async Task UpdateAllAsync(Appointment anchor, UpdateAppointmentDTO dto, 
                 else if (dto.Type.HasValue) a.Category = dto.Type.Value.ToString();
                 if (dto.ServiceTypeId.HasValue) a.ServiceTypeId = normalizedServiceTypeId;
 
-                if (dto.CustomerId.HasValue) a.CustomerId = dto.CustomerId.Value;
-                if (dto.CustomerAddressId.HasValue) a.CustomerAddressId = dto.CustomerAddressId.Value <= 0 ? null : dto.CustomerAddressId.Value;
-
                 if (dto.ProfessionalIds != null)
                     a.ProfessionalIds = dto.ProfessionalIds.Distinct().ToList();
 
@@ -1677,9 +1507,6 @@ private async Task UpdateAllAsync(Appointment anchor, UpdateAppointmentDTO dto, 
                 if (dto.RecurrenceRule != null) a.RecurrenceRule = dto.RecurrenceRule;
                 if (dto.RecurrenceEnd.HasValue) a.RecurrenceEnd = dto.RecurrenceEnd.Value;
                 if (dto.OccurrenceCount.HasValue) a.OccurrenceCount = dto.OccurrenceCount.Value;
-
-                if (dto.CustomerId.HasValue || dto.CustomerAddressId.HasValue)
-                    await ApplyCustomerAddressAndHouseNotesAsync(a, dto.CustomerAddressId);
             }
         }
 

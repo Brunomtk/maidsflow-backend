@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Core.DTO.Customer;
 
 namespace Core.DTO.RoutePlanning
 {
@@ -25,27 +24,12 @@ namespace Core.DTO.RoutePlanning
 
     public class RoutePlanStopDTO
     {
-        public int Sequence { get; set; }
         public int AppointmentId { get; set; }
-        public int? CustomerId { get; set; }
-        public int? CustomerAddressId { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
         public DateTime Start { get; set; }
         public DateTime End { get; set; }
-        public string? Status { get; set; }
-
-        public bool HasHouseNotes { get; set; }
-        public bool HasPets { get; set; }
-        public bool HasGateCode { get; set; }
-        public bool HasRestrictions { get; set; }
-        public bool HasPriorityNotes { get; set; }
-        public HouseNotesSnapshotDTO? HouseNotes { get; set; }
-
-        public int TotalIssueCount { get; set; }
-        public int OpenIssueCount { get; set; }
-        public bool HasOpenIssues { get; set; }
     }
 }

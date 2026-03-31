@@ -4,6 +4,7 @@ using Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services;
+using Services.Storage;
 using System;
 using System.IO;
 using System.Linq;
@@ -20,13 +21,15 @@ namespace ControlApi.Controllers
         private readonly ICustomerAddressService _customerAddressService;
         private readonly IAppointmentService _appointmentService;
         private readonly IPaymentService _paymentService;
+        private readonly IS3StorageService _s3;
 
-        public CustomerController(ICustomerService customerService, ICustomerAddressService customerAddressService, IAppointmentService appointmentService, IPaymentService paymentService)
+        public CustomerController(ICustomerService customerService, ICustomerAddressService customerAddressService, IAppointmentService appointmentService, IPaymentService paymentService, IS3StorageService s3)
         {
             _customerService = customerService;
             _customerAddressService = customerAddressService;
             _appointmentService = appointmentService;
             _paymentService = paymentService;
+            _s3 = s3;
         }
 
         /// <summary>
@@ -72,7 +75,7 @@ namespace ControlApi.Controllers
         {
             if (id <= 0 || addressId <= 0) return BadRequest("ID inválido.");
             var updated = await _customerAddressService.UpdateAsync(id, addressId, dto);
-            return updated != null ? Ok(updated) : NotFound();
+            return updated != null ? Ok(ToHouseNotesResponse(updated, _s3)) : NotFound();
         }
 
         [HttpGet("{id}/addresses/{addressId}/house-notes")]
@@ -80,22 +83,10 @@ namespace ControlApi.Controllers
         {
             if (id <= 0 || addressId <= 0) return BadRequest("Invalid id.");
 
-            var addresses = await _customerAddressService.GetByCustomerAsync(id);
-            var address = addresses.FirstOrDefault(a => a.Id == addressId);
+            var address = await _customerAddressService.GetByIdForCustomerAsync(id, addressId);
             if (address == null) return NotFound();
 
-            return Ok(new
-            {
-                address.Id,
-                address.CustomerId,
-                address.HouseAccessNotes,
-                address.HouseGateCode,
-                address.HouseHasPets,
-                address.HousePetNotes,
-                address.HouseRestrictionsNotes,
-                address.HousePriorityNotes,
-                housePhotoUrls = address.HousePhotoUrls
-            });
+            return Ok(ToHouseNotesResponse(address, _s3));
         }
 
         [HttpPut("{id}/addresses/{addressId}/house-notes")]
@@ -103,7 +94,53 @@ namespace ControlApi.Controllers
         {
             if (id <= 0 || addressId <= 0) return BadRequest("Invalid id.");
             var updated = await _customerAddressService.UpdateAsync(id, addressId, dto);
-            return updated != null ? Ok(updated) : NotFound();
+            return updated != null ? Ok(ToHouseNotesResponse(updated, _s3)) : NotFound();
+        }
+
+
+        [HttpPost("{id}/addresses/{addressId}/house-notes/photos/presign")]
+        public async Task<IActionResult> PresignHouseNotesPhotoUpload(int id, int addressId, [FromBody] PresignHouseNotesPhotoUploadRequest request)
+        {
+            if (id <= 0 || addressId <= 0) return BadRequest("Invalid id.");
+
+            var address = await _customerAddressService.GetByIdForCustomerAsync(id, addressId);
+            if (address == null) return NotFound();
+
+            var fileName = string.IsNullOrWhiteSpace(request.FileName) ? "house-note-photo.jpg" : request.FileName.Trim();
+            var contentType = string.IsNullOrWhiteSpace(request.ContentType) ? "application/octet-stream" : request.ContentType.Trim();
+            var presign = _s3.CreateHouseNotesPhotoUploadUrl(id, addressId, fileName, contentType);
+
+            return Ok(new PresignHouseNotesPhotoUploadResponse
+            {
+                Key = presign.Key,
+                UploadUrl = presign.UploadUrl,
+                DownloadUrl = _s3.CreateDownloadUrl(presign.Key),
+                ExpiresAtUtc = presign.ExpiresAtUtc.UtcDateTime
+            });
+        }
+
+        private static HouseNotesResponseDTO ToHouseNotesResponse(CustomerAddress address, IS3StorageService s3)
+        {
+            var photoKeys = (address.HousePhotoUrls ?? new System.Collections.Generic.List<string>())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => s3.TryGetKeyFromStoredValue(x, out var key) ? key : x)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(System.StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            return new HouseNotesResponseDTO
+            {
+                AddressId = address.Id,
+                CustomerId = address.CustomerId,
+                AccessNotes = address.HouseAccessNotes,
+                GateCode = address.HouseGateCode,
+                HasPets = address.HouseHasPets,
+                PetNotes = address.HousePetNotes,
+                RestrictionsNotes = address.HouseRestrictionsNotes,
+                PriorityNotes = address.HousePriorityNotes,
+                PhotoKeys = photoKeys,
+                PhotoUrls = photoKeys.Select(x => s3.CreateDownloadUrl(x) ?? x).ToList()
+            };
         }
 
         [HttpDelete("{id}/addresses/{addressId}")]

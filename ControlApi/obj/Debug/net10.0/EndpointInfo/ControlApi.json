@@ -897,28 +897,6 @@
         }
       }
     },
-    "/api/AppointmentsRecurrence/instance/{instanceId}/house-notes": {
-      "get": {
-        "tags": [
-          "AppointmentsRecurrence"
-        ],
-        "parameters": [
-          {
-            "name": "instanceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      }
-    },
     "/api/AppointmentsRecurrence/instance/{instanceId}/on-my-way-sms": {
       "post": {
         "tags": [
@@ -3230,6 +3208,57 @@
             "application/*+json": {
               "schema": {
                 "$ref": "#/components/schemas/UpdateCustomerAddressDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Customer/{id}/addresses/{addressId}/house-notes/photos/presign": {
+      "post": {
+        "tags": [
+          "Customer"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "addressId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresignHouseNotesPhotoUploadRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresignHouseNotesPhotoUploadRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresignHouseNotesPhotoUploadRequest"
               }
             }
           }
@@ -11190,6 +11219,44 @@
               "type": "string"
             },
             "nullable": true
+          },
+          "accessNotes": {
+            "type": "string",
+            "nullable": true,
+            "writeOnly": true
+          },
+          "gateCode": {
+            "type": "string",
+            "nullable": true,
+            "writeOnly": true
+          },
+          "hasPets": {
+            "type": "boolean",
+            "nullable": true,
+            "writeOnly": true
+          },
+          "petNotes": {
+            "type": "string",
+            "nullable": true,
+            "writeOnly": true
+          },
+          "restrictionsNotes": {
+            "type": "string",
+            "nullable": true,
+            "writeOnly": true
+          },
+          "priorityNotes": {
+            "type": "string",
+            "nullable": true,
+            "writeOnly": true
+          },
+          "photoUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "writeOnly": true
           }
         },
         "additionalProperties": false
@@ -13398,6 +13465,20 @@
         },
         "additionalProperties": false
       },
+      "PresignHouseNotesPhotoUploadRequest": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "contentType": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "PresignUserAvatarRequest": {
         "type": "object",
         "properties": {
@@ -14547,6 +14628,44 @@
               "type": "string"
             },
             "nullable": true
+          },
+          "accessNotes": {
+            "type": "string",
+            "nullable": true,
+            "writeOnly": true
+          },
+          "gateCode": {
+            "type": "string",
+            "nullable": true,
+            "writeOnly": true
+          },
+          "hasPets": {
+            "type": "boolean",
+            "nullable": true,
+            "writeOnly": true
+          },
+          "petNotes": {
+            "type": "string",
+            "nullable": true,
+            "writeOnly": true
+          },
+          "restrictionsNotes": {
+            "type": "string",
+            "nullable": true,
+            "writeOnly": true
+          },
+          "priorityNotes": {
+            "type": "string",
+            "nullable": true,
+            "writeOnly": true
+          },
+          "photoUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "writeOnly": true
           }
         },
         "additionalProperties": false
