@@ -58,6 +58,7 @@ namespace Infrastructure
         public DbSet<BackgroundJobExecution> BackgroundJobExecutions { get; set; }
         public DbSet<AutomationFailureLog> AutomationFailureLogs { get; set; }
         public DbSet<ServiceIssue> ServiceIssues { get; set; }
+        public DbSet<CompanyReportEmailDispatch> CompanyReportEmailDispatches { get; set; }
         
         
 
@@ -159,6 +160,22 @@ namespace Infrastructure
                       .OnDelete(DeleteBehavior.SetNull);
             });
 
+
+            modelBuilder.Entity<CompanyReportEmailDispatch>(entity =>
+            {
+                entity.ToTable("CompanyReportEmailDispatches");
+                entity.HasKey(x => x.Id);
+                entity.HasIndex(x => new { x.CompanyId, x.PeriodStartDate, x.PeriodEndDate });
+                entity.HasIndex(x => x.DispatchKey).IsUnique();
+                entity.Property(x => x.RecipientEmail).IsRequired().HasMaxLength(320);
+                entity.Property(x => x.Subject).IsRequired().HasMaxLength(260);
+                entity.Property(x => x.TriggeredBy).IsRequired().HasMaxLength(40);
+                entity.Property(x => x.DispatchKey).HasMaxLength(200);
+                entity.HasOne(x => x.Company)
+                      .WithMany()
+                      .HasForeignKey(x => x.CompanyId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
 
             modelBuilder.Entity<ServiceIssue>(entity =>
             {

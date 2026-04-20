@@ -117,6 +117,28 @@ namespace Core.DTO.Reports
         public int TotalRows { get; set; }
     }
 
+
+    public class SendCompanyReportEmailRequestDto
+    {
+        public int? CompanyId { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? RecipientEmail { get; set; }
+        public bool UsePreviousMonthByDefault { get; set; } = true;
+    }
+
+    public class SendCompanyReportEmailResultDto
+    {
+        public bool Success { get; set; }
+        public int CompanyId { get; set; }
+        public string CompanyName { get; set; } = string.Empty;
+        public string RecipientEmail { get; set; } = string.Empty;
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public string Subject { get; set; } = string.Empty;
+        public DateTime SentAtUtc { get; set; }
+    }
+
     public class CompanyReportDto
     {
         public string Scope { get; set; } = "company";

@@ -12,10 +12,12 @@ namespace ControlApi.Controllers
     public class ReportsController : ControllerBase
     {
         private readonly IReportsService _reportsService;
+        private readonly Services.Email.ICompanyReportEmailService _companyReportEmailService;
 
-        public ReportsController(IReportsService reportsService)
+        public ReportsController(IReportsService reportsService, Services.Email.ICompanyReportEmailService companyReportEmailService)
         {
             _reportsService = reportsService;
+            _companyReportEmailService = companyReportEmailService;
         }
 
         [HttpGet("company")]
@@ -30,6 +32,17 @@ namespace ControlApi.Controllers
         {
             var bytes = await _reportsService.ExportCompanyReportCsvAsync(query);
             return File(bytes, "text/csv; charset=utf-8", "company-report.csv");
+        }
+
+        [HttpPost("company/email/send")]
+        public async Task<ActionResult> SendCompanyReportEmail([FromBody] SendCompanyReportEmailRequestDto request)
+        {
+            var companyId = request.CompanyId ?? 0;
+            if (companyId <= 0 && int.TryParse(User.FindFirst("companyId")?.Value, out var claimCompanyId))
+                companyId = claimCompanyId;
+
+            var result = await _companyReportEmailService.SendAsync(companyId, request, "manual");
+            return Ok(result);
         }
 
         [HttpGet("admin")]

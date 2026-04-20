@@ -19,6 +19,7 @@ namespace Services
     public interface IReportsService
     {
         Task<CompanyReportDto> GetCompanyReportAsync(ReportQueryDto query);
+        Task<CompanyReportDto> GetCompanyReportByCompanyIdAsync(int companyId, ReportQueryDto query);
         Task<AdminReportDto> GetAdminReportAsync(ReportQueryDto query);
         Task<byte[]> ExportCompanyReportCsvAsync(ReportQueryDto query);
         Task<byte[]> ExportAdminReportCsvAsync(ReportQueryDto query);
@@ -40,6 +41,11 @@ namespace Services
         public async Task<CompanyReportDto> GetCompanyReportAsync(ReportQueryDto query)
         {
             var companyId = await ResolveCompanyIdAsync();
+            return await GetCompanyReportByCompanyIdAsync(companyId, query);
+        }
+
+        public async Task<CompanyReportDto> GetCompanyReportByCompanyIdAsync(int companyId, ReportQueryDto query)
+        {
             var company = await _db.Companies.AsNoTracking().FirstOrDefaultAsync(x => x.Id == companyId)
                 ?? throw new InvalidOperationException("Company not found.");
 

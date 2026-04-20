@@ -109,6 +109,7 @@ builder.Services.AddScoped<IGuestyCustomerAddressSyncService, GuestyCustomerAddr
             // SendGrid (Email)
             // -----------------------------
             builder.Services.Configure<SendGridOptions>(builder.Configuration.GetSection("SendGrid"));
+builder.Services.Configure<MonthlyReportEmailOptions>(builder.Configuration.GetSection(MonthlyReportEmailOptions.SectionName));
             builder.Services.Configure<AutomationAlertsOptions>(builder.Configuration.GetSection(AutomationAlertsOptions.SectionName));
 
             // -----------------------------
@@ -129,6 +130,7 @@ builder.Services.AddScoped<IGuestyCustomerAddressSyncService, GuestyCustomerAddr
             builder.Services.AddScoped<ICredentialsEmailService, CredentialsEmailService>();
             builder.Services.AddScoped<IPasswordResetEmailService, PasswordResetEmailService>();
             builder.Services.AddScoped<IPlanPaymentEmailService, PlanPaymentEmailService>();
+builder.Services.AddScoped<ICompanyReportEmailService, CompanyReportEmailService>();
             builder.Services.AddScoped<Services.Email.IReviewRequestEmailService, Services.Email.ReviewRequestEmailService>();
             builder.Services.AddScoped<IAutomationFailureAlertService, AutomationFailureAlertService>();
 
@@ -140,6 +142,7 @@ builder.Services.AddHostedService<CheckoutReminderHostedService>();
             builder.Services.AddHostedService<ReviewRequestHostedService>();
             builder.Services.AddHostedService<NotificationCleanupHostedService>();
             builder.Services.AddHostedService<GpsTrackingRetentionHostedService>();
+builder.Services.AddHostedService<MonthlyCompanyReportEmailHostedService>();
             builder.Services.AddHostedService<PaymentDueReminderHostedService>();
             
             // -----------------------------
