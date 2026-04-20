@@ -41,7 +41,7 @@ namespace Services
         {
             var companyId = await ResolveCompanyIdAsync();
             var company = await _db.Companies.AsNoTracking().FirstOrDefaultAsync(x => x.Id == companyId)
-                ?? throw new InvalidOperationException("Company não encontrada.");
+                ?? throw new InvalidOperationException("Company not found.");
 
             var period = BuildPeriod(query);
             var previousQuery = BuildPreviousQuery(query, period);
@@ -96,12 +96,12 @@ namespace Services
                 .Select(g => new ReportLeaderboardItemDto
                 {
                     EntityId = g.Key,
-                    Name = g.Key.HasValue && serviceTypes.TryGetValue(g.Key.Value, out var serviceName) ? serviceName : "Sem serviço",
+                    Name = g.Key.HasValue && serviceTypes.TryGetValue(g.Key.Value, out var serviceName) ? serviceName : "No service",
                     PrimaryValue = g.Count(),
                     PrimaryLabel = "appointments",
                     SecondaryValue = g.Count(x => x.Status == AppointmentStatus.Completed),
-                    SecondaryLabel = "concluídos",
-                    Badge = g.Count(x => x.IsRecurring) > 0 ? $"{g.Count(x => x.IsRecurring)} recorrentes" : null,
+                    SecondaryLabel = "completed",
+                    Badge = g.Count(x => x.IsRecurring) > 0 ? $"{g.Count(x => x.IsRecurring)} recurring" : null,
                 })
                 .OrderByDescending(x => x.PrimaryValue)
                 .ThenByDescending(x => x.SecondaryValue)
@@ -135,8 +135,8 @@ namespace Services
                 {
                     MakeCard("appointments_total", "Appointments in period", appointmentTotal, FormatInt(appointmentTotal), ChangePct(appointmentTotal, previousAppointmentTotal), "Total appointment volume within the selected period."),
                     MakeCard("completed_rate", "Completion rate", completionRate, FormatPct(completionRate), ChangePct(completionRate, previousCompletionRate), "Percentage of completed appointments out of the total for the period."),
-                    MakeCard("revenue_paid", "Revenue collected", completedRevenue, FormatCurrency(completedRevenue), ChangePct(completedRevenue, previousCompletedRevenue), "Somente pagamentos marcados como pagos no período."),
-                    MakeCard("customers_active", "Customers ativos", activeCustomerIds.Count, FormatInt(activeCustomerIds.Count), null, "Customers com ao menos um atendimento no período."),
+                    MakeCard("revenue_paid", "Revenue collected", completedRevenue, FormatCurrency(completedRevenue), ChangePct(completedRevenue, previousCompletedRevenue), "Only payments marked as paid within the selected period."),
+                    MakeCard("customers_active", "Active customers", activeCustomerIds.Count, FormatInt(activeCustomerIds.Count), null, "Customers with at least one appointment in the period."),
                 },
                 Financial = new CompanyReportFinancialDto
                 {
@@ -146,7 +146,7 @@ namespace Services
                         Summary = $"The company generated {FormatCurrency(completedRevenue)} in collected revenue during the period, with an average ticket of {FormatCurrency(averageTicket)} and a collection efficiency of {FormatPct(collectionRate)} over the billed amount.",
                         Highlights = new List<string>
                         {
-                            $"Revenue collected variou {FormatSignedPct(ChangePct(completedRevenue, previousCompletedRevenue))} compared with the previous period.",
+                            $"Revenue collected changed {FormatSignedPct(ChangePct(completedRevenue, previousCompletedRevenue))} compared with the previous period.",
                             $"Each active customer generated an average of {FormatCurrency(revenuePerActiveCustomer)} in revenue during the analyzed period.",
                             $"There is {FormatCurrency(receivableAmount)} still open, of which {FormatCurrency(overdueAmount)} is already overdue."
                         },
@@ -156,14 +156,14 @@ namespace Services
                     {
                         MakeCard("revenue_total", "Revenue collected", completedRevenue, FormatCurrency(completedRevenue), ChangePct(completedRevenue, previousCompletedRevenue), "Payments effectively collected within the selected period."),
                         MakeCard("receivable_amount", "Open balance", receivableAmount, FormatCurrency(receivableAmount), null, "Sum of pending and overdue payments."),
-                        MakeCard("average_ticket", "Ticket médio", averageTicket, FormatCurrency(averageTicket), null, "Revenue collected dividida pelo total de appointments."),
+                        MakeCard("average_ticket", "Average ticket", averageTicket, FormatCurrency(averageTicket), null, "Revenue collected divided by the total number of appointments."),
                         MakeCard("collection_rate", "Collection efficiency", collectionRate, FormatPct(collectionRate), null, "Percentage of the billed amount in the period already marked as paid."),
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
-                        new() { Label = "Revenue per active customer", Value = FormatCurrency(revenuePerActiveCustomer), Description = "Quanto cada cliente ativo gerou em média no período." },
-                        new() { Label = "Revenue per day", Value = FormatCurrency(period.TotalDays > 0 ? completedRevenue / period.TotalDays : 0m), Description = "Média diária de receita recebida." },
-                        new() { Label = "Open balance vs. billed amount", Value = FormatPct(totalBilledAmount > 0 ? receivableAmount / totalBilledAmount * 100m : 0m), Description = "Peso do saldo em aberto dentro do faturamento do período." },
+                        new() { Label = "Revenue per active customer", Value = FormatCurrency(revenuePerActiveCustomer), Description = "Average revenue generated per active customer during the period." },
+                        new() { Label = "Revenue per day", Value = FormatCurrency(period.TotalDays > 0 ? completedRevenue / period.TotalDays : 0m), Description = "Average daily collected revenue." },
+                        new() { Label = "Open balance vs. billed amount", Value = FormatPct(totalBilledAmount > 0 ? receivableAmount / totalBilledAmount * 100m : 0m), Description = "Share of the open balance within the billed amount for the period." },
                     },
                     RevenueTrend = BuildDateSeries(period.StartDate, period.EndDate, paidPayments, x => x.PaymentDate ?? x.DueDate, x => x.Amount),
                     PaymentStatusBreakdown = BuildPaymentStatusBreakdown(payments),
@@ -174,12 +174,12 @@ namespace Services
                         Description = "Detailed dataset for the PDF with the most recent receipts and charges in the filtered period.",
                         Columns = new List<ReportTableColumnDto>
                         {
-                            new() { Key = "date", Label = "Data" },
+                            new() { Key = "date", Label = "Date" },
                             new() { Key = "reference", Label = "Reference" },
                             new() { Key = "customer", Label = "Customer" },
                             new() { Key = "status", Label = "Status" },
-                            new() { Key = "method", Label = "Método" },
-                            new() { Key = "amount", Label = "Valor" },
+                            new() { Key = "method", Label = "Method" },
+                            new() { Key = "amount", Label = "Amount" },
                         },
                         Rows = payments
                             .OrderByDescending(x => x.PaymentDate ?? x.DueDate)
@@ -190,9 +190,9 @@ namespace Services
                                 {
                                     ["date"] = FormatDate(x.PaymentDate ?? x.DueDate),
                                     ["reference"] = x.Reference,
-                                    ["customer"] = customers.FirstOrDefault(c => c.Id == x.CustomerId)?.Name ?? "Sem cliente",
+                                    ["customer"] = customers.FirstOrDefault(c => c.Id == x.CustomerId)?.Name ?? "No customer",
                                     ["status"] = x.Status.ToString(),
-                                    ["method"] = x.Method?.ToString() ?? "Não informado",
+                                    ["method"] = x.Method?.ToString() ?? "Not informed",
                                     ["amount"] = FormatCurrency(x.Amount),
                                 }
                             })
@@ -204,44 +204,44 @@ namespace Services
                 {
                     Narrative = new ReportSectionNarrativeDto
                     {
-                        Title = "Operações",
-                        Summary = $"A operação registrou {FormatInt(appointmentTotal)} appointments no período, com média de {dailyAverageAppointments.ToString("0.0", CultureInfo.InvariantCulture)} por dia, taxa de conclusão de {FormatPct(completionRate)} e cancelamento de {FormatPct(cancellationRate)}.",
+                        Title = "Operations",
+                        Summary = $"The operation recorded {FormatInt(appointmentTotal)} appointments during the period, averaging {dailyAverageAppointments.ToString("0.0", CultureInfo.InvariantCulture)} per day, with a completion rate of {FormatPct(completionRate)} and a cancellation rate of {FormatPct(cancellationRate)}.",
                         Highlights = new List<string>
                         {
-                            $"A variação de volume frente ao período anterior foi de {FormatSignedPct(ChangePct(appointmentTotal, previousAppointmentTotal))}.",
-                            $"{FormatPct(recurringShare)} da agenda analisada veio de atendimentos recorrentes.",
-                            $"Foram concluídos {FormatInt(completedCount)} atendimentos e cancelados {FormatInt(cancelledCount)} no intervalo selecionado."
+                            $"The volume changed by {FormatSignedPct(ChangePct(appointmentTotal, previousAppointmentTotal))} compared with the previous period.",
+                            $"{FormatPct(recurringShare)} of the analyzed schedule came from recurring appointments.",
+                            $"{FormatInt(completedCount)} appointments were completed and {FormatInt(cancelledCount)} were cancelled within the selected interval."
                         },
                         Alerts = BuildOperationsAlerts(cancellationRate, completionRate, recurringShare, dailyAverageAppointments)
                     },
                     Cards = new List<ReportKpiCardDto>
                     {
-                        MakeCard("appointments_total", "Appointments", appointmentTotal, FormatInt(appointmentTotal), ChangePct(appointmentTotal, previousAppointmentTotal), "Volume operacional total."),
-                        MakeCard("completed_total", "Concluídos", completedCount, FormatInt(completedCount), ChangePct(completedCount, previousCompletedCount), "Atendimentos finalizados com sucesso."),
-                        MakeCard("scheduled_total", "Agendados", scheduledCount, FormatInt(scheduledCount), null, "Appointments ainda programados."),
-                        MakeCard("cancellation_rate", "Taxa de cancelamento", cancellationRate, FormatPct(cancellationRate), ChangePct(cancellationRate, previousAppointmentTotal > 0 ? previousCancelledCount / (decimal)previousAppointmentTotal * 100m : 0m), "Peso dos cancelamentos sobre o total do período."),
+                        MakeCard("appointments_total", "Appointments", appointmentTotal, FormatInt(appointmentTotal), ChangePct(appointmentTotal, previousAppointmentTotal), "Total operational volume."),
+                        MakeCard("completed_total", "Completed", completedCount, FormatInt(completedCount), ChangePct(completedCount, previousCompletedCount), "Appointments successfully completed."),
+                        MakeCard("scheduled_total", "Scheduled", scheduledCount, FormatInt(scheduledCount), null, "Appointments still scheduled."),
+                        MakeCard("cancellation_rate", "Cancellation rate", cancellationRate, FormatPct(cancellationRate), ChangePct(cancellationRate, previousAppointmentTotal > 0 ? previousCancelledCount / (decimal)previousAppointmentTotal * 100m : 0m), "Share of cancellations out of the total volume for the period."),
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
-                        new() { Label = "Média diária de appointments", Value = dailyAverageAppointments.ToString("0.0", CultureInfo.InvariantCulture), Description = "Volume médio por dia corrido no período." },
-                        new() { Label = "Share de recorrência", Value = FormatPct(recurringShare), Description = "Quanto da agenda veio de serviços recorrentes." },
-                        new() { Label = "Appointments por cliente ativo", Value = activeCustomerIds.Count > 0 ? (appointmentTotal / (decimal)activeCustomerIds.Count).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", Description = "Intensidade média de atendimento por cliente ativo." },
+                        new() { Label = "Daily average appointments", Value = dailyAverageAppointments.ToString("0.0", CultureInfo.InvariantCulture), Description = "Average volume per calendar day in the period." },
+                        new() { Label = "Recurring share", Value = FormatPct(recurringShare), Description = "Portion of the schedule generated by recurring services." },
+                        new() { Label = "Appointments per active customer", Value = activeCustomerIds.Count > 0 ? (appointmentTotal / (decimal)activeCustomerIds.Count).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", Description = "Average appointment intensity per active customer." },
                     },
                     AppointmentsTrend = BuildDateSeries(period.StartDate, period.EndDate, appointments, x => x.Start, _ => 1m),
                     StatusBreakdown = BuildStatusBreakdown(appointmentTotal, scheduledCount, inProgressCount, completedCount, cancelledCount),
                     TopServices = serviceRows.Take(8).ToList(),
                     RecentAppointments = new ReportTableDto
                     {
-                        Title = "Appointments recentes",
-                        Description = "Base operacional pronta para exportação no PDF, útil para auditoria e leitura detalhada por serviço.",
+                        Title = "Recent appointments",
+                        Description = "Operational dataset ready for PDF export, useful for auditing and detailed service-level review.",
                         Columns = new List<ReportTableColumnDto>
                         {
-                            new() { Key = "start", Label = "Data" },
+                            new() { Key = "start", Label = "Date" },
                             new() { Key = "title", Label = "Appointment" },
                             new() { Key = "customer", Label = "Customer" },
-                            new() { Key = "service", Label = "Serviço" },
+                            new() { Key = "service", Label = "Service" },
                             new() { Key = "status", Label = "Status" },
-                            new() { Key = "team", Label = "Profissionais" },
+                            new() { Key = "team", Label = "Professionals" },
                         },
                         Rows = appointments
                             .OrderByDescending(x => x.Start)
@@ -252,10 +252,10 @@ namespace Services
                                 {
                                     ["start"] = FormatDateTime(x.Start),
                                     ["title"] = x.Title,
-                                    ["customer"] = customers.FirstOrDefault(c => c.Id == x.CustomerId)?.Name ?? "Sem cliente",
-                                    ["service"] = x.ServiceTypeId.HasValue && serviceTypes.TryGetValue(x.ServiceTypeId.Value, out var serviceName) ? serviceName : (x.Category ?? "Sem serviço"),
+                                    ["customer"] = customers.FirstOrDefault(c => c.Id == x.CustomerId)?.Name ?? "No customer",
+                                    ["service"] = x.ServiceTypeId.HasValue && serviceTypes.TryGetValue(x.ServiceTypeId.Value, out var serviceName) ? serviceName : (x.Category ?? "No service"),
                                     ["status"] = x.Status.ToString(),
-                                    ["team"] = string.Join(", ", professionals.Where(p => x.ProfessionalIds.Contains(p.Id)).Select(p => p.Name).DefaultIfEmpty("Não vinculado")),
+                                    ["team"] = string.Join(", ", professionals.Where(p => x.ProfessionalIds.Contains(p.Id)).Select(p => p.Name).DefaultIfEmpty("Not assigned")),
                                 }
                             })
                             .ToList(),
@@ -266,28 +266,28 @@ namespace Services
                 {
                     Narrative = new ReportSectionNarrativeDto
                     {
-                        Title = "Equipe",
-                        Summary = $"A equipe teve {FormatInt(professionals.Count)} professionals cadastrados, sendo {FormatInt(professionals.Count(x => x.Status == StatusEnum.Active))} ativos. O rating médio consolidado ficou em {averageRating.ToString("0.0", CultureInfo.InvariantCulture)}.",
+                        Title = "Team",
+                        Summary = $"The team had {FormatInt(professionals.Count)} registered professionals, of which {FormatInt(professionals.Count(x => x.Status == StatusEnum.Active))} were active. The consolidated average rating was {averageRating.ToString("0.0", CultureInfo.InvariantCulture)}.",
                         Highlights = new List<string>
                         {
-                            $"{FormatInt(teamRows.Count)} professionals participaram efetivamente da agenda filtrada.",
-                            $"A média de conclusões por professional engajado foi de {(teamRows.Count > 0 ? teamRows.Average(x => x.PrimaryValue).ToString("0.0", CultureInfo.InvariantCulture) : "0.0")}.",
-                            $"O volume de receita estimada por alocação ajuda a identificar concentração operacional na equipe."
+                            $"{FormatInt(teamRows.Count)} professionals actively appeared in the filtered schedule.",
+                            $"The average number of completions per engaged professional was {(teamRows.Count > 0 ? teamRows.Average(x => x.PrimaryValue).ToString("0.0", CultureInfo.InvariantCulture) : "0.0")}.",
+                            $"Estimated revenue by allocation helps identify operational concentration within the team."
                         },
                         Alerts = BuildTeamAlerts(teamRows, professionals.Count, averageRating)
                     },
                     Cards = new List<ReportKpiCardDto>
                     {
-                        MakeCard("professionals_active", "Professionals ativos", professionals.Count(x => x.Status == StatusEnum.Active), FormatInt(professionals.Count(x => x.Status == StatusEnum.Active)), null, "Profissionais ativos no cadastro."),
-                        MakeCard("professionals_utilized", "Professionals com agenda", teamRows.Count, FormatInt(teamRows.Count), null, "Profissionais que apareceram em ao menos um appointment do período."),
-                        MakeCard("average_rating", "Rating médio", averageRating, averageRating.ToString("0.0", CultureInfo.InvariantCulture), null, "Média das reviews recebidas no período."),
-                        MakeCard("completed_per_professional", "Conclusões / professional", teamRows.Count > 0 ? teamRows.Average(x => x.PrimaryValue) : 0m, teamRows.Count > 0 ? teamRows.Average(x => x.PrimaryValue).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", null, "Produtividade média dos professionals engajados."),
+                        MakeCard("professionals_active", "Active professionals", professionals.Count(x => x.Status == StatusEnum.Active), FormatInt(professionals.Count(x => x.Status == StatusEnum.Active)), null, "Professionals marked as active in the registry."),
+                        MakeCard("professionals_utilized", "Professionals with schedule", teamRows.Count, FormatInt(teamRows.Count), null, "Professionals who appeared in at least one appointment during the period."),
+                        MakeCard("average_rating", "Average rating", averageRating, averageRating.ToString("0.0", CultureInfo.InvariantCulture), null, "Average of the reviews received during the period."),
+                        MakeCard("completed_per_professional", "Completions / professional", teamRows.Count > 0 ? teamRows.Average(x => x.PrimaryValue) : 0m, teamRows.Count > 0 ? teamRows.Average(x => x.PrimaryValue).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", null, "Average productivity of engaged professionals."),
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
-                        new() { Label = "Utilização da equipe", Value = FormatPct(professionals.Count > 0 ? teamRows.Count / (decimal)professionals.Count * 100m : 0m), Description = "Percentual de professionals cadastrados que tiveram agenda no período." },
-                        new() { Label = "Receita estimada por professional", Value = FormatCurrency(teamRows.Count > 0 ? teamRows.Average(x => x.SecondaryValue ?? 0m) : 0m), Description = "Média estimada com base no vínculo entre appointments e clientes pagantes." },
-                        new() { Label = "Concentração do líder", Value = FormatPct(teamRows.Any() ? teamRows.First().PrimaryValue / Math.Max(1m, teamRows.Sum(x => x.PrimaryValue)) * 100m : 0m), Description = "Peso do profissional mais produtivo no total de conclusões." },
+                        new() { Label = "Team utilization", Value = FormatPct(professionals.Count > 0 ? teamRows.Count / (decimal)professionals.Count * 100m : 0m), Description = "Percentage of registered professionals who had appointments during the period." },
+                        new() { Label = "Estimated revenue per professional", Value = FormatCurrency(teamRows.Count > 0 ? teamRows.Average(x => x.SecondaryValue ?? 0m) : 0m), Description = "Estimated average based on the link between appointments and paying customers." },
+                        new() { Label = "Leader concentration", Value = FormatPct(teamRows.Any() ? teamRows.First().PrimaryValue / Math.Max(1m, teamRows.Sum(x => x.PrimaryValue)) * 100m : 0m), Description = "Share of the most productive professional in total completions." },
                     },
                     Leaderboard = teamRows.Take(10).ToList(),
                 },
@@ -296,40 +296,40 @@ namespace Services
                     Narrative = new ReportSectionNarrativeDto
                     {
                         Title = "Customers",
-                        Summary = $"A base analisada teve {FormatInt(newCustomers)} novos clientes no período, {FormatInt(activeCustomerIds.Count)} clientes ativos e {FormatInt(recurringCustomerCount)} clientes recorrentes, indicando o nível de retenção e dependência da carteira atual.",
+                        Summary = $"The analyzed base had {FormatInt(newCustomers)} new customers in the period, {FormatInt(activeCustomerIds.Count)} active customers, and {FormatInt(recurringCustomerCount)} recurring customers, indicating the current level of retention and dependency on the existing base.",
                         Highlights = new List<string>
                         {
-                            $"A recorrência entre clientes ativos ficou em {FormatPct(activeCustomerIds.Count > 0 ? recurringCustomerCount / (decimal)activeCustomerIds.Count * 100m : 0m)}.",
-                            $"Os 5 maiores clientes concentram {FormatPct(customerRows.Take(5).Sum(x => x.PrimaryValue) / Math.Max(1m, completedRevenue) * 100m)} da receita recebida.",
-                            $"A empresa atendeu {FormatInt(activeCustomerIds.Count)} clientes diferentes no intervalo filtrado."
+                            $"Recurring customers represented {FormatPct(activeCustomerIds.Count > 0 ? recurringCustomerCount / (decimal)activeCustomerIds.Count * 100m : 0m)} of active customers.",
+                            $"The top 5 customers account for {FormatPct(customerRows.Take(5).Sum(x => x.PrimaryValue) / Math.Max(1m, completedRevenue) * 100m)} of collected revenue.",
+                            $"The company served {FormatInt(activeCustomerIds.Count)} different customers in the filtered interval."
                         },
                         Alerts = BuildCustomerAlerts(newCustomers, activeCustomerIds.Count, recurringCustomerCount, completedRevenue, customerRows)
                     },
                     Cards = new List<ReportKpiCardDto>
                     {
-                        MakeCard("new_customers", "Customers novos", newCustomers, FormatInt(newCustomers), null, "Customers cadastrados dentro do período selecionado."),
-                        MakeCard("active_customers", "Customers ativos", activeCustomerIds.Count, FormatInt(activeCustomerIds.Count), null, "Customers com ao menos um atendimento no período."),
-                        MakeCard("recurring_customers", "Customers recorrentes", recurringCustomerCount, FormatInt(recurringCustomerCount), null, "Customers com mais de um appointment no período."),
-                        MakeCard("avg_revenue_per_customer", "Revenue per active customer", revenuePerActiveCustomer, FormatCurrency(revenuePerActiveCustomer), null, "Revenue collected dividida pelos clientes ativos."),
+                        MakeCard("new_customers", "New customers", newCustomers, FormatInt(newCustomers), null, "Customers created within the selected period."),
+                        MakeCard("active_customers", "Active customers", activeCustomerIds.Count, FormatInt(activeCustomerIds.Count), null, "Customers with at least one appointment in the period."),
+                        MakeCard("recurring_customers", "Recurring customers", recurringCustomerCount, FormatInt(recurringCustomerCount), null, "Customers with more than one appointment in the period."),
+                        MakeCard("avg_revenue_per_customer", "Revenue per active customer", revenuePerActiveCustomer, FormatCurrency(revenuePerActiveCustomer), null, "Revenue collected divided by active customers."),
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
-                        new() { Label = "Novos sobre ativos", Value = FormatPct(activeCustomerIds.Count > 0 ? newCustomers / (decimal)activeCustomerIds.Count * 100m : 0m), Description = "Peso da aquisição recente na carteira ativa." },
-                        new() { Label = "Recorrência da carteira", Value = FormatPct(activeCustomerIds.Count > 0 ? recurringCustomerCount / (decimal)activeCustomerIds.Count * 100m : 0m), Description = "Participação dos clientes com repetição de serviço." },
-                        new() { Label = "Receita média dos top 5", Value = FormatCurrency(customerRows.Take(5).Any() ? customerRows.Take(5).Average(x => x.PrimaryValue) : 0m), Description = "Ticket médio de valor dos maiores clientes do período." },
+                        new() { Label = "New over active", Value = FormatPct(activeCustomerIds.Count > 0 ? newCustomers / (decimal)activeCustomerIds.Count * 100m : 0m), Description = "Share of recent acquisition within the active base." },
+                        new() { Label = "Base recurrence", Value = FormatPct(activeCustomerIds.Count > 0 ? recurringCustomerCount / (decimal)activeCustomerIds.Count * 100m : 0m), Description = "Share of customers with repeat service." },
+                        new() { Label = "Average revenue of top 5", Value = FormatCurrency(customerRows.Take(5).Any() ? customerRows.Take(5).Average(x => x.PrimaryValue) : 0m), Description = "Average ticket value of the top customers in the period." },
                     },
                     TopCustomers = customerRows.Take(10).ToList(),
                     CustomerActivityTable = new ReportTableDto
                     {
-                        Title = "Atividade de clientes",
-                        Description = "Tabela detalhada para compor o PDF com frequência de atendimento e participação de receita por cliente.",
+                        Title = "Customer activity",
+                        Description = "Detailed table for the PDF with appointment frequency and revenue share by customer.",
                         Columns = new List<ReportTableColumnDto>
                         {
                             new() { Key = "customer", Label = "Customer" },
                             new() { Key = "appointments", Label = "Appointments" },
-                            new() { Key = "completed", Label = "Concluídos" },
-                            new() { Key = "revenue", Label = "Receita" },
-                            new() { Key = "badge", Label = "Perfil" },
+                            new() { Key = "completed", Label = "Completed" },
+                            new() { Key = "revenue", Label = "Revenue" },
+                            new() { Key = "badge", Label = "Profile" },
                         },
                         Rows = customerRows
                             .Take(NormalizePageSize(query.PageSize))
@@ -341,7 +341,7 @@ namespace Services
                                     ["appointments"] = x.SecondaryValue?.ToString("0", CultureInfo.InvariantCulture) ?? "0",
                                     ["completed"] = appointments.Count(a => a.CustomerId == x.EntityId && a.Status == AppointmentStatus.Completed).ToString(CultureInfo.InvariantCulture),
                                     ["revenue"] = FormatCurrency(x.PrimaryValue),
-                                    ["badge"] = x.Badge ?? "Pontual",
+                                    ["badge"] = x.Badge ?? "One-time",
                                 }
                             })
                             .ToList(),
@@ -354,7 +354,7 @@ namespace Services
         public async Task<AdminReportDto> GetAdminReportAsync(ReportQueryDto query)
         {
             if (!_currentUser.IsAdmin)
-                throw new InvalidOperationException("Use o endpoint company para relatórios da empresa logada.");
+                throw new InvalidOperationException("Use the company endpoint for reports of the logged-in company.");
 
             var period = BuildPeriod(query);
             var previousQuery = BuildPreviousQuery(query, period);
@@ -395,10 +395,10 @@ namespace Services
                     EntityId = company.Id,
                     Name = company.Name,
                     PrimaryValue = companyPayments.Sum(x => x.Amount),
-                    PrimaryLabel = "receita",
+                    PrimaryLabel = "revenue",
                     SecondaryValue = companyAppointments.Count,
                     SecondaryLabel = "appointments",
-                    Badge = company.Status == StatusEnum.Active ? "Ativa" : company.Status.ToString(),
+                    Badge = company.Status == StatusEnum.Active ? "Active" : company.Status.ToString(),
                 };
             })
             .OrderByDescending(x => x.PrimaryValue)
@@ -415,37 +415,37 @@ namespace Services
                 ExecutiveSummary = executiveSummary,
                 OverviewCards = new List<ReportKpiCardDto>
                 {
-                    MakeCard("companies_total", "Companies", companies.Count, FormatInt(companies.Count), null, "Base total de empresas cadastradas."),
-                    MakeCard("companies_active", "Companies ativas", activeCompanies, FormatInt(activeCompanies), null, "Empresas com status ativo."),
-                    MakeCard("appointments_total", "Appointments", appointmentTotal, FormatInt(appointmentTotal), ChangePct(appointmentTotal, previousAppointmentTotal), "Volume operacional total do período."),
-                    MakeCard("revenue_paid", "Revenue collected", totalRevenue, FormatCurrency(totalRevenue), ChangePct(totalRevenue, previousRevenue), "Receita efetivamente paga no período."),
+                    MakeCard("companies_total", "Companies", companies.Count, FormatInt(companies.Count), null, "Total base of registered companies."),
+                    MakeCard("companies_active", "Active companies", activeCompanies, FormatInt(activeCompanies), null, "Companies with active status."),
+                    MakeCard("appointments_total", "Appointments", appointmentTotal, FormatInt(appointmentTotal), ChangePct(appointmentTotal, previousAppointmentTotal), "Total operational volume in the period."),
+                    MakeCard("revenue_paid", "Revenue collected", totalRevenue, FormatCurrency(totalRevenue), ChangePct(totalRevenue, previousRevenue), "Revenue effectively paid during the period."),
                 },
                 Billing = new AdminReportBillingDto
                 {
                     Narrative = new ReportSectionNarrativeDto
                     {
                         Title = "Billing",
-                        Summary = $"A plataforma registrou {FormatCurrency(totalRevenue)} em receita recebida, com eficiência de cobrança de {FormatPct(collectionRate)} e {FormatCurrency(overdueAmount)} em valores overdue no período filtrado.",
+                        Summary = $"The platform recorded {FormatCurrency(totalRevenue)} in collected revenue, with a collection efficiency of {FormatPct(collectionRate)} and {FormatCurrency(overdueAmount)} in overdue amounts during the filtered period.",
                         Highlights = new List<string>
                         {
-                            $"There is {FormatInt(activeSubscriptions)} subscriptions ativas na base.",
-                            $"{FormatInt(companiesWithAppointments)} companies tiveram uso operacional dentro do período.",
-                            $"A variação de receita em relação ao período anterior foi de {FormatSignedPct(ChangePct(totalRevenue, previousRevenue))}."
+                            $"There are {FormatInt(activeSubscriptions)} active subscriptions in the base.",
+                            $"{FormatInt(companiesWithAppointments)} companies had operational usage during the period.",
+                            $"Revenue changed by {FormatSignedPct(ChangePct(totalRevenue, previousRevenue))} compared with the previous period."
                         },
                         Alerts = BuildAdminBillingAlerts(overdueAmount, collectionRate, activeSubscriptions, activeCompanies)
                     },
                     Cards = new List<ReportKpiCardDto>
                     {
-                        MakeCard("subscriptions_active", "Active subscriptions", activeSubscriptions, FormatInt(activeSubscriptions), null, "Assinaturas com status ativo."),
-                        MakeCard("companies_with_usage", "Companies with usage", companiesWithAppointments, FormatInt(companiesWithAppointments), null, "Empresas com ao menos um appointment no período."),
+                        MakeCard("subscriptions_active", "Active subscriptions", activeSubscriptions, FormatInt(activeSubscriptions), null, "Subscriptions with active status."),
+                        MakeCard("companies_with_usage", "Companies with usage", companiesWithAppointments, FormatInt(companiesWithAppointments), null, "Companies with at least one appointment in the period."),
                         MakeCard("overdue_amount", "Overdue amount", overdueAmount, FormatCurrency(overdueAmount), null, "Overdue charges during the period."),
-                        MakeCard("collection_rate", "Collection efficiency", collectionRate, FormatPct(collectionRate), null, "Receita paga sobre total faturado no período."),
+                        MakeCard("collection_rate", "Collection efficiency", collectionRate, FormatPct(collectionRate), null, "Paid revenue over the total billed amount in the period."),
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
-                        new() { Label = "Receita por company ativa", Value = FormatCurrency(activeCompanies > 0 ? totalRevenue / activeCompanies : 0m), Description = "Monetização média por empresa ativa." },
-                        new() { Label = "Uso operacional da base", Value = FormatPct(companies.Count > 0 ? companiesWithAppointments / (decimal)companies.Count * 100m : 0m), Description = "Percentual da base com movimentação operacional no período." },
-                        new() { Label = "Overdue sobre faturado", Value = FormatPct(totalBilled > 0 ? overdueAmount / totalBilled * 100m : 0m), Description = "Peso do saldo vencido dentro do faturamento do período." },
+                        new() { Label = "Revenue per active company", Value = FormatCurrency(activeCompanies > 0 ? totalRevenue / activeCompanies : 0m), Description = "Average monetization per active company." },
+                        new() { Label = "Operational usage of the base", Value = FormatPct(companies.Count > 0 ? companiesWithAppointments / (decimal)companies.Count * 100m : 0m), Description = "Percentage of the base with operational activity during the period." },
+                        new() { Label = "Overdue over billed", Value = FormatPct(totalBilled > 0 ? overdueAmount / totalBilled * 100m : 0m), Description = "Share of overdue balance within the billed amount for the period." },
                     },
                     RevenueTrend = BuildDateSeries(period.StartDate, period.EndDate, paidPayments, x => x.PaymentDate ?? x.DueDate, x => x.Amount),
                     PaymentStatusBreakdown = BuildPaymentStatusBreakdown(payments),
@@ -459,8 +459,8 @@ namespace Services
                             PrimaryValue = g.Sum(x => x.Amount),
                             PrimaryLabel = "overdue",
                             SecondaryValue = g.Count(),
-                            SecondaryLabel = "cobranças",
-                            Badge = "Atenção",
+                            SecondaryLabel = "charges",
+                            Badge = "Attention",
                         })
                         .OrderByDescending(x => x.PrimaryValue)
                         .Take(10)
@@ -470,28 +470,28 @@ namespace Services
                 {
                     Narrative = new ReportSectionNarrativeDto
                     {
-                        Title = "Operações",
-                        Summary = $"A operação consolidada da plataforma registrou {FormatInt(appointmentTotal)} appointments, com taxa de conclusão de {FormatPct(completionRate)} e taxa de cancelamento de {FormatPct(appointmentTotal > 0 ? cancelledTotal / (decimal)appointmentTotal * 100m : 0m)}.",
+                        Title = "Operations",
+                        Summary = $"The platform's consolidated operation recorded {FormatInt(appointmentTotal)} appointments, with a completion rate of {FormatPct(completionRate)} and a cancellation rate of {FormatPct(appointmentTotal > 0 ? cancelledTotal / (decimal)appointmentTotal * 100m : 0m)}.",
                         Highlights = new List<string>
                         {
-                            $"A base total possui {FormatInt(customers.Count)} clientes e {FormatInt(professionals.Count)} professionals cadastrados.",
-                            $"A variação de volume operacional contra o período anterior foi de {FormatSignedPct(ChangePct(appointmentTotal, previousAppointmentTotal))}.",
-                            $"O monitoramento por status mostra equilíbrio entre agendados, em andamento e concluídos, útil para leitura executiva no PDF."
+                            $"The total base has {FormatInt(customers.Count)} customers and {FormatInt(professionals.Count)} registered professionals.",
+                            $"Operational volume changed by {FormatSignedPct(ChangePct(appointmentTotal, previousAppointmentTotal))} compared with the previous period.",
+                            $"Status monitoring shows a balance between scheduled, in-progress, and completed appointments, which is useful for the executive PDF reading."
                         },
                         Alerts = BuildAdminOperationsAlerts(completionRate, appointmentTotal, cancelledTotal, companiesWithAppointments, companies.Count)
                     },
                     Cards = new List<ReportKpiCardDto>
                     {
-                        MakeCard("completion_rate", "Completion rate", completionRate, FormatPct(completionRate), null, "Concluídos sobre total de appointments."),
-                        MakeCard("completed_total", "Concluídos", completedTotal, FormatInt(completedTotal), null, "Appointments finalizados com sucesso."),
-                        MakeCard("customers_total", "Customers", customers.Count, FormatInt(customers.Count), null, "Customers totais na base."),
-                        MakeCard("professionals_total", "Professionals", professionals.Count, FormatInt(professionals.Count), null, "Profissionais totais na base."),
+                        MakeCard("completion_rate", "Completion rate", completionRate, FormatPct(completionRate), null, "Completed appointments over total appointments."),
+                        MakeCard("completed_total", "Completed", completedTotal, FormatInt(completedTotal), null, "Appointments successfully completed."),
+                        MakeCard("customers_total", "Customers", customers.Count, FormatInt(customers.Count), null, "Total customers in the base."),
+                        MakeCard("professionals_total", "Professionals", professionals.Count, FormatInt(professionals.Count), null, "Total professionals in the base."),
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
-                        new() { Label = "Appointments por company com uso", Value = companiesWithAppointments > 0 ? (appointmentTotal / (decimal)companiesWithAppointments).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", Description = "Intensidade média de uso por empresa ativa operacionalmente." },
-                        new() { Label = "Customers por company", Value = companies.Count > 0 ? (customers.Count / (decimal)companies.Count).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", Description = "Escala média de carteira por empresa da base." },
-                        new() { Label = "Professionals por company", Value = companies.Count > 0 ? (professionals.Count / (decimal)companies.Count).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", Description = "Capacidade média de equipe por empresa." },
+                        new() { Label = "Appointments per company with usage", Value = companiesWithAppointments > 0 ? (appointmentTotal / (decimal)companiesWithAppointments).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", Description = "Average usage intensity per operationally active company." },
+                        new() { Label = "Customers per company", Value = companies.Count > 0 ? (customers.Count / (decimal)companies.Count).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", Description = "Average customer-base scale per company." },
+                        new() { Label = "Professionals per company", Value = companies.Count > 0 ? (professionals.Count / (decimal)companies.Count).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", Description = "Average team capacity per company." },
                     },
                     AppointmentsTrend = BuildDateSeries(period.StartDate, period.EndDate, appointments, x => x.Start, _ => 1m),
                     StatusBreakdown = BuildStatusBreakdown(appointmentTotal, scheduledTotal, inProgressTotal, completedTotal, cancelledTotal),
@@ -501,31 +501,31 @@ namespace Services
                     Narrative = new ReportSectionNarrativeDto
                     {
                         Title = "Companies",
-                        Summary = $"O ranking consolidado evidencia quais companies puxam receita e volume operacional, ajudando o front a gerar um PDF executivo com comparação entre tenants, concentração de resultado e exposição a risco financeiro.",
+                        Summary = $"The consolidated ranking shows which companies drive revenue and operational volume, helping the front end generate an executive PDF with tenant comparison, result concentration, and financial risk exposure.",
                         Highlights = new List<string>
                         {
-                            $"As 5 principais companies concentram {FormatPct(companyRanking.Take(5).Sum(x => x.PrimaryValue) / Math.Max(1m, totalRevenue) * 100m)} da receita recebida.",
-                            $"{FormatInt(activeCompanies)} companies estão ativas dentro de uma base total de {FormatInt(companies.Count)} empresas.",
-                            $"O ranking combina receita e volume operacional para evitar leitura cega baseada em um único eixo."
+                            $"The top 5 companies account for {FormatPct(companyRanking.Take(5).Sum(x => x.PrimaryValue) / Math.Max(1m, totalRevenue) * 100m)} of collected revenue.",
+                            $"{FormatInt(activeCompanies)} companies are active within a total base of {FormatInt(companies.Count)} companies.",
+                            $"The ranking combines revenue and operational volume to avoid a one-dimensional reading."
                         },
                         Alerts = BuildAdminCompanyAlerts(companyRanking, totalRevenue, activeCompanies, companies.Count)
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
-                        new() { Label = "Receita média top 5", Value = FormatCurrency(companyRanking.Take(5).Any() ? companyRanking.Take(5).Average(x => x.PrimaryValue) : 0m), Description = "Média de receita entre as líderes da base." },
-                        new() { Label = "Receita média geral", Value = FormatCurrency(companies.Count > 0 ? totalRevenue / companies.Count : 0m), Description = "Distribuição média de receita por company cadastrada." },
-                        new() { Label = "Participação das ativas", Value = FormatPct(companies.Count > 0 ? activeCompanies / (decimal)companies.Count * 100m : 0m), Description = "Peso das empresas ativas sobre a base total." },
+                        new() { Label = "Average revenue top 5", Value = FormatCurrency(companyRanking.Take(5).Any() ? companyRanking.Take(5).Average(x => x.PrimaryValue) : 0m), Description = "Average revenue among the leaders of the base." },
+                        new() { Label = "Overall average revenue", Value = FormatCurrency(companies.Count > 0 ? totalRevenue / companies.Count : 0m), Description = "Average revenue distribution per registered company." },
+                        new() { Label = "Share of active companies", Value = FormatPct(companies.Count > 0 ? activeCompanies / (decimal)companies.Count * 100m : 0m), Description = "Share of active companies over the total base." },
                     },
                     Ranking = companyRanking.Take(10).ToList(),
                     CompaniesTable = new ReportTableDto
                     {
-                        Title = "Ranking de companies",
-                        Description = "Tabela consolidada para composição do PDF administrativo e comparação entre empresas da plataforma.",
+                        Title = "Company ranking",
+                        Description = "Consolidated table for the administrative PDF and platform company comparison.",
                         Columns = new List<ReportTableColumnDto>
                         {
                             new() { Key = "company", Label = "Company" },
                             new() { Key = "status", Label = "Status" },
-                            new() { Key = "revenue", Label = "Receita" },
+                            new() { Key = "revenue", Label = "Revenue" },
                             new() { Key = "appointments", Label = "Appointments" },
                             new() { Key = "customers", Label = "Customers" },
                             new() { Key = "professionals", Label = "Professionals" },
@@ -592,11 +592,11 @@ namespace Services
         private async Task<int> ResolveCompanyIdAsync()
         {
             if (_currentUser.IsAdmin)
-                throw new InvalidOperationException("Use o endpoint admin para relatórios globais.");
+                throw new InvalidOperationException("Use the admin endpoint for global reports.");
 
             var scopedCompanyId = await _scope.GetScopedCompanyIdAsync();
             if (!scopedCompanyId.HasValue)
-                throw new InvalidOperationException("Escopo de company não encontrado.");
+                throw new InvalidOperationException("Company scope not found.");
 
             return scopedCompanyId.Value;
         }
@@ -861,7 +861,7 @@ namespace Services
         {
             var activeFilters = new List<string>
             {
-                $"Período: {period.StartDate:dd/MM/yyyy} até {period.EndDate:dd/MM/yyyy}"
+                $"Period: {period.StartDate:MM/dd/yyyy} to {period.EndDate:MM/dd/yyyy}"
             };
 
             if (query.ProfessionalId.HasValue)
@@ -881,7 +881,7 @@ namespace Services
                 CustomerId = query.CustomerId,
                 ServiceTypeId = query.ServiceTypeId,
                 Status = query.Status,
-                DisplayPeriod = $"{period.StartDate:dd/MM/yyyy} - {period.EndDate:dd/MM/yyyy}",
+                DisplayPeriod = $"{period.StartDate:MM/dd/yyyy} - {period.EndDate:MM/dd/yyyy}",
                 ActiveFilters = activeFilters,
             };
         }
@@ -966,9 +966,9 @@ namespace Services
                     EntityId = professional.Id,
                     Name = professional.Name,
                     PrimaryValue = professionalAppointments.Count(a => a.Status == AppointmentStatus.Completed),
-                    PrimaryLabel = "concluídos",
+                    PrimaryLabel = "completed",
                     SecondaryValue = estimatedRevenue,
-                    SecondaryLabel = "receita estimada",
+                    SecondaryLabel = "estimated revenue",
                     Badge = rating > 0 ? $"{rating:0.0}★" : null,
                 });
             }
@@ -1003,10 +1003,10 @@ namespace Services
                         EntityId = c.Id,
                         Name = c.Name,
                         PrimaryValue = revenue,
-                        PrimaryLabel = "receita",
+                        PrimaryLabel = "revenue",
                         SecondaryValue = appts.Count,
                         SecondaryLabel = "appointments",
-                        Badge = appts.Count > 1 ? "Recorrente" : "Pontual",
+                        Badge = appts.Count > 1 ? "Recurring" : "One-time",
                     };
                 })
                 .OrderByDescending(x => x.PrimaryValue)
@@ -1035,30 +1035,30 @@ namespace Services
             var recommendedActions = new List<string>();
 
             if (ChangePct(revenue, previousRevenue) >= 0)
-                strengths.Add($"A receita recebida se manteve em trajetória positiva, com variação de {FormatSignedPct(ChangePct(revenue, previousRevenue))} contra o período anterior.");
+                strengths.Add($"Collected revenue remained on a positive trajectory, changing by {FormatSignedPct(ChangePct(revenue, previousRevenue))} compared with the previous period.");
             if (completionRate >= 80m)
-                strengths.Add($"A taxa de conclusão de {FormatPct(completionRate)} indica execução operacional saudável.");
+                strengths.Add($"A completion rate of {FormatPct(completionRate)} indicates healthy operational execution.");
             if (averageRating >= 4m)
-                strengths.Add($"A percepção do cliente foi favorável, com rating médio de {averageRating.ToString("0.0", CultureInfo.InvariantCulture)}.");
+                strengths.Add($"Customer perception was favorable, with an average rating of {averageRating.ToString("0.0", CultureInfo.InvariantCulture)}.");
             if (recurringCustomers > 0)
-                strengths.Add($"A carteira mostra retenção ativa, com {FormatInt(recurringCustomers)} clientes recorrentes no período.");
+                strengths.Add($"The customer base shows active retention, with {FormatInt(recurringCustomers)} recurring customers during the period.");
 
             if (cancellationRate >= 15m)
-                risks.Add($"A taxa de cancelamento em {FormatPct(cancellationRate)} merece investigação de causas operacionais e comerciais.");
+                risks.Add($"A cancellation rate of {FormatPct(cancellationRate)} deserves investigation into operational and commercial causes.");
             if (overdueAmount > 0)
-                risks.Add($"Há {FormatCurrency(overdueAmount)} em valores overdue, o que pressiona o caixa e reduz previsibilidade.");
+                risks.Add($"There is {FormatCurrency(overdueAmount)} in overdue amounts, which puts pressure on cash flow and reduces predictability.");
             if (receivableAmount > revenue && receivableAmount > 0)
-                risks.Add("O saldo em aberto já supera a receita recebida no período, sinalizando risco de cobrança.");
+                risks.Add("Open balance already exceeds collected revenue for the period, signaling collection risk.");
             if (activeCustomers == 0)
-                risks.Add("Não houve clientes ativos no período filtrado, o que pode indicar filtro excessivo ou baixa operação.");
+                risks.Add("There were no active customers in the filtered period, which may indicate an overly restrictive filter or low operational activity.");
 
-            recommendedActions.Add("Usar o PDF para comparar receita, cancelamento e retenção ao longo dos próximos períodos e medir tendência, não só fotografia isolada.");
+            recommendedActions.Add("Use the PDF to compare revenue, cancellations, and retention across upcoming periods and measure trends, not just an isolated snapshot.");
             if (overdueAmount > 0)
-                recommendedActions.Add("Priorizar uma régua de cobrança para reduzir o overdue e melhorar a conversão do faturado em caixa real.");
+                recommendedActions.Add("Prioritize a collection workflow to reduce overdue balances and improve the conversion of billed amounts into real cash.");
             if (cancellationRate >= 10m)
-                recommendedActions.Add("Analisar motivos de cancelamento por serviço, cliente e profissional para atacar o gargalo onde ele realmente mora.");
+                recommendedActions.Add("Analyze cancellation reasons by service, customer, and professional to address the true bottleneck.");
             if (newCustomers > 0 && recurringCustomers < newCustomers)
-                recommendedActions.Add("Criar ação de retenção para converter aquisição recente em recorrência real.");
+                recommendedActions.Add("Create a retention action to convert recent acquisition into real recurrence.");
 
             var healthStatus = "neutral";
             if (completionRate >= 80m && cancellationRate < 10m && overdueAmount <= 0)
@@ -1068,9 +1068,9 @@ namespace Services
 
             return new ReportExecutiveSummaryDto
             {
-                Headline = $"Resumo executivo — {companyName}",
+                Headline = $"Executive Summary — {companyName}",
                 HealthStatus = healthStatus,
-                Narrative = $"No período analisado, a empresa movimentou {FormatInt(appointments)} appointments e {FormatCurrency(revenue)} em receita recebida. A operação fechou com taxa de conclusão de {FormatPct(completionRate)}, cancelamento de {FormatPct(cancellationRate)} e share de recorrência de {FormatPct(recurringShare)}.",
+                Narrative = $"During the analyzed period, the company processed {FormatInt(appointments)} appointments and {FormatCurrency(revenue)} in collected revenue. Operations closed with a completion rate of {FormatPct(completionRate)}, a cancellation rate of {FormatPct(cancellationRate)}, and a recurring share of {FormatPct(recurringShare)}.",
                 Strengths = strengths.Take(4).ToList(),
                 Risks = risks.Take(4).ToList(),
                 RecommendedActions = recommendedActions.Take(4).ToList(),
@@ -1083,29 +1083,29 @@ namespace Services
             var risks = new List<string>();
             var recommendedActions = new List<string>();
 
-            strengths.Add($"A plataforma tem {FormatInt(activeCompanies)} companies ativas dentro de uma base de {FormatInt(totalCompanies)} empresas.");
-            strengths.Add($"Foram registradas {FormatInt(activeSubscriptions)} subscriptions ativas, sustentando a leitura de monetização da base.");
+            strengths.Add($"The platform has {FormatInt(activeCompanies)} active companies within a base of {FormatInt(totalCompanies)} companies.");
+            strengths.Add($"There were {FormatInt(activeSubscriptions)} active subscriptions, supporting the monetization view of the base.");
             if (ChangePct(revenue, previousRevenue) >= 0)
-                strengths.Add($"A receita recebida variou {FormatSignedPct(ChangePct(revenue, previousRevenue))} frente ao período anterior.");
+                strengths.Add($"Collected revenue changed by {FormatSignedPct(ChangePct(revenue, previousRevenue))} compared with the previous period.");
 
             if (overdueAmount > 0)
-                risks.Add($"A base concentra {FormatCurrency(overdueAmount)} em overdue, o que exige acompanhamento de cobrança.");
+                risks.Add($"The base holds {FormatCurrency(overdueAmount)} in overdue amounts, which requires collection follow-up.");
             if (collectionRate < 70m)
-                risks.Add($"A eficiência de cobrança está em {FormatPct(collectionRate)}, abaixo do ideal para previsibilidade de caixa.");
+                risks.Add($"Collection efficiency is at {FormatPct(collectionRate)}, below the ideal level for cash-flow predictability.");
             if (ChangePct(appointments, previousAppointments) < 0)
-                risks.Add("O volume operacional caiu frente ao período anterior e pode indicar retração de uso em parte da base.");
+                risks.Add("Operational volume declined compared with the previous period and may indicate reduced usage across part of the base.");
 
-            recommendedActions.Add("Usar o PDF administrativo para destacar empresas líderes, risco de inadimplência e densidade de uso da plataforma.");
-            recommendedActions.Add("Cruzar companies com maior overdue contra companies com menor uso para identificar risco de churn e cobrança.");
-            recommendedActions.Add("Monitorar evolução de receita por company ativa para distinguir crescimento saudável de concentração excessiva.");
+            recommendedActions.Add("Use the administrative PDF to highlight leading companies, delinquency risk, and platform usage density.");
+            recommendedActions.Add("Cross-reference companies with higher overdue balances against those with lower usage to identify churn and collection risk.");
+            recommendedActions.Add("Monitor revenue evolution per active company to distinguish healthy growth from excessive concentration.");
 
             var healthStatus = overdueAmount > 0 || collectionRate < 70m ? "attention" : "good";
 
             return new ReportExecutiveSummaryDto
             {
-                Headline = "Resumo executivo — Plataforma",
+                Headline = "Executive Summary — Platform",
                 HealthStatus = healthStatus,
-                Narrative = $"No período analisado, a plataforma movimentou {FormatInt(appointments)} appointments e {FormatCurrency(revenue)} em receita recebida, com eficiência de cobrança de {FormatPct(collectionRate)}.",
+                Narrative = $"During the analyzed period, the platform processed {FormatInt(appointments)} appointments and {FormatCurrency(revenue)} in collected revenue, with a collection efficiency of {FormatPct(collectionRate)}.",
                 Strengths = strengths.Take(4).ToList(),
                 Risks = risks.Take(4).ToList(),
                 RecommendedActions = recommendedActions.Take(4).ToList(),
@@ -1116,13 +1116,13 @@ namespace Services
         {
             var alerts = new List<string>();
             if (overdueAmount > 0)
-                alerts.Add($"Saldo overdue identificado: {FormatCurrency(overdueAmount)}.");
+                alerts.Add($"Overdue balance identified: {FormatCurrency(overdueAmount)}.");
             if (collectionRate < 70m)
-                alerts.Add($"Collection efficiency abaixo do ideal: {FormatPct(collectionRate)}.");
+                alerts.Add($"Collection efficiency below the ideal level: {FormatPct(collectionRate)}.");
             if (receivableAmount > revenue && receivableAmount > 0)
-                alerts.Add("O valor em aberto já supera a receita recebida no período.");
+                alerts.Add("Open balance already exceeds collected revenue for the period.");
             if (averageTicket <= 0)
-                alerts.Add("Não há ticket médio calculável com os dados filtrados.");
+                alerts.Add("There is no calculable average ticket for the filtered data.");
             return alerts;
         }
 
@@ -1130,13 +1130,13 @@ namespace Services
         {
             var alerts = new List<string>();
             if (cancellationRate >= 15m)
-                alerts.Add("Cancelamento elevado para o período analisado.");
+                alerts.Add("Cancellation is high for the analyzed period.");
             if (completionRate < 70m)
-                alerts.Add("Completion rate abaixo de 70%, indicando espaço para ajuste operacional.");
+                alerts.Add("Completion rate is below 70%, indicating room for operational adjustment.");
             if (recurringShare < 20m)
-                alerts.Add("Baixo share de recorrência; a agenda depende mais de demanda pontual.");
+                alerts.Add("Recurring share is low; the schedule depends more on one-time demand.");
             if (dailyAverageAppointments < 1m)
-                alerts.Add("Baixa densidade operacional por dia dentro do período filtrado.");
+                alerts.Add("Operational density per day is low within the filtered period.");
             return alerts;
         }
 
@@ -1144,11 +1144,11 @@ namespace Services
         {
             var alerts = new List<string>();
             if (teamRows.Count < totalProfessionals && totalProfessionals > 0)
-                alerts.Add("Parte da equipe cadastrada não apareceu na agenda do período, o que pode sinalizar ociosidade ou filtro muito restritivo.");
+                alerts.Add("Part of the registered team did not appear in the schedule for the period, which may signal idleness or an overly restrictive filter.");
             if (teamRows.Any() && teamRows.First().PrimaryValue > Math.Max(1m, teamRows.Sum(x => x.PrimaryValue)) * 0.4m)
-                alerts.Add("A produtividade está concentrada em poucos professionals, o que aumenta dependência operacional.");
+                alerts.Add("Productivity is concentrated among a few professionals, increasing operational dependency.");
             if (averageRating > 0 && averageRating < 4m)
-                alerts.Add("Rating médio abaixo de 4,0; vale investigar feedbacks e experiência do cliente.");
+                alerts.Add("Average rating is below 4.0; investigate feedback and customer experience.");
             return alerts;
         }
 
@@ -1156,11 +1156,11 @@ namespace Services
         {
             var alerts = new List<string>();
             if (activeCustomers > 0 && recurringCustomers < activeCustomers * 0.3m)
-                alerts.Add("Baixa recorrência relativa na carteira ativa.");
+                alerts.Add("Recurrence is low relative to the active customer base.");
             if (customerRows.Any() && customerRows.Take(3).Sum(x => x.PrimaryValue) > Math.Max(1m, revenue) * 0.6m)
-                alerts.Add("Receita concentrada em poucos clientes; atenção ao risco de dependência.");
+                alerts.Add("Revenue is concentrated among a few customers; watch for dependency risk.");
             if (newCustomers == 0)
-                alerts.Add("Nenhum novo cliente entrou na base dentro do período filtrado.");
+                alerts.Add("No new customer entered the base during the filtered period.");
             return alerts;
         }
 
@@ -1168,11 +1168,11 @@ namespace Services
         {
             var alerts = new List<string>();
             if (overdueAmount > 0)
-                alerts.Add("There is cobranças vencidas na base e elas devem entrar no radar do time financeiro.");
+                alerts.Add("There are overdue charges in the base and they should be on the finance team's radar.");
             if (collectionRate < 70m)
-                alerts.Add("Collection efficiency abaixo do ideal para uma base previsível.");
+                alerts.Add("Collection efficiency is below the ideal level for a predictable base.");
             if (activeSubscriptions < activeCompanies)
-                alerts.Add("Nem toda company ativa possui subscription ativa; revisar aderência comercial e status contratual.");
+                alerts.Add("Not every active company has an active subscription; review commercial adoption and contract status.");
             return alerts;
         }
 
@@ -1180,11 +1180,11 @@ namespace Services
         {
             var alerts = new List<string>();
             if (completionRate < 75m)
-                alerts.Add("A taxa global de conclusão está abaixo do desejado para a plataforma.");
+                alerts.Add("The platform's global completion rate is below the desired level.");
             if (appointmentTotal > 0 && cancelledTotal / (decimal)appointmentTotal >= 0.15m)
-                alerts.Add("O cancelamento consolidado da plataforma está elevado.");
+                alerts.Add("The platform's consolidated cancellation rate is high.");
             if (totalCompanies > 0 && companiesWithAppointments / (decimal)totalCompanies < 0.5m)
-                alerts.Add("Menos da metade da base teve uso operacional no período.");
+                alerts.Add("Less than half of the base had operational usage during the period.");
             return alerts;
         }
 
@@ -1192,9 +1192,9 @@ namespace Services
         {
             var alerts = new List<string>();
             if (companyRanking.Any() && companyRanking.Take(3).Sum(x => x.PrimaryValue) > Math.Max(1m, totalRevenue) * 0.7m)
-                alerts.Add("A receita da plataforma está bastante concentrada nas líderes da base.");
+                alerts.Add("The platform's revenue is highly concentrated among the leading companies in the base.");
             if (totalCompanies > 0 && activeCompanies / (decimal)totalCompanies < 0.7m)
-                alerts.Add("A participação de companies ativas sobre a base total está abaixo de 70%.");
+                alerts.Add("The share of active companies over the total base is below 70%.");
             return alerts;
         }
 
@@ -1381,11 +1381,11 @@ namespace Services
             return Math.Round(((current - previous) / previous) * 100m, 2);
         }
 
-        private static string FormatCurrency(decimal value) => value.ToString("C", new CultureInfo("pt-BR"));
+        private static string FormatCurrency(decimal value) => value.ToString("C", new CultureInfo("en-US"));
         private static string FormatPct(decimal value) => $"{value:0.0}%";
-        private static string FormatSignedPct(decimal? value) => value.HasValue ? $"{(value.Value >= 0 ? "+" : string.Empty)}{value.Value:0.0}%" : "0,0%";
-        private static string FormatDate(DateTime value) => value.ToString("dd/MM/yyyy");
-        private static string FormatDateTime(DateTime value) => value.ToString("dd/MM/yyyy HH:mm");
+        private static string FormatSignedPct(decimal? value) => value.HasValue ? $"{(value.Value >= 0 ? "+" : string.Empty)}{value.Value:0.0}%" : "0.0%";
+        private static string FormatDate(DateTime value) => value.ToString("MM/dd/yyyy", CultureInfo.InvariantCulture);
+        private static string FormatDateTime(DateTime value) => value.ToString("MM/dd/yyyy HH:mm", CultureInfo.InvariantCulture);
         private static string FormatInt(decimal value) => value.ToString("0", CultureInfo.InvariantCulture);
         private static int NormalizePageSize(int pageSize) => Math.Clamp(pageSize <= 0 ? 20 : pageSize, 5, 100);
         private static string Escape(string value) => $"\"{(value ?? string.Empty).Replace("\"", "\"\"")}\"";
