@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Services.Localization;
 
 namespace ControlApi.BackgroundJobs
 {
@@ -39,8 +40,14 @@ namespace ControlApi.BackgroundJobs
 
         private static readonly string[] ReminderTitles =
         {
+            // Legacy hardcoded titles (kept for backward-compat cleanup of pre-i18n notifications)
             "Checkout pendente",
-            "Checkout pending"
+            "Checkout pending",
+            // Localized titles emitted by the resource bundle (en / pt-BR / es / fr).
+            // Must stay in sync with notifications.checkoutReminder.title in LocalizationResources.
+            "Checkout pending",
+            "Checkout pendiente",
+            "Pointage de sortie en attente"
         };
 
         public CheckoutReminderHostedService(
@@ -97,6 +104,8 @@ namespace ControlApi.BackgroundJobs
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<DbContextClass>();
             var pushSender = scope.ServiceProvider.GetRequiredService<Services.IPushNotificationSender>();
+            var loc = scope.ServiceProvider.GetRequiredService<IMessageLocalizer>();
+            var langResolver = scope.ServiceProvider.GetRequiredService<IRecipientLanguageResolver>();
 
             var nowUtc = DateTime.UtcNow;
 
@@ -135,6 +144,10 @@ namespace ControlApi.BackgroundJobs
             var openChecks = await (
                     from cr in db.CheckRecords.AsNoTracking()
                     join a in db.Appointments.AsNoTracking() on cr.AppointmentId equals a.Id
+                    join c in db.Companies.AsNoTracking() on a.CompanyId equals c.Id into cjoin
+                    from c in cjoin.DefaultIfEmpty()
+                    join cu in db.Customers.AsNoTracking() on a.CustomerId equals cu.Id into cujoin
+                    from cu in cujoin.DefaultIfEmpty()
                     where cr.CheckInTime != null
                           && cr.CheckOutTime == null
                           && a.End >= endFromUtc
@@ -143,7 +156,9 @@ namespace ControlApi.BackgroundJobs
                     select new
                     {
                         Check = cr,
-                        Appointment = a
+                        Appointment = a,
+                        CompanyName = c != null ? c.Name : null,
+                        CustomerName = cu != null ? cu.Name : null
                     }
                 )
                 .ToListAsync(ct);
@@ -183,6 +198,18 @@ namespace ControlApi.BackgroundJobs
             var createdNotifications = new List<Notification>();
             var createdDispatches = new List<AppointmentReminderDispatch>();
 
+            // Pre-resolve languages for all users we may notify (cascade User.Language → Company.Language → "en").
+            var distinctUserIds = openChecks
+                .Select(x => userByProfessionalId.TryGetValue(x.Check.ProfessionalId, out var u) ? u : null)
+                .Where(u => u != null)
+                .Select(u => u!.Id)
+                .Distinct()
+                .ToList();
+
+            var languageByUserIdPre = new Dictionary<int, string>();
+            foreach (var uid in distinctUserIds)
+                languageByUserIdPre[uid] = await langResolver.ForUserAsync(uid, ct);
+
             foreach (var item in openChecks)
             {
                 if (!userByProfessionalId.TryGetValue(item.Check.ProfessionalId, out var u))
@@ -194,10 +221,17 @@ namespace ControlApi.BackgroundJobs
                 if (existingSet.Contains(key))
                     continue;
 
-                var isPt = IsPtBr(u.Language);
+                var language = languageByUserIdPre.TryGetValue(u.Id, out var lng) ? lng : "en";
+                var apptTitle = string.IsNullOrWhiteSpace(item.Appointment.Title)
+                    ? loc.Get("notifications.appointmentDefaultTitle", language)
+                    : item.Appointment.Title;
 
-                var title = isPt ? "Checkout pendente" : "Checkout pending";
-                var msg = BuildMessage(isPt, item.Appointment);
+                var title = loc.Get("notifications.checkoutReminder.title", language);
+                var msg = loc.Get("notifications.checkoutReminder.body", language, new
+                {
+                    title = apptTitle,
+                    address = item.Appointment.Address ?? string.Empty
+                });
 
                 var notif = new Notification
                 {
@@ -233,62 +267,63 @@ namespace ControlApi.BackgroundJobs
             await db.SaveChangesAsync(ct);
             succeeded += createdNotifications.Count;
 
-            // Envia push via WebPush
-            // Agrupa por idioma para mensagem correta (como no Reminder30Min).
-            var ptUsers = createdNotifications.Where(n => n.Title == "Checkout pendente").Select(n => n.RecipientId).Distinct().ToList();
-            var enUsers = createdNotifications.Where(n => n.Title == "Checkout pending").Select(n => n.RecipientId).Distinct().ToList();
+            // Envia push via WebPush, agrupado por idioma resolvido por usuário (cascata localizada).
+            var notificationsByUserId = createdNotifications
+                .GroupBy(n => n.RecipientId)
+                .ToDictionary(g => g.Key, g => g.ToList());
 
-            if (ptUsers.Count > 0)
+            var languageByUserId = new Dictionary<int, string>();
+            foreach (var uid in notificationsByUserId.Keys)
             {
-                await SendPushAsync(
-                    pushSender,
-                    createdNotifications.Where(n => n.Title == "Checkout pendente").ToList(),
-                    "Checkout pendente",
-                    "Você fez check-in, mas ainda não fez o check-out. Finalize o check-out agora.",
-                    "Professional",
-                    ptUsers);
-
-                _logger.LogInformation("[CheckoutReminder] ENVIADO PT users=[{Users}] count={Count}", string.Join(",", ptUsers), ptUsers.Count);
+                languageByUserId[uid] = await langResolver.ForUserAsync(uid, ct);
             }
 
-            if (enUsers.Count > 0)
+            foreach (var grp in languageByUserId.GroupBy(kv => kv.Value, StringComparer.OrdinalIgnoreCase))
             {
+                var language = grp.Key;
+                var userIds = grp.Select(kv => kv.Key).Distinct().ToList();
+                if (userIds.Count == 0) continue;
+
+                var notifs = userIds
+                    .Where(uid => notificationsByUserId.ContainsKey(uid))
+                    .SelectMany(uid => notificationsByUserId[uid])
+                    .ToList();
+
+                var localizedTitle = loc.Get("notifications.checkoutReminder.title", language);
+                if (string.IsNullOrEmpty(localizedTitle) || localizedTitle == "notifications.checkoutReminder.title")
+                {
+                    localizedTitle = language.StartsWith("pt", StringComparison.OrdinalIgnoreCase)
+                        ? "Checkout pendente"
+                        : "Checkout pending";
+                }
+
+                // Body usa um payload genérico do bundle "sms.checkoutReminder.body".
+                // Como aqui é push para o Profissional, customer fica vazio quando indisponível.
+                var firstItem = openChecks.FirstOrDefault(x => userByProfessionalId.TryGetValue(x.Check.ProfessionalId, out var u) && userIds.Contains(u.Id));
+                var sampleTitle = firstItem?.Appointment?.Title ?? string.Empty;
+                var sampleCustomer = firstItem?.CustomerName ?? string.Empty;
+                var sampleCompany = firstItem?.CompanyName ?? string.Empty;
+
+                var message = loc.Get("sms.checkoutReminder.body", language, new
+                {
+                    customer = sampleCustomer,
+                    title = sampleTitle,
+                    company = sampleCompany
+                });
+
                 await SendPushAsync(
                     pushSender,
-                    createdNotifications.Where(n => n.Title == "Checkout pending").ToList(),
-                    "Checkout pending",
-                    "You checked in, but you haven't checked out yet. Please complete checkout now.",
+                    notifs,
+                    localizedTitle,
+                    message,
                     "Professional",
-                    enUsers);
+                    userIds);
 
-                _logger.LogInformation("[CheckoutReminder] ENVIADO EN users=[{Users}] count={Count}", string.Join(",", enUsers), enUsers.Count);
+                _logger.LogInformation("[CheckoutReminder] ENVIADO lang={Lang} users=[{Users}] count={Count}", language, string.Join(",", userIds), userIds.Count);
             }
 
             var failed = Math.Max(0, processed - succeeded);
             return (processed, succeeded, failed, $"OpenChecks={openChecks.Count}, ExpiredRemoved={expiredIds.Count}, NotificationsCreated={createdNotifications.Count}");
-        }
-
-        private static bool IsPtBr(string? lang)
-        {
-            var l = (lang ?? "").Trim().ToLowerInvariant();
-            if (string.IsNullOrWhiteSpace(l)) return true;
-            return l.StartsWith("pt") || l == "pt-br" || l == "ptbr";
-        }
-
-        private static string BuildMessage(bool isPt, Appointment a)
-        {
-            var title = string.IsNullOrWhiteSpace(a.Title) ? (isPt ? "Seu agendamento" : "Your appointment") : a.Title;
-            if (isPt)
-            {
-                if (!string.IsNullOrWhiteSpace(a.Address))
-                    return $"{title}: você fez check-in e ainda não fez check-out. Endereço: {a.Address}."
-                        + " Finalize o check-out agora.";
-                return $"{title}: você fez check-in e ainda não fez check-out. Finalize o check-out agora.";
-            }
-
-            if (!string.IsNullOrWhiteSpace(a.Address))
-                return $"{title}: you checked in and still haven't checked out. Address: {a.Address}. Please complete checkout now.";
-            return $"{title}: you checked in and still haven't checked out. Please complete checkout now.";
         }
 
         private static async Task SendPushAsync(

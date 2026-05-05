@@ -20,6 +20,16 @@ namespace Core.Models
         public string State { get; set; } = string.Empty;
         public string? ZipCode { get; set; }
 
+        /// <summary>
+        /// Optional primary phone number for this specific address.
+        /// </summary>
+        public string? Phone { get; set; }
+
+        /// <summary>
+        /// Optional second phone number for this specific address. The address is limited to Phone and Phone2.
+        /// </summary>
+        public string? Phone2 { get; set; }
+
         public string? Observations { get; set; }
 
         public decimal? Ticket { get; set; }

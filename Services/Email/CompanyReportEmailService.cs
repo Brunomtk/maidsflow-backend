@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using Services.Integrations.SendGrid;
+using Services.Localization;
 using Services.Security;
 
 namespace Services.Email;
@@ -22,6 +23,8 @@ public sealed class CompanyReportEmailService : ICompanyReportEmailService
     private readonly ICurrentUser _currentUser;
     private readonly IScopeGuard _scopeGuard;
     private readonly ILogger<CompanyReportEmailService> _logger;
+    private readonly IMessageLocalizer _loc;
+    private readonly IRecipientLanguageResolver _langResolver;
 
     public CompanyReportEmailService(
         DbContextClass db,
@@ -30,7 +33,9 @@ public sealed class CompanyReportEmailService : ICompanyReportEmailService
         IOptions<SendGridOptions> sendGridOptions,
         ICurrentUser currentUser,
         IScopeGuard scopeGuard,
-        ILogger<CompanyReportEmailService> logger)
+        ILogger<CompanyReportEmailService> logger,
+        IMessageLocalizer loc,
+        IRecipientLanguageResolver langResolver)
     {
         _db = db;
         _reportsService = reportsService;
@@ -39,6 +44,8 @@ public sealed class CompanyReportEmailService : ICompanyReportEmailService
         _currentUser = currentUser;
         _scopeGuard = scopeGuard;
         _logger = logger;
+        _loc = loc;
+        _langResolver = langResolver;
     }
 
     public async Task<SendCompanyReportEmailResultDto> SendAsync(int companyId, SendCompanyReportEmailRequestDto request, string triggeredBy, CancellationToken ct = default)
@@ -80,7 +87,10 @@ public sealed class CompanyReportEmailService : ICompanyReportEmailService
         if (string.IsNullOrWhiteSpace(recipientEmail))
             throw new InvalidOperationException("The company does not have a valid recipient email configured.");
 
-        var subject = $"Monthly performance report · {company.Name} · {period.startDate:MMMM yyyy}";
+        var language = await _langResolver.ForCompanyAsync(company.Id, ct);
+        var periodLabel = $"{period.startDate:MMMM yyyy}";
+        var subject = _loc.Get("email.companyMonthlyReport.subject", language, new { company = company.Name, period = periodLabel });
+
         var rendered = CompanyMonthlyReportEmailTemplate.Render(new CompanyMonthlyReportEmailTemplate.Model(
             CompanyName: company.Name,
             RecipientEmail: recipientEmail,
@@ -97,7 +107,7 @@ public sealed class CompanyReportEmailService : ICompanyReportEmailService
             Risks: report.ExecutiveSummary.Risks.Take(4).ToArray(),
             RecommendedActions: report.ExecutiveSummary.RecommendedActions.Take(4).ToArray(),
             SupportUrl: string.IsNullOrWhiteSpace(_sendGridOptions.SupportUrl) ? null : _sendGridOptions.SupportUrl.Trim()
-        ), subject);
+        ), subject, _loc, language);
 
         var send = await _emailSender.SendAsync(new SendGridEmailMessage(
             ToEmail: recipientEmail,

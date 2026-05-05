@@ -141,6 +141,7 @@ namespace Services
             company.Phone = request.Phone;
             company.ReceiveSms = request.ReceiveSms;
             company.ReceiveEmail = request.ReceiveEmail;
+            if (!string.IsNullOrWhiteSpace(request.Language)) company.Language = request.Language;
             if (request.PlanId.HasValue) company.PlanId = request.PlanId;
             company.Status = request.Status;
             if (request.HasCompletedInitialSetup.HasValue)

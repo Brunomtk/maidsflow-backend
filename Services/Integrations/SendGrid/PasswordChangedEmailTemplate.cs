@@ -1,10 +1,11 @@
 using System;
 using System.Net;
+using Services.Localization;
 
 namespace Services.Integrations.SendGrid;
 
 /// <summary>
-/// Renders an email notifying the user that their password was changed.
+/// Renders an email notifying the user that their password was changed, in the recipient's language.
 /// </summary>
 public static class PasswordChangedEmailTemplate
 {
@@ -22,23 +23,30 @@ public static class PasswordChangedEmailTemplate
         string Html
     );
 
-    public static Rendered Render(Payload p, string subject)
+    public static Rendered Render(Payload p, IMessageLocalizer loc, string language)
     {
+        var subject = loc.Get("email.passwordChanged.subject", language);
+        var greeting = loc.Get("shared.greeting.hello", language, new { name = p.UserName });
+        var intro = loc.Get("email.passwordChanged.intro", language);
+        var tip = loc.Get("email.passwordChanged.tip", language);
+        var labelEmail = loc.Get("email.credentials.fields.email", language);
+        var ctaLogin = loc.Get("email.credentials.cta", language);
+        var labelLogin = loc.Get("email.credentials.fields.login", language);
+
         var company = WebUtility.HtmlEncode(p.CompanyName);
         var userName = WebUtility.HtmlEncode(p.UserName);
         var email = WebUtility.HtmlEncode(p.Email);
         var loginUrl = WebUtility.HtmlEncode(p.LoginUrl);
         var changedAt = p.ChangedAtUtc.ToString("yyyy-MM-dd HH:mm 'UTC'");
 
-        var plain = $"Hi {p.UserName},\n\n" +
-                    $"This is {p.CompanyName}. Your MaidsFlow password was changed on {changedAt}.\n\n" +
-                    $"If you made this change, no action is needed.\n" +
-                    $"If you did NOT make this change, please reset your password immediately and contact support.\n\n" +
-                    $"Login: {p.LoginUrl}\n" +
-                    $"Account: {p.Email}\n";
+        var plain = $"{greeting},\n\n" +
+                    $"{intro} ({changedAt})\n\n" +
+                    $"{tip}\n\n" +
+                    $"{labelEmail}: {p.Email}\n" +
+                    $"{labelLogin}: {p.LoginUrl}\n";
 
         var html = $@"<!doctype html>
-<html lang=""en"">
+<html lang=""{WebUtility.HtmlEncode(language)}"">
 <head>
   <meta charset=""utf-8"" />
   <meta name=""viewport"" content=""width=device-width, initial-scale=1"" />
@@ -66,32 +74,30 @@ public static class PasswordChangedEmailTemplate
     <div class=""card"">
       <div class=""header"">
         <div class=""brand"">{company}</div>
-        <h1 class=""title"">Password changed</h1>
-        <p class=""sub"">Hi <b>{userName}</b>, we are notifying you that your MaidsFlow password was changed.</p>
+        <h1 class=""title"">{WebUtility.HtmlEncode(subject)}</h1>
+        <p class=""sub"">{WebUtility.HtmlEncode(greeting)} — {WebUtility.HtmlEncode(intro)}</p>
       </div>
 
       <div class=""content"">
         <div class=""row"">
-          <div class=""label"">Account</div>
+          <div class=""label"">{WebUtility.HtmlEncode(labelEmail)}</div>
           <div class=""value"">{email}</div>
         </div>
 
         <div class=""row"">
-          <div class=""label"">Changed at</div>
+          <div class=""label"">UTC</div>
           <div class=""value"">{WebUtility.HtmlEncode(changedAt)}</div>
         </div>
 
         <div class=""alert"">
-          If you did <b>not</b> make this change, please reset your password immediately and contact support.
+          {WebUtility.HtmlEncode(tip)}
         </div>
 
-        <a class=""btn"" href=""{loginUrl}"">Open login</a>
-
-        <p class=""sub"" style=""margin-top:16px"">If everything looks right, you can ignore this message.</p>
+        <a class=""btn"" href=""{loginUrl}"">{WebUtility.HtmlEncode(ctaLogin)}</a>
       </div>
 
       <div class=""footer muted"">
-        Login URL: <a href=""{loginUrl}"">{loginUrl}</a>
+        {WebUtility.HtmlEncode(labelLogin)}: <a href=""{loginUrl}"">{loginUrl}</a>
       </div>
     </div>
   </div>

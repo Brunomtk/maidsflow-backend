@@ -245,6 +245,7 @@ namespace Services
                     Ssn = ssnDigits,
                     Email = string.IsNullOrWhiteSpace(row.Email) ? null : row.Email.Trim(),
                     Phone = row.Phone?.Trim() ?? string.Empty,
+                    Phone2 = string.IsNullOrWhiteSpace(row.Phone2) ? null : row.Phone2.Trim(),
                     Address = address,
                     ZipCode = string.IsNullOrWhiteSpace(row.ZipCode) ? null : row.ZipCode.Trim(),
                     City = row.City?.Trim() ?? string.Empty,
@@ -255,6 +256,7 @@ namespace Services
                     PaymentMethod = string.IsNullOrWhiteSpace(row.PaymentMethod) ? null : row.PaymentMethod.Trim(),
                     ReceiveSms = row.ReceiveSms ?? true,
                     ReceiveEmail = row.ReceiveEmail ?? true,
+                    Language = string.IsNullOrWhiteSpace(row.Language) ? null : row.Language.Trim(),
                     CompanyId = companyId
                 };
 
@@ -293,6 +295,7 @@ namespace Services
             customer.Name = (customer.Name ?? string.Empty).Trim();
             customer.Email = string.IsNullOrWhiteSpace(customer.Email) ? null : customer.Email.Trim();
             customer.Phone = string.IsNullOrWhiteSpace(customer.Phone) ? string.Empty : customer.Phone.Trim();
+            customer.Phone2 = string.IsNullOrWhiteSpace(customer.Phone2) ? null : customer.Phone2.Trim();
             customer.Address = (customer.Address ?? string.Empty).Trim();
             customer.ZipCode = string.IsNullOrWhiteSpace(customer.ZipCode) ? null : customer.ZipCode.Trim();
             customer.City = string.IsNullOrWhiteSpace(customer.City) ? string.Empty : customer.City.Trim();
@@ -347,6 +350,8 @@ namespace Services
                     City = customer.City ?? string.Empty,
                     State = customer.State ?? string.Empty,
                     ZipCode = customer.ZipCode,
+                    Phone = string.IsNullOrWhiteSpace(customer.Phone) ? null : customer.Phone,
+                    Phone2 = customer.Phone2,
                     Observations = customer.Observations,
                     Ticket = customer.Ticket,
                     Frequency = customer.Frequency,
@@ -361,6 +366,8 @@ namespace Services
             primary.City = customer.City ?? primary.City;
             primary.State = customer.State ?? primary.State;
             primary.ZipCode = customer.ZipCode ?? primary.ZipCode;
+            primary.Phone = string.IsNullOrWhiteSpace(customer.Phone) ? primary.Phone : customer.Phone;
+            primary.Phone2 = customer.Phone2 ?? primary.Phone2;
             primary.Observations = customer.Observations ?? primary.Observations;
             primary.Ticket = customer.Ticket ?? primary.Ticket;
             primary.Frequency = customer.Frequency ?? primary.Frequency;

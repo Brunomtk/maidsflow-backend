@@ -84,6 +84,8 @@ namespace Services
                 City = (dto.City ?? string.Empty).Trim(),
                 State = (dto.State ?? string.Empty).Trim(),
                 ZipCode = string.IsNullOrWhiteSpace(dto.ZipCode) ? null : dto.ZipCode.Trim(),
+                Phone = string.IsNullOrWhiteSpace(dto.Phone) ? null : dto.Phone.Trim(),
+                Phone2 = string.IsNullOrWhiteSpace(dto.Phone2) ? null : dto.Phone2.Trim(),
                 Observations = string.IsNullOrWhiteSpace(dto.Observations) ? null : dto.Observations.Trim(),
                 Ticket = dto.Ticket,
                 Frequency = string.IsNullOrWhiteSpace(dto.Frequency) ? null : dto.Frequency.Trim(),
@@ -126,6 +128,8 @@ namespace Services
             if (dto.City != null) addr.City = (dto.City ?? string.Empty).Trim();
             if (dto.State != null) addr.State = (dto.State ?? string.Empty).Trim();
             if (dto.ZipCode != null) addr.ZipCode = string.IsNullOrWhiteSpace(dto.ZipCode) ? null : dto.ZipCode.Trim();
+            if (dto.Phone != null) addr.Phone = string.IsNullOrWhiteSpace(dto.Phone) ? null : dto.Phone.Trim();
+            if (dto.Phone2 != null) addr.Phone2 = string.IsNullOrWhiteSpace(dto.Phone2) ? null : dto.Phone2.Trim();
             if (dto.Observations != null) addr.Observations = string.IsNullOrWhiteSpace(dto.Observations) ? null : dto.Observations.Trim();
             if (dto.Ticket.HasValue) addr.Ticket = dto.Ticket;
             if (dto.Frequency != null) addr.Frequency = string.IsNullOrWhiteSpace(dto.Frequency) ? null : dto.Frequency.Trim();
@@ -337,6 +341,8 @@ namespace Services
             customer.City = addr.City;
             customer.State = addr.State;
             customer.ZipCode = addr.ZipCode;
+            if (!string.IsNullOrWhiteSpace(addr.Phone)) customer.Phone = addr.Phone.Trim();
+            customer.Phone2 = string.IsNullOrWhiteSpace(addr.Phone2) ? customer.Phone2 : addr.Phone2.Trim();
             customer.Observations = addr.Observations;
             customer.Ticket = addr.Ticket;
             customer.Frequency = addr.Frequency;

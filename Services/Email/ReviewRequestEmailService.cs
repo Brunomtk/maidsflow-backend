@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Infrastructure.Repositories;
 using Microsoft.Extensions.Options;
 using Services.Integrations.SendGrid;
+using Services.Localization;
 
 namespace Services.Email
 {
@@ -24,12 +25,21 @@ namespace Services.Email
         private readonly IUnitOfWork _uow;
         private readonly ISendGridEmailSender _sender;
         private readonly SendGridOptions _opt;
+        private readonly IMessageLocalizer _loc;
+        private readonly IRecipientLanguageResolver _langResolver;
 
-        public ReviewRequestEmailService(IUnitOfWork uow, ISendGridEmailSender sender, IOptions<SendGridOptions> opt)
+        public ReviewRequestEmailService(
+            IUnitOfWork uow,
+            ISendGridEmailSender sender,
+            IOptions<SendGridOptions> opt,
+            IMessageLocalizer loc,
+            IRecipientLanguageResolver langResolver)
         {
             _uow = uow;
             _sender = sender;
             _opt = opt.Value;
+            _loc = loc;
+            _langResolver = langResolver;
         }
 
         public async Task SendReviewRequestAsync(
@@ -59,7 +69,9 @@ namespace Services.Email
                 SupportUrl: _opt.SupportUrl
             );
 
-            var (html, plain) = ReviewRequestEmailTemplate.Render(model);
+            var language = await _langResolver.ForCustomerAsync(customerId, ct);
+
+            var (html, plain) = ReviewRequestEmailTemplate.Render(model, _loc, language);
 
             var subject = string.IsNullOrWhiteSpace(_opt.ReviewRequestSubject)
                 ? "How was your service?"

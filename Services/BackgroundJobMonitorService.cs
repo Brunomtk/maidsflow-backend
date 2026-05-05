@@ -23,6 +23,12 @@ namespace Services
         public const string PaymentDueReminder = "payment-due-reminder";
         public const string MonthlyCompanyReportEmail = "monthly-company-report-email";
 
+        // Messaging Compliance — centralized SMS/Email hosted services (replaces n8n workflows)
+        public const string SmsAppointmentReminder24h = "sms-appointment-reminder-24h";
+        public const string EmailAppointmentReminder48h = "email-appointment-reminder-48h";
+        public const string SmsRetry = "sms-retry";
+        public const string MessagingTrialReminder = "messaging-trial-reminder";
+
         public static readonly IReadOnlyList<(string Key, string DisplayName, string Category)> Defaults =
             new List<(string, string, string)>
             {
@@ -32,7 +38,11 @@ namespace Services
                 (NotificationCleanup, "Notification Cleanup", "Maintenance"),
                 (GpsTrackingRetention, "GPS Tracking Retention", "Maintenance"),
                 (PaymentDueReminder, "Payment Due Reminder", "Finance"),
-                (MonthlyCompanyReportEmail, "Monthly Company Report Email", "Reports")
+                (MonthlyCompanyReportEmail, "Monthly Company Report Email", "Reports"),
+                (SmsAppointmentReminder24h, "SMS Reminder 24h", "Messaging"),
+                (EmailAppointmentReminder48h, "Email Reminder 48h", "Messaging"),
+                (SmsRetry, "SMS Retry Worker", "Messaging"),
+                (MessagingTrialReminder, "Messaging Trial Reminder", "Messaging")
             };
     }
 

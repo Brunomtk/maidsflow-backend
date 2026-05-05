@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Infrastructure.Repositories;
 using Microsoft.Extensions.Options;
 using Services.Integrations.SendGrid;
+using Services.Localization;
 
 namespace Services.Email;
 
@@ -13,12 +14,21 @@ public class PlanPaymentEmailService : IPlanPaymentEmailService
     private readonly IUnitOfWork _uow;
     private readonly ISendGridEmailSender _sender;
     private readonly SendGridOptions _opt;
+    private readonly IMessageLocalizer _loc;
+    private readonly IRecipientLanguageResolver _langResolver;
 
-    public PlanPaymentEmailService(IUnitOfWork uow, ISendGridEmailSender sender, IOptions<SendGridOptions> opt)
+    public PlanPaymentEmailService(
+        IUnitOfWork uow,
+        ISendGridEmailSender sender,
+        IOptions<SendGridOptions> opt,
+        IMessageLocalizer loc,
+        IRecipientLanguageResolver langResolver)
     {
         _uow = uow;
         _sender = sender;
         _opt = opt.Value;
+        _loc = loc;
+        _langResolver = langResolver;
     }
 
     public async Task SendPlanPaymentSuccessAsync(
@@ -59,10 +69,12 @@ public class PlanPaymentEmailService : IPlanPaymentEmailService
             SupportUrl: _opt.SupportUrl
         );
 
-        var (suffix, html, plain) = PlanPaymentSuccessEmailTemplate.Render(model);
+        var language = await _langResolver.ForCompanyAsync(companyId);
+
+        var (suffix, html, plain) = PlanPaymentSuccessEmailTemplate.Render(model, _loc, language);
 
         var subjectBase = string.IsNullOrWhiteSpace(_opt.PlanPaymentSuccessSubject)
-            ? "Payment successful"
+            ? _loc.Get("email.planPaymentSuccess.subject", language, new { plan = planName })
             : _opt.PlanPaymentSuccessSubject.Trim();
 
         var subject = string.IsNullOrWhiteSpace(suffix) ? subjectBase : $"{subjectBase} • {suffix}";
@@ -121,10 +133,12 @@ public class PlanPaymentEmailService : IPlanPaymentEmailService
             SupportUrl: _opt.SupportUrl
         );
 
-        var (suffix, html, plain) = PlanPaymentFailedEmailTemplate.Render(model);
+        var language = await _langResolver.ForCompanyAsync(companyId);
+
+        var (suffix, html, plain) = PlanPaymentFailedEmailTemplate.Render(model, _loc, language);
 
         var subjectBase = string.IsNullOrWhiteSpace(_opt.PlanPaymentFailedSubject)
-            ? "Payment failed"
+            ? _loc.Get("email.planPaymentFailed.subject", language)
             : _opt.PlanPaymentFailedSubject.Trim();
 
         var subject = string.IsNullOrWhiteSpace(suffix) ? subjectBase : $"{subjectBase} • {suffix}";

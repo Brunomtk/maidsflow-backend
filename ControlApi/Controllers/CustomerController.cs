@@ -175,6 +175,7 @@ namespace ControlApi.Controllers
                 "name",
                 "email",
                 "phone",
+                "phone2",
                 "address",
                 "zipCode",
                 "city",
@@ -198,17 +199,18 @@ namespace ControlApi.Controllers
             ws.Cell(2, 1).Value = "John Doe";
             ws.Cell(2, 2).Value = "john@example.com";
             ws.Cell(2, 3).Value = "+1 (555) 123-4567";
-            ws.Cell(2, 4).Value = "123 Main St, Apt 4";
-            ws.Cell(2, 5).Value = "90210";
-            ws.Cell(2, 6).Value = "Beverly Hills";
-            ws.Cell(2, 7).Value = "CA";
-            ws.Cell(2, 8).Value = "VIP client";
-            ws.Cell(2, 9).Value = "123456789"; // SSN digits only
-            ws.Cell(2, 10).Value = true;
+            ws.Cell(2, 4).Value = "+1 (555) 987-6543";
+            ws.Cell(2, 5).Value = "123 Main St, Apt 4";
+            ws.Cell(2, 6).Value = "90210";
+            ws.Cell(2, 7).Value = "Beverly Hills";
+            ws.Cell(2, 8).Value = "CA";
+            ws.Cell(2, 9).Value = "VIP client";
+            ws.Cell(2, 10).Value = "123456789"; // SSN digits only
             ws.Cell(2, 11).Value = true;
-            ws.Cell(2, 12).Value = 150;
-            ws.Cell(2, 13).Value = "weekly";
-            ws.Cell(2, 14).Value = "cash";
+            ws.Cell(2, 12).Value = true;
+            ws.Cell(2, 13).Value = 150;
+            ws.Cell(2, 14).Value = "weekly";
+            ws.Cell(2, 15).Value = "cash";
 
             ws.SheetView.FreezeRows(1);
             ws.Columns().AdjustToContents();
@@ -366,6 +368,7 @@ namespace ControlApi.Controllers
                 Ssn = dto.Ssn,
                 Email = dto.Email,
                 Phone = dto.Phone ?? string.Empty,
+                Phone2 = dto.Phone2,
                 Address = dto.Address,
                 ZipCode = dto.ZipCode,
                 City = dto.City ?? string.Empty,
@@ -376,6 +379,7 @@ namespace ControlApi.Controllers
                 PaymentMethod = dto.PaymentMethod,
                 ReceiveSms = dto.ReceiveSms,
                 ReceiveEmail = dto.ReceiveEmail,
+                Language = string.IsNullOrWhiteSpace(dto.Language) ? null : dto.Language,
                 CompanyId = dto.CompanyId
             };
 
@@ -398,9 +402,11 @@ namespace ControlApi.Controllers
             existing.Ssn = dto.Ssn ?? existing.Ssn;
             existing.Email = dto.Email ?? existing.Email;
             existing.Phone = dto.Phone ?? existing.Phone;
+            existing.Phone2 = dto.Phone2 ?? existing.Phone2;
 
             if (dto.ReceiveSms.HasValue) existing.ReceiveSms = dto.ReceiveSms.Value;
             if (dto.ReceiveEmail.HasValue) existing.ReceiveEmail = dto.ReceiveEmail.Value;
+            if (!string.IsNullOrWhiteSpace(dto.Language)) existing.Language = dto.Language;
             existing.Address = dto.Address ?? existing.Address;
             existing.ZipCode = dto.ZipCode ?? existing.ZipCode;
             existing.City = dto.City ?? existing.City;

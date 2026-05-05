@@ -36,6 +36,9 @@ namespace Core.DTO.Appointment
         // Também permanecem disponíveis dentro de Customer.
         public string? CustomerEmail { get; set; }
         public string? CustomerPhone { get; set; }
+        public string? CustomerPhone2 { get; set; }
+        public string? CustomerAddressPhone { get; set; }
+        public string? CustomerAddressPhone2 { get; set; }
         public string? CustomerAddress { get; set; }
 
         // Conveniência: nome da empresa responsável pelo agendamento (útil para templates de e-mail/n8n).

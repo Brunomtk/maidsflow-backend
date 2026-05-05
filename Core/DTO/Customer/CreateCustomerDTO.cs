@@ -17,6 +17,9 @@ namespace Core.DTO.Customer
         [Phone]
         public string? Phone { get; set; }
 
+        [Phone]
+        public string? Phone2 { get; set; }
+
         [Required]
         public string Address { get; set; } = string.Empty;
 
@@ -36,6 +39,10 @@ namespace Core.DTO.Customer
         // Notification preferences (default: enabled)
         public bool ReceiveSms { get; set; } = true;
         public bool ReceiveEmail { get; set; } = true;
+
+        /// <summary>Preferred language ("en", "pt-BR", "es", "fr"). Optional.</summary>
+        [MaxLength(10)]
+        public string? Language { get; set; }
 
         [Required]
         public int CompanyId { get; set; }

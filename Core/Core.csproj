@@ -12,16 +12,12 @@
     <PackageReference Include="ImageSharpCommunity.Formats.Pdf" Version="0.2.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
     <PackageReference Include="itext7" Version="8.0.4" />
-    <PackageReference Include="iTextSharp" Version="5.5.13.4" />
-    <PackageReference Include="itextsharp.xmlworker" Version="5.5.13.4" />
-    <PackageReference Include="LiveCharts" Version="0.9.7" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="PDFiumCore" Version="128.0.6569" />
-    <PackageReference Include="PdfiumViewer" Version="2.13.0" />
     <PackageReference Include="PDFsharp" Version="6.1.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="5.0.0" />
     <PackageReference Include="Serilog.Enrichers.Environment" Version="2.2.0" />

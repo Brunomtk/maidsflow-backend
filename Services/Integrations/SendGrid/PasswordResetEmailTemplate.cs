@@ -1,9 +1,10 @@
 using System.Net;
+using Services.Localization;
 
 namespace Services.Integrations.SendGrid;
 
 /// <summary>
-/// Renders an email for password reset (forgot password).
+/// Renders an email for password reset (forgot password), in the recipient's language.
 /// </summary>
 public static class PasswordResetEmailTemplate
 {
@@ -11,7 +12,8 @@ public static class PasswordResetEmailTemplate
         string CompanyName,
         string UserName,
         string Email,
-        string ResetUrl
+        string ResetUrl,
+        int ExpiryMinutes = 30
     );
 
     public sealed record Rendered(
@@ -20,22 +22,31 @@ public static class PasswordResetEmailTemplate
         string Html
     );
 
-    public static Rendered Render(Payload p, string subject)
+    public static Rendered Render(Payload p, IMessageLocalizer loc, string language)
     {
+        var subject = loc.Get("email.passwordReset.subject", language);
+        var greeting = loc.Get("shared.greeting.hello", language, new { name = p.UserName });
+        var intro = loc.Get("email.passwordReset.intro", language);
+        var cta = loc.Get("email.passwordReset.cta", language);
+        var expiry = loc.Get("email.passwordReset.expiry", language, new { minutes = p.ExpiryMinutes });
+        var ifNotYou = loc.Get("shared.if.notYou", language);
+        var labelEmail = loc.Get("email.credentials.fields.email", language);
+
         var company = WebUtility.HtmlEncode(p.CompanyName);
         var userName = WebUtility.HtmlEncode(p.UserName);
         var email = WebUtility.HtmlEncode(p.Email);
         var resetUrl = WebUtility.HtmlEncode(p.ResetUrl);
 
         var plain =
-            $"Hi {p.UserName},\n\n" +
-            $"We received a request to reset your MaidsFlow password.\n\n" +
-            $"Reset your password using this link:\n{p.ResetUrl}\n\n" +
-            $"If you didn't request this, you can ignore this email.\n\n" +
-            $"Account: {p.Email}\n";
+            $"{greeting},\n\n" +
+            $"{intro}\n\n" +
+            $"{cta}: {p.ResetUrl}\n\n" +
+            $"{expiry}\n\n" +
+            $"{ifNotYou}\n\n" +
+            $"{labelEmail}: {p.Email}\n";
 
         var html = $@"<!doctype html>
-<html lang=""en"">
+<html lang=""{WebUtility.HtmlEncode(language)}"">
 <head>
   <meta charset=""utf-8"" />
   <meta name=""viewport"" content=""width=device-width, initial-scale=1"" />
@@ -49,9 +60,9 @@ public static class PasswordResetEmailTemplate
           <tr>
             <td style=""padding:28px 28px 10px 28px;"">
               <div style=""font-size:14px;color:#9fb3c8;letter-spacing:.3px;"">{company}</div>
-              <div style=""font-size:26px;color:#ffffff;font-weight:700;margin-top:10px;"">Reset your password</div>
+              <div style=""font-size:26px;color:#ffffff;font-weight:700;margin-top:10px;"">{WebUtility.HtmlEncode(subject)}</div>
               <div style=""font-size:15px;color:#cfe3ff;line-height:1.5;margin-top:12px;"">
-                Hi <b>{userName}</b>, we received a request to reset your password.
+                {WebUtility.HtmlEncode(greeting)} — {WebUtility.HtmlEncode(intro)}
               </div>
             </td>
           </tr>
@@ -59,20 +70,20 @@ public static class PasswordResetEmailTemplate
           <tr>
             <td style=""padding:10px 28px 28px 28px;"">
               <a href=""{resetUrl}"" style=""display:inline-block;background:#18bec8;color:#061018;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:12px;"">
-                Reset Password
+                {WebUtility.HtmlEncode(cta)}
               </a>
 
               <div style=""font-size:13px;color:#9fb3c8;line-height:1.6;margin-top:16px;"">
-                This link will expire soon for security reasons. If you didn't request this, you can safely ignore this email.
+                {WebUtility.HtmlEncode(expiry)}
               </div>
 
               <div style=""margin-top:18px;padding:14px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);"">
-                <div style=""font-size:12px;color:#9fb3c8;"">Account</div>
+                <div style=""font-size:12px;color:#9fb3c8;"">{WebUtility.HtmlEncode(labelEmail)}</div>
                 <div style=""font-size:14px;color:#ffffff;"">{email}</div>
               </div>
 
               <div style=""font-size:12px;color:#6f86a0;line-height:1.6;margin-top:18px;"">
-                If the button doesn't work, copy and paste this URL into your browser:<br/>
+                {WebUtility.HtmlEncode(ifNotYou)}<br/>
                 <span style=""color:#cfe3ff;"">{resetUrl}</span>
               </div>
             </td>
@@ -80,7 +91,7 @@ public static class PasswordResetEmailTemplate
 
           <tr>
             <td style=""padding:18px 28px;background:rgba(0,0,0,.18);color:#6f86a0;font-size:12px;"">
-              © {company} • MaidsFlow
+              © {company} • Maids Flow
             </td>
           </tr>
         </table>

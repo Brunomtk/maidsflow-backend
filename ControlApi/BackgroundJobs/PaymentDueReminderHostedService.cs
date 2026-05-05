@@ -12,6 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Services.Localization;
 
 namespace ControlApi.BackgroundJobs
 {
@@ -93,6 +94,8 @@ namespace ControlApi.BackgroundJobs
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<DbContextClass>();
+            var loc = scope.ServiceProvider.GetRequiredService<IMessageLocalizer>();
+            var langResolver = scope.ServiceProvider.GetRequiredService<IRecipientLanguageResolver>();
 
             var today = DateTime.UtcNow.Date;
             var now = DateTime.UtcNow;
@@ -129,10 +132,19 @@ namespace ControlApi.BackgroundJobs
 
                         if (!hasOverdue)
                         {
+                            var languageOverdue = await langResolver.ForCompanyAsync(payment.CompanyId, ct);
                             db.Notifications.Add(new Notification
                             {
-                                Title = $"{dueKind} overdue",
-                                Message = $"The {dueKind.ToLowerInvariant()} {BuildReference(payment)} became overdue on {dueDate:MM/dd/yyyy}. Category: {BuildCategory(payment)}. Amount: {payment.Amount:0.00}. {overdueToken}",
+                                Title = loc.Get("notifications.payment.overdue.title", languageOverdue, new { kind = dueKind }),
+                                Message = loc.Get("notifications.payment.overdue.body", languageOverdue, new
+                                {
+                                    kind = dueKind.ToLowerInvariant(),
+                                    reference = BuildReference(payment),
+                                    date = dueDate.ToString("MM/dd/yyyy"),
+                                    category = BuildCategory(payment),
+                                    amount = payment.Amount.ToString("0.00"),
+                                    token = overdueToken
+                                }),
                                 Type = NotificationType.Warning,
                                 RecipientId = 0,
                                 RecipientRole = UserRole.Company,
@@ -152,10 +164,19 @@ namespace ControlApi.BackgroundJobs
 
                         if (!hasDueToday)
                         {
+                            var languageDueToday = await langResolver.ForCompanyAsync(payment.CompanyId, ct);
                             db.Notifications.Add(new Notification
                             {
-                                Title = $"{dueKind} due today",
-                                Message = $"The {dueKind.ToLowerInvariant()} {BuildReference(payment)} is due today ({dueDate:MM/dd/yyyy}). Category: {BuildCategory(payment)}. Amount: {payment.Amount:0.00}. {dueTodayToken}",
+                                Title = loc.Get("notifications.payment.dueToday.title", languageDueToday, new { kind = dueKind }),
+                                Message = loc.Get("notifications.payment.dueToday.body", languageDueToday, new
+                                {
+                                    kind = dueKind.ToLowerInvariant(),
+                                    reference = BuildReference(payment),
+                                    date = dueDate.ToString("MM/dd/yyyy"),
+                                    category = BuildCategory(payment),
+                                    amount = payment.Amount.ToString("0.00"),
+                                    token = dueTodayToken
+                                }),
                                 Type = NotificationType.Info,
                                 RecipientId = 0,
                                 RecipientRole = UserRole.Company,

@@ -13,6 +13,7 @@ using Core.Models;
 using Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Services.Security;
+using Services.Reports;
 
 namespace Services
 {
@@ -48,6 +49,12 @@ namespace Services
         {
             var company = await _db.Companies.AsNoTracking().FirstOrDefaultAsync(x => x.Id == companyId)
                 ?? throw new InvalidOperationException("Company not found.");
+
+            // Resolve language: prefer the logged-in user's preference, fall back to the company default.
+            var loggedUser = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == _currentUser.UserId);
+            var lang = (loggedUser?.Language
+                        ?? company.Language
+                        ?? "en").ToLowerInvariant();
 
             var period = BuildPeriod(query);
             var previousQuery = BuildPreviousQuery(query, period);
@@ -95,25 +102,26 @@ namespace Services
             var dailyAverageAppointments = period.TotalDays > 0 ? appointmentTotal / (decimal)period.TotalDays : 0m;
             var revenuePerActiveCustomer = activeCustomerIds.Count > 0 ? completedRevenue / activeCustomerIds.Count : 0m;
 
-            var teamRows = BuildProfessionalRows(appointments, paidPayments, professionals, reviews);
-            var customerRows = BuildCustomerRevenueRows(appointments, paidPayments, customers);
+            var teamRows = BuildProfessionalRows(lang, appointments, paidPayments, professionals, reviews);
+            var customerRows = BuildCustomerRevenueRows(lang, appointments, paidPayments, customers);
             var serviceRows = appointments
                 .GroupBy(x => x.ServiceTypeId)
                 .Select(g => new ReportLeaderboardItemDto
                 {
                     EntityId = g.Key,
-                    Name = g.Key.HasValue && serviceTypes.TryGetValue(g.Key.Value, out var serviceName) ? serviceName : "No service",
+                    Name = g.Key.HasValue && serviceTypes.TryGetValue(g.Key.Value, out var serviceName) ? serviceName : ReportTexts.ValNoService(lang),
                     PrimaryValue = g.Count(),
-                    PrimaryLabel = "appointments",
+                    PrimaryLabel = ReportTexts.LabelAppointmentsRaw(lang),
                     SecondaryValue = g.Count(x => x.Status == AppointmentStatus.Completed),
-                    SecondaryLabel = "completed",
-                    Badge = g.Count(x => x.IsRecurring) > 0 ? $"{g.Count(x => x.IsRecurring)} recurring" : null,
+                    SecondaryLabel = ReportTexts.LabelCompletedRaw(lang),
+                    Badge = g.Count(x => x.IsRecurring) > 0 ? ReportTexts.BadgeRecurringSuffix(lang, g.Count(x => x.IsRecurring)) : null,
                 })
                 .OrderByDescending(x => x.PrimaryValue)
                 .ThenByDescending(x => x.SecondaryValue)
                 .ToList();
 
             var executiveSummary = BuildCompanyExecutiveSummary(
+                lang,
                 company.Name,
                 completedRevenue,
                 previousCompletedRevenue,
@@ -135,57 +143,57 @@ namespace Services
                 CompanyId = company.Id,
                 CompanyName = company.Name,
                 Period = period,
-                Filters = BuildFilterSnapshot(query, period),
+                Filters = BuildFilterSnapshot(lang, query, period),
                 ExecutiveSummary = executiveSummary,
                 OverviewCards = new List<ReportKpiCardDto>
                 {
-                    MakeCard("appointments_total", "Appointments in period", appointmentTotal, FormatInt(appointmentTotal), ChangePct(appointmentTotal, previousAppointmentTotal), "Total appointment volume within the selected period."),
-                    MakeCard("completed_rate", "Completion rate", completionRate, FormatPct(completionRate), ChangePct(completionRate, previousCompletionRate), "Percentage of completed appointments out of the total for the period."),
-                    MakeCard("revenue_paid", "Revenue collected", completedRevenue, FormatCurrency(completedRevenue), ChangePct(completedRevenue, previousCompletedRevenue), "Only payments marked as paid within the selected period."),
-                    MakeCard("customers_active", "Active customers", activeCustomerIds.Count, FormatInt(activeCustomerIds.Count), null, "Customers with at least one appointment in the period."),
+                    MakeLocalizedCard("appointments_total", ReportTexts.AppointmentsInPeriod(lang), appointmentTotal, FormatInt(appointmentTotal), ChangePct(appointmentTotal, previousAppointmentTotal)),
+                    MakeLocalizedCard("completed_rate", ReportTexts.CompletionRate(lang), completionRate, FormatPct(completionRate), ChangePct(completionRate, previousCompletionRate)),
+                    MakeLocalizedCard("revenue_paid", ReportTexts.RevenueCollected(lang), completedRevenue, FormatCurrency(completedRevenue), ChangePct(completedRevenue, previousCompletedRevenue)),
+                    MakeLocalizedCard("customers_active", ReportTexts.ActiveCustomers(lang), activeCustomerIds.Count, FormatInt(activeCustomerIds.Count), null),
                 },
                 Financial = new CompanyReportFinancialDto
                 {
                     Narrative = new ReportSectionNarrativeDto
                     {
-                        Title = "Financial",
-                        Summary = $"The company generated {FormatCurrency(completedRevenue)} in collected revenue during the period, with an average ticket of {FormatCurrency(averageTicket)} and a collection efficiency of {FormatPct(collectionRate)} over the billed amount.",
+                        Title = ReportTexts.SectionFinancial(lang),
+                        Summary = ReportTexts.FinancialSummary(lang, FormatCurrency(completedRevenue), FormatCurrency(averageTicket), FormatPct(collectionRate)),
                         Highlights = new List<string>
                         {
-                            $"Revenue collected changed {FormatSignedPct(ChangePct(completedRevenue, previousCompletedRevenue))} compared with the previous period.",
-                            $"Each active customer generated an average of {FormatCurrency(revenuePerActiveCustomer)} in revenue during the analyzed period.",
-                            $"There is {FormatCurrency(receivableAmount)} still open, of which {FormatCurrency(overdueAmount)} is already overdue."
+                            ReportTexts.FinHighlightChange(lang, FormatSignedPct(ChangePct(completedRevenue, previousCompletedRevenue))),
+                            ReportTexts.FinHighlightPerCustomer(lang, FormatCurrency(revenuePerActiveCustomer)),
+                            ReportTexts.FinHighlightOpen(lang, FormatCurrency(receivableAmount), FormatCurrency(overdueAmount))
                         },
-                        Alerts = BuildFinancialAlerts(receivableAmount, overdueAmount, collectionRate, completedRevenue, averageTicket)
+                        Alerts = BuildFinancialAlerts(lang, receivableAmount, overdueAmount, collectionRate, completedRevenue, averageTicket)
                     },
                     Cards = new List<ReportKpiCardDto>
                     {
-                        MakeCard("revenue_total", "Revenue collected", completedRevenue, FormatCurrency(completedRevenue), ChangePct(completedRevenue, previousCompletedRevenue), "Payments effectively collected within the selected period."),
-                        MakeCard("receivable_amount", "Open balance", receivableAmount, FormatCurrency(receivableAmount), null, "Sum of pending and overdue payments."),
-                        MakeCard("average_ticket", "Average ticket", averageTicket, FormatCurrency(averageTicket), null, "Revenue collected divided by the total number of appointments."),
-                        MakeCard("collection_rate", "Collection efficiency", collectionRate, FormatPct(collectionRate), null, "Percentage of the billed amount in the period already marked as paid."),
+                        MakeLocalizedCard("revenue_total", ReportTexts.FinRevenueTotal(lang), completedRevenue, FormatCurrency(completedRevenue), ChangePct(completedRevenue, previousCompletedRevenue)),
+                        MakeLocalizedCard("receivable_amount", ReportTexts.FinReceivable(lang), receivableAmount, FormatCurrency(receivableAmount), null),
+                        MakeLocalizedCard("average_ticket", ReportTexts.FinAverageTicket(lang), averageTicket, FormatCurrency(averageTicket), null),
+                        MakeLocalizedCard("collection_rate", ReportTexts.FinCollectionRate(lang), collectionRate, FormatPct(collectionRate), null),
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
-                        new() { Label = "Revenue per active customer", Value = FormatCurrency(revenuePerActiveCustomer), Description = "Average revenue generated per active customer during the period." },
-                        new() { Label = "Revenue per day", Value = FormatCurrency(period.TotalDays > 0 ? completedRevenue / period.TotalDays : 0m), Description = "Average daily collected revenue." },
-                        new() { Label = "Open balance vs. billed amount", Value = FormatPct(totalBilledAmount > 0 ? receivableAmount / totalBilledAmount * 100m : 0m), Description = "Share of the open balance within the billed amount for the period." },
+                        new() { Label = ReportTexts.FinRevenuePerActiveCustomer(lang).label, Value = FormatCurrency(revenuePerActiveCustomer), Description = ReportTexts.FinRevenuePerActiveCustomer(lang).description },
+                        new() { Label = ReportTexts.FinRevenuePerDay(lang).label, Value = FormatCurrency(period.TotalDays > 0 ? completedRevenue / period.TotalDays : 0m), Description = ReportTexts.FinRevenuePerDay(lang).description },
+                        new() { Label = ReportTexts.FinOpenVsBilled(lang).label, Value = FormatPct(totalBilledAmount > 0 ? receivableAmount / totalBilledAmount * 100m : 0m), Description = ReportTexts.FinOpenVsBilled(lang).description },
                     },
                     RevenueTrend = BuildDateSeries(period.StartDate, period.EndDate, paidPayments, x => x.PaymentDate ?? x.DueDate, x => x.Amount),
                     PaymentStatusBreakdown = BuildPaymentStatusBreakdown(payments),
                     TopCustomersByRevenue = customerRows.Take(8).ToList(),
                     RecentTransactions = new ReportTableDto
                     {
-                        Title = "Recent transactions",
-                        Description = "Detailed dataset for the PDF with the most recent receipts and charges in the filtered period.",
+                        Title = ReportTexts.TableRecentTransactions(lang).title,
+                        Description = ReportTexts.TableRecentTransactions(lang).description,
                         Columns = new List<ReportTableColumnDto>
                         {
-                            new() { Key = "date", Label = "Date" },
-                            new() { Key = "reference", Label = "Reference" },
-                            new() { Key = "customer", Label = "Customer" },
-                            new() { Key = "status", Label = "Status" },
-                            new() { Key = "method", Label = "Method" },
-                            new() { Key = "amount", Label = "Amount" },
+                            new() { Key = "date", Label = ReportTexts.ColDate(lang) },
+                            new() { Key = "reference", Label = ReportTexts.ColReference(lang) },
+                            new() { Key = "customer", Label = ReportTexts.ColCustomer(lang) },
+                            new() { Key = "status", Label = ReportTexts.ColStatus(lang) },
+                            new() { Key = "method", Label = ReportTexts.ColMethod(lang) },
+                            new() { Key = "amount", Label = ReportTexts.ColAmount(lang) },
                         },
                         Rows = payments
                             .OrderByDescending(x => x.PaymentDate ?? x.DueDate)
@@ -196,9 +204,9 @@ namespace Services
                                 {
                                     ["date"] = FormatDate(x.PaymentDate ?? x.DueDate),
                                     ["reference"] = x.Reference,
-                                    ["customer"] = customers.FirstOrDefault(c => c.Id == x.CustomerId)?.Name ?? "No customer",
+                                    ["customer"] = customers.FirstOrDefault(c => c.Id == x.CustomerId)?.Name ?? ReportTexts.ValNoCustomer(lang),
                                     ["status"] = x.Status.ToString(),
-                                    ["method"] = x.Method?.ToString() ?? "Not informed",
+                                    ["method"] = x.Method?.ToString() ?? ReportTexts.ValNotInformed(lang),
                                     ["amount"] = FormatCurrency(x.Amount),
                                 }
                             })
@@ -210,44 +218,44 @@ namespace Services
                 {
                     Narrative = new ReportSectionNarrativeDto
                     {
-                        Title = "Operations",
-                        Summary = $"The operation recorded {FormatInt(appointmentTotal)} appointments during the period, averaging {dailyAverageAppointments.ToString("0.0", CultureInfo.InvariantCulture)} per day, with a completion rate of {FormatPct(completionRate)} and a cancellation rate of {FormatPct(cancellationRate)}.",
+                        Title = ReportTexts.SectionOperations(lang),
+                        Summary = ReportTexts.OpsSummary(lang, FormatInt(appointmentTotal), dailyAverageAppointments.ToString("0.0", CultureInfo.InvariantCulture), FormatPct(completionRate), FormatPct(cancellationRate)),
                         Highlights = new List<string>
                         {
-                            $"The volume changed by {FormatSignedPct(ChangePct(appointmentTotal, previousAppointmentTotal))} compared with the previous period.",
+                            ReportTexts.OpsHighlightChange(lang, FormatSignedPct(ChangePct(appointmentTotal, previousAppointmentTotal))),
                             $"{FormatPct(recurringShare)} of the analyzed schedule came from recurring appointments.",
                             $"{FormatInt(completedCount)} appointments were completed and {FormatInt(cancelledCount)} were cancelled within the selected interval."
                         },
-                        Alerts = BuildOperationsAlerts(cancellationRate, completionRate, recurringShare, dailyAverageAppointments)
+                        Alerts = BuildOperationsAlerts(lang, cancellationRate, completionRate, recurringShare, dailyAverageAppointments)
                     },
                     Cards = new List<ReportKpiCardDto>
                     {
-                        MakeCard("appointments_total", "Appointments", appointmentTotal, FormatInt(appointmentTotal), ChangePct(appointmentTotal, previousAppointmentTotal), "Total operational volume."),
-                        MakeCard("completed_total", "Completed", completedCount, FormatInt(completedCount), ChangePct(completedCount, previousCompletedCount), "Appointments successfully completed."),
-                        MakeCard("scheduled_total", "Scheduled", scheduledCount, FormatInt(scheduledCount), null, "Appointments still scheduled."),
-                        MakeCard("cancellation_rate", "Cancellation rate", cancellationRate, FormatPct(cancellationRate), ChangePct(cancellationRate, previousAppointmentTotal > 0 ? previousCancelledCount / (decimal)previousAppointmentTotal * 100m : 0m), "Share of cancellations out of the total volume for the period."),
+                        MakeLocalizedCard("appointments_total_ops", ReportTexts.OpsAppointments(lang), appointmentTotal, FormatInt(appointmentTotal), ChangePct(appointmentTotal, previousAppointmentTotal)),
+                        MakeLocalizedCard("completed_total", ReportTexts.OpsCompleted(lang), completedCount, FormatInt(completedCount), ChangePct(completedCount, previousCompletedCount)),
+                        MakeLocalizedCard("scheduled_total", ReportTexts.OpsScheduled(lang), scheduledCount, FormatInt(scheduledCount), null),
+                        MakeLocalizedCard("cancellation_rate", ReportTexts.OpsCancellationRate(lang), cancellationRate, FormatPct(cancellationRate), ChangePct(cancellationRate, previousAppointmentTotal > 0 ? previousCancelledCount / (decimal)previousAppointmentTotal * 100m : 0m)),
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
-                        new() { Label = "Daily average appointments", Value = dailyAverageAppointments.ToString("0.0", CultureInfo.InvariantCulture), Description = "Average volume per calendar day in the period." },
-                        new() { Label = "Recurring share", Value = FormatPct(recurringShare), Description = "Portion of the schedule generated by recurring services." },
-                        new() { Label = "Appointments per active customer", Value = activeCustomerIds.Count > 0 ? (appointmentTotal / (decimal)activeCustomerIds.Count).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", Description = "Average appointment intensity per active customer." },
+                        new() { Label = ReportTexts.OpsDailyAverage(lang).label, Value = dailyAverageAppointments.ToString("0.0", CultureInfo.InvariantCulture), Description = ReportTexts.OpsDailyAverage(lang).description },
+                        new() { Label = ReportTexts.OpsRecurringShare(lang).label, Value = FormatPct(recurringShare), Description = ReportTexts.OpsRecurringShare(lang).description },
+                        new() { Label = ReportTexts.OpsApptsPerCustomer(lang).label, Value = activeCustomerIds.Count > 0 ? (appointmentTotal / (decimal)activeCustomerIds.Count).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", Description = ReportTexts.OpsApptsPerCustomer(lang).description },
                     },
                     AppointmentsTrend = BuildDateSeries(period.StartDate, period.EndDate, appointments, x => x.Start, _ => 1m),
-                    StatusBreakdown = BuildStatusBreakdown(appointmentTotal, scheduledCount, inProgressCount, completedCount, cancelledCount),
+                    StatusBreakdown = BuildStatusBreakdown(lang, appointmentTotal, scheduledCount, inProgressCount, completedCount, cancelledCount),
                     TopServices = serviceRows.Take(8).ToList(),
                     RecentAppointments = new ReportTableDto
                     {
-                        Title = "Recent appointments",
-                        Description = "Operational dataset ready for PDF export, useful for auditing and detailed service-level review.",
+                        Title = ReportTexts.TableRecentAppointments(lang).title,
+                        Description = ReportTexts.TableRecentAppointments(lang).description,
                         Columns = new List<ReportTableColumnDto>
                         {
-                            new() { Key = "start", Label = "Date" },
-                            new() { Key = "title", Label = "Appointment" },
-                            new() { Key = "customer", Label = "Customer" },
-                            new() { Key = "service", Label = "Service" },
-                            new() { Key = "status", Label = "Status" },
-                            new() { Key = "team", Label = "Professionals" },
+                            new() { Key = "start", Label = ReportTexts.ColDate(lang) },
+                            new() { Key = "title", Label = ReportTexts.ColAppointment(lang) },
+                            new() { Key = "customer", Label = ReportTexts.ColCustomer(lang) },
+                            new() { Key = "service", Label = ReportTexts.ColService(lang) },
+                            new() { Key = "status", Label = ReportTexts.ColStatus(lang) },
+                            new() { Key = "team", Label = ReportTexts.ColTeam(lang) },
                         },
                         Rows = appointments
                             .OrderByDescending(x => x.Start)
@@ -258,10 +266,10 @@ namespace Services
                                 {
                                     ["start"] = FormatDateTime(x.Start),
                                     ["title"] = x.Title,
-                                    ["customer"] = customers.FirstOrDefault(c => c.Id == x.CustomerId)?.Name ?? "No customer",
-                                    ["service"] = x.ServiceTypeId.HasValue && serviceTypes.TryGetValue(x.ServiceTypeId.Value, out var serviceName) ? serviceName : (x.Category ?? "No service"),
+                                    ["customer"] = customers.FirstOrDefault(c => c.Id == x.CustomerId)?.Name ?? ReportTexts.ValNoCustomer(lang),
+                                    ["service"] = x.ServiceTypeId.HasValue && serviceTypes.TryGetValue(x.ServiceTypeId.Value, out var serviceName) ? serviceName : (x.Category ?? ReportTexts.ValNoService(lang)),
                                     ["status"] = x.Status.ToString(),
-                                    ["team"] = string.Join(", ", professionals.Where(p => x.ProfessionalIds.Contains(p.Id)).Select(p => p.Name).DefaultIfEmpty("Not assigned")),
+                                    ["team"] = string.Join(", ", professionals.Where(p => x.ProfessionalIds.Contains(p.Id)).Select(p => p.Name).DefaultIfEmpty(ReportTexts.ValNotAssigned(lang))),
                                 }
                             })
                             .ToList(),
@@ -272,28 +280,28 @@ namespace Services
                 {
                     Narrative = new ReportSectionNarrativeDto
                     {
-                        Title = "Team",
-                        Summary = $"The team had {FormatInt(professionals.Count)} registered professionals, of which {FormatInt(professionals.Count(x => x.Status == StatusEnum.Active))} were active. The consolidated average rating was {averageRating.ToString("0.0", CultureInfo.InvariantCulture)}.",
+                        Title = ReportTexts.SectionTeam(lang),
+                        Summary = ReportTexts.TeamSummary(lang, FormatInt(professionals.Count), FormatInt(professionals.Count(x => x.Status == StatusEnum.Active)), averageRating.ToString("0.0", CultureInfo.InvariantCulture)),
                         Highlights = new List<string>
                         {
                             $"{FormatInt(teamRows.Count)} professionals actively appeared in the filtered schedule.",
-                            $"The average number of completions per engaged professional was {(teamRows.Count > 0 ? teamRows.Average(x => x.PrimaryValue).ToString("0.0", CultureInfo.InvariantCulture) : "0.0")}.",
-                            $"Estimated revenue by allocation helps identify operational concentration within the team."
+                            ReportTexts.TeamHighlightCompletions(lang, teamRows.Count > 0 ? teamRows.Average(x => x.PrimaryValue).ToString("0.0", CultureInfo.InvariantCulture) : "0.0"),
+                            ReportTexts.TeamHighlightAllocation(lang)
                         },
-                        Alerts = BuildTeamAlerts(teamRows, professionals.Count, averageRating)
+                        Alerts = BuildTeamAlerts(lang, teamRows, professionals.Count, averageRating)
                     },
                     Cards = new List<ReportKpiCardDto>
                     {
-                        MakeCard("professionals_active", "Active professionals", professionals.Count(x => x.Status == StatusEnum.Active), FormatInt(professionals.Count(x => x.Status == StatusEnum.Active)), null, "Professionals marked as active in the registry."),
-                        MakeCard("professionals_utilized", "Professionals with schedule", teamRows.Count, FormatInt(teamRows.Count), null, "Professionals who appeared in at least one appointment during the period."),
-                        MakeCard("average_rating", "Average rating", averageRating, averageRating.ToString("0.0", CultureInfo.InvariantCulture), null, "Average of the reviews received during the period."),
-                        MakeCard("completed_per_professional", "Completions / professional", teamRows.Count > 0 ? teamRows.Average(x => x.PrimaryValue) : 0m, teamRows.Count > 0 ? teamRows.Average(x => x.PrimaryValue).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", null, "Average productivity of engaged professionals."),
+                        MakeLocalizedCard("professionals_active", ReportTexts.TeamActiveProfessionals(lang), professionals.Count(x => x.Status == StatusEnum.Active), FormatInt(professionals.Count(x => x.Status == StatusEnum.Active)), null),
+                        MakeLocalizedCard("professionals_utilized", ReportTexts.TeamWithSchedule(lang), teamRows.Count, FormatInt(teamRows.Count), null),
+                        MakeLocalizedCard("average_rating", ReportTexts.TeamAverageRating(lang), averageRating, averageRating.ToString("0.0", CultureInfo.InvariantCulture), null),
+                        MakeLocalizedCard("completed_per_professional", ReportTexts.TeamCompletionsPerPro(lang), teamRows.Count > 0 ? teamRows.Average(x => x.PrimaryValue) : 0m, teamRows.Count > 0 ? teamRows.Average(x => x.PrimaryValue).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", null),
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
-                        new() { Label = "Team utilization", Value = FormatPct(professionals.Count > 0 ? teamRows.Count / (decimal)professionals.Count * 100m : 0m), Description = "Percentage of registered professionals who had appointments during the period." },
-                        new() { Label = "Estimated revenue per professional", Value = FormatCurrency(teamRows.Count > 0 ? teamRows.Average(x => x.SecondaryValue ?? 0m) : 0m), Description = "Estimated average based on the link between appointments and paying customers." },
-                        new() { Label = "Leader concentration", Value = FormatPct(teamRows.Any() ? teamRows.First().PrimaryValue / Math.Max(1m, teamRows.Sum(x => x.PrimaryValue)) * 100m : 0m), Description = "Share of the most productive professional in total completions." },
+                        new() { Label = ReportTexts.TeamUtilization(lang).label, Value = FormatPct(professionals.Count > 0 ? teamRows.Count / (decimal)professionals.Count * 100m : 0m), Description = ReportTexts.TeamUtilization(lang).description },
+                        new() { Label = ReportTexts.TeamRevenuePerPro(lang).label, Value = FormatCurrency(teamRows.Count > 0 ? teamRows.Average(x => x.SecondaryValue ?? 0m) : 0m), Description = ReportTexts.TeamRevenuePerPro(lang).description },
+                        new() { Label = ReportTexts.TeamLeaderConcentration(lang).label, Value = FormatPct(teamRows.Any() ? teamRows.First().PrimaryValue / Math.Max(1m, teamRows.Sum(x => x.PrimaryValue)) * 100m : 0m), Description = ReportTexts.TeamLeaderConcentration(lang).description },
                     },
                     Leaderboard = teamRows.Take(10).ToList(),
                 },
@@ -301,41 +309,41 @@ namespace Services
                 {
                     Narrative = new ReportSectionNarrativeDto
                     {
-                        Title = "Customers",
-                        Summary = $"The analyzed base had {FormatInt(newCustomers)} new customers in the period, {FormatInt(activeCustomerIds.Count)} active customers, and {FormatInt(recurringCustomerCount)} recurring customers, indicating the current level of retention and dependency on the existing base.",
+                        Title = ReportTexts.SectionCustomers(lang),
+                        Summary = ReportTexts.CustomersSummary(lang, FormatInt(newCustomers), FormatInt(activeCustomerIds.Count), FormatInt(recurringCustomerCount)),
                         Highlights = new List<string>
                         {
-                            $"Recurring customers represented {FormatPct(activeCustomerIds.Count > 0 ? recurringCustomerCount / (decimal)activeCustomerIds.Count * 100m : 0m)} of active customers.",
-                            $"The top 5 customers account for {FormatPct(customerRows.Take(5).Sum(x => x.PrimaryValue) / Math.Max(1m, completedRevenue) * 100m)} of collected revenue.",
-                            $"The company served {FormatInt(activeCustomerIds.Count)} different customers in the filtered interval."
+                            ReportTexts.CustomersHighlightRecurring(lang, FormatPct(activeCustomerIds.Count > 0 ? recurringCustomerCount / (decimal)activeCustomerIds.Count * 100m : 0m)),
+                            ReportTexts.CustomersHighlightTop5(lang, FormatPct(customerRows.Take(5).Sum(x => x.PrimaryValue) / Math.Max(1m, completedRevenue) * 100m)),
+                            ReportTexts.CustomersHighlightServed(lang, FormatInt(activeCustomerIds.Count))
                         },
-                        Alerts = BuildCustomerAlerts(newCustomers, activeCustomerIds.Count, recurringCustomerCount, completedRevenue, customerRows)
+                        Alerts = BuildCustomerAlerts(lang, newCustomers, activeCustomerIds.Count, recurringCustomerCount, completedRevenue, customerRows)
                     },
                     Cards = new List<ReportKpiCardDto>
                     {
-                        MakeCard("new_customers", "New customers", newCustomers, FormatInt(newCustomers), null, "Customers created within the selected period."),
-                        MakeCard("active_customers", "Active customers", activeCustomerIds.Count, FormatInt(activeCustomerIds.Count), null, "Customers with at least one appointment in the period."),
-                        MakeCard("recurring_customers", "Recurring customers", recurringCustomerCount, FormatInt(recurringCustomerCount), null, "Customers with more than one appointment in the period."),
-                        MakeCard("avg_revenue_per_customer", "Revenue per active customer", revenuePerActiveCustomer, FormatCurrency(revenuePerActiveCustomer), null, "Revenue collected divided by active customers."),
+                        MakeLocalizedCard("new_customers", ReportTexts.CustNew(lang), newCustomers, FormatInt(newCustomers), null),
+                        MakeLocalizedCard("active_customers", ReportTexts.CustActive(lang), activeCustomerIds.Count, FormatInt(activeCustomerIds.Count), null),
+                        MakeLocalizedCard("recurring_customers", ReportTexts.CustRecurring(lang), recurringCustomerCount, FormatInt(recurringCustomerCount), null),
+                        MakeLocalizedCard("avg_revenue_per_customer", ReportTexts.CustRevenuePer(lang), revenuePerActiveCustomer, FormatCurrency(revenuePerActiveCustomer), null),
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
-                        new() { Label = "New over active", Value = FormatPct(activeCustomerIds.Count > 0 ? newCustomers / (decimal)activeCustomerIds.Count * 100m : 0m), Description = "Share of recent acquisition within the active base." },
-                        new() { Label = "Base recurrence", Value = FormatPct(activeCustomerIds.Count > 0 ? recurringCustomerCount / (decimal)activeCustomerIds.Count * 100m : 0m), Description = "Share of customers with repeat service." },
-                        new() { Label = "Average revenue of top 5", Value = FormatCurrency(customerRows.Take(5).Any() ? customerRows.Take(5).Average(x => x.PrimaryValue) : 0m), Description = "Average ticket value of the top customers in the period." },
+                        new() { Label = ReportTexts.CustNewOverActive(lang).label, Value = FormatPct(activeCustomerIds.Count > 0 ? newCustomers / (decimal)activeCustomerIds.Count * 100m : 0m), Description = ReportTexts.CustNewOverActive(lang).description },
+                        new() { Label = ReportTexts.CustRecurrenceShare(lang).label, Value = FormatPct(activeCustomerIds.Count > 0 ? recurringCustomerCount / (decimal)activeCustomerIds.Count * 100m : 0m), Description = ReportTexts.CustRecurrenceShare(lang).description },
+                        new() { Label = ReportTexts.CustTop5Avg(lang).label, Value = FormatCurrency(customerRows.Take(5).Any() ? customerRows.Take(5).Average(x => x.PrimaryValue) : 0m), Description = ReportTexts.CustTop5Avg(lang).description },
                     },
                     TopCustomers = customerRows.Take(10).ToList(),
                     CustomerActivityTable = new ReportTableDto
                     {
-                        Title = "Customer activity",
-                        Description = "Detailed table for the PDF with appointment frequency and revenue share by customer.",
+                        Title = ReportTexts.TableCustomerActivity(lang).title,
+                        Description = ReportTexts.TableCustomerActivity(lang).description,
                         Columns = new List<ReportTableColumnDto>
                         {
-                            new() { Key = "customer", Label = "Customer" },
-                            new() { Key = "appointments", Label = "Appointments" },
-                            new() { Key = "completed", Label = "Completed" },
-                            new() { Key = "revenue", Label = "Revenue" },
-                            new() { Key = "badge", Label = "Profile" },
+                            new() { Key = "customer", Label = ReportTexts.ColCustomer(lang) },
+                            new() { Key = "appointments", Label = ReportTexts.ColAppointments(lang) },
+                            new() { Key = "completed", Label = ReportTexts.ColCompleted(lang) },
+                            new() { Key = "revenue", Label = ReportTexts.ColRevenue(lang) },
+                            new() { Key = "badge", Label = ReportTexts.ColProfile(lang) },
                         },
                         Rows = customerRows
                             .Take(NormalizePageSize(query.PageSize))
@@ -347,7 +355,7 @@ namespace Services
                                     ["appointments"] = x.SecondaryValue?.ToString("0", CultureInfo.InvariantCulture) ?? "0",
                                     ["completed"] = appointments.Count(a => a.CustomerId == x.EntityId && a.Status == AppointmentStatus.Completed).ToString(CultureInfo.InvariantCulture),
                                     ["revenue"] = FormatCurrency(x.PrimaryValue),
-                                    ["badge"] = x.Badge ?? "One-time",
+                                    ["badge"] = x.Badge ?? ReportTexts.BadgeOneTime(lang),
                                 }
                             })
                             .ToList(),
@@ -361,6 +369,11 @@ namespace Services
         {
             if (!_currentUser.IsAdmin)
                 throw new InvalidOperationException("Use the company endpoint for reports of the logged-in company.");
+
+            // Admin reports use the admin user's language preference (User.Language) when set,
+            // falling back to English. We resolve through the User table since admins don't belong to a company.
+            var adminUser = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == _currentUser.UserId);
+            var lang = (adminUser?.Language ?? "en").ToLowerInvariant();
 
             var period = BuildPeriod(query);
             var previousQuery = BuildPreviousQuery(query, period);
@@ -401,57 +414,57 @@ namespace Services
                     EntityId = company.Id,
                     Name = company.Name,
                     PrimaryValue = companyPayments.Sum(x => x.Amount),
-                    PrimaryLabel = "revenue",
+                    PrimaryLabel = ReportTexts.LabelRevenue(lang),
                     SecondaryValue = companyAppointments.Count,
-                    SecondaryLabel = "appointments",
-                    Badge = company.Status == StatusEnum.Active ? "Active" : company.Status.ToString(),
+                    SecondaryLabel = ReportTexts.LabelAppointmentsRaw(lang),
+                    Badge = company.Status == StatusEnum.Active ? ReportTexts.BadgeActive(lang) : company.Status.ToString(),
                 };
             })
             .OrderByDescending(x => x.PrimaryValue)
             .ThenByDescending(x => x.SecondaryValue)
             .ToList();
 
-            var executiveSummary = BuildAdminExecutiveSummary(totalRevenue, previousRevenue, activeCompanies, companies.Count, appointmentTotal, previousAppointmentTotal, collectionRate, overdueAmount, activeSubscriptions);
+            var executiveSummary = BuildAdminExecutiveSummary(lang, totalRevenue, previousRevenue, activeCompanies, companies.Count, appointmentTotal, previousAppointmentTotal, collectionRate, overdueAmount, activeSubscriptions);
 
             return new AdminReportDto
             {
                 GeneratedAtUtc = DateTime.UtcNow,
                 Period = period,
-                Filters = BuildFilterSnapshot(query, period),
+                Filters = BuildFilterSnapshot(lang, query, period),
                 ExecutiveSummary = executiveSummary,
                 OverviewCards = new List<ReportKpiCardDto>
                 {
-                    MakeCard("companies_total", "Companies", companies.Count, FormatInt(companies.Count), null, "Total base of registered companies."),
-                    MakeCard("companies_active", "Active companies", activeCompanies, FormatInt(activeCompanies), null, "Companies with active status."),
-                    MakeCard("appointments_total", "Appointments", appointmentTotal, FormatInt(appointmentTotal), ChangePct(appointmentTotal, previousAppointmentTotal), "Total operational volume in the period."),
-                    MakeCard("revenue_paid", "Revenue collected", totalRevenue, FormatCurrency(totalRevenue), ChangePct(totalRevenue, previousRevenue), "Revenue effectively paid during the period."),
+                    MakeLocalizedCard("companies_total", ReportTexts.AdminCompaniesTotal(lang), companies.Count, FormatInt(companies.Count), null),
+                    MakeLocalizedCard("companies_active", ReportTexts.AdminCompaniesActive(lang), activeCompanies, FormatInt(activeCompanies), null),
+                    MakeLocalizedCard("appointments_total_admin", ReportTexts.AdminApptsTotal(lang), appointmentTotal, FormatInt(appointmentTotal), ChangePct(appointmentTotal, previousAppointmentTotal)),
+                    MakeLocalizedCard("revenue_paid", ReportTexts.AdminRevenuePaid(lang), totalRevenue, FormatCurrency(totalRevenue), ChangePct(totalRevenue, previousRevenue)),
                 },
                 Billing = new AdminReportBillingDto
                 {
                     Narrative = new ReportSectionNarrativeDto
                     {
-                        Title = "Billing",
-                        Summary = $"The platform recorded {FormatCurrency(totalRevenue)} in collected revenue, with a collection efficiency of {FormatPct(collectionRate)} and {FormatCurrency(overdueAmount)} in overdue amounts during the filtered period.",
+                        Title = ReportTexts.AdminBilling(lang),
+                        Summary = ReportTexts.AdminBillingSummary(lang, FormatCurrency(totalRevenue), FormatPct(collectionRate), FormatCurrency(overdueAmount)),
                         Highlights = new List<string>
                         {
-                            $"There are {FormatInt(activeSubscriptions)} active subscriptions in the base.",
+                            ReportTexts.AdminBillingHighlightSubs(lang, FormatInt(activeSubscriptions)),
                             $"{FormatInt(companiesWithAppointments)} companies had operational usage during the period.",
-                            $"Revenue changed by {FormatSignedPct(ChangePct(totalRevenue, previousRevenue))} compared with the previous period."
+                            ReportTexts.AdminBillingHighlightChange(lang, FormatSignedPct(ChangePct(totalRevenue, previousRevenue)))
                         },
                         Alerts = BuildAdminBillingAlerts(overdueAmount, collectionRate, activeSubscriptions, activeCompanies)
                     },
                     Cards = new List<ReportKpiCardDto>
                     {
-                        MakeCard("subscriptions_active", "Active subscriptions", activeSubscriptions, FormatInt(activeSubscriptions), null, "Subscriptions with active status."),
-                        MakeCard("companies_with_usage", "Companies with usage", companiesWithAppointments, FormatInt(companiesWithAppointments), null, "Companies with at least one appointment in the period."),
-                        MakeCard("overdue_amount", "Overdue amount", overdueAmount, FormatCurrency(overdueAmount), null, "Overdue charges during the period."),
-                        MakeCard("collection_rate", "Collection efficiency", collectionRate, FormatPct(collectionRate), null, "Paid revenue over the total billed amount in the period."),
+                        MakeLocalizedCard("subscriptions_active", ReportTexts.AdminSubsActive(lang), activeSubscriptions, FormatInt(activeSubscriptions), null),
+                        MakeLocalizedCard("companies_with_usage", ReportTexts.AdminCompaniesUsage(lang), companiesWithAppointments, FormatInt(companiesWithAppointments), null),
+                        MakeLocalizedCard("overdue_amount", ReportTexts.AdminOverdue(lang), overdueAmount, FormatCurrency(overdueAmount), null),
+                        MakeLocalizedCard("collection_rate", ReportTexts.FinCollectionRate(lang), collectionRate, FormatPct(collectionRate), null),
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
-                        new() { Label = "Revenue per active company", Value = FormatCurrency(activeCompanies > 0 ? totalRevenue / activeCompanies : 0m), Description = "Average monetization per active company." },
-                        new() { Label = "Operational usage of the base", Value = FormatPct(companies.Count > 0 ? companiesWithAppointments / (decimal)companies.Count * 100m : 0m), Description = "Percentage of the base with operational activity during the period." },
-                        new() { Label = "Overdue over billed", Value = FormatPct(totalBilled > 0 ? overdueAmount / totalBilled * 100m : 0m), Description = "Share of overdue balance within the billed amount for the period." },
+                        new() { Label = ReportTexts.AdminRevenuePerActive(lang).label, Value = FormatCurrency(activeCompanies > 0 ? totalRevenue / activeCompanies : 0m), Description = ReportTexts.AdminRevenuePerActive(lang).description },
+                        new() { Label = ReportTexts.AdminUsageBase(lang).label, Value = FormatPct(companies.Count > 0 ? companiesWithAppointments / (decimal)companies.Count * 100m : 0m), Description = ReportTexts.AdminUsageBase(lang).description },
+                        new() { Label = ReportTexts.AdminOverdueOverBilled(lang).label, Value = FormatPct(totalBilled > 0 ? overdueAmount / totalBilled * 100m : 0m), Description = ReportTexts.AdminOverdueOverBilled(lang).description },
                     },
                     RevenueTrend = BuildDateSeries(period.StartDate, period.EndDate, paidPayments, x => x.PaymentDate ?? x.DueDate, x => x.Amount),
                     PaymentStatusBreakdown = BuildPaymentStatusBreakdown(payments),
@@ -461,12 +474,12 @@ namespace Services
                         .Select(g => new ReportLeaderboardItemDto
                         {
                             EntityId = g.Key,
-                            Name = companies.FirstOrDefault(c => c.Id == g.Key)?.Name ?? $"Company {g.Key}",
+                            Name = companies.FirstOrDefault(c => c.Id == g.Key)?.Name ?? ReportTexts.CompanyFallback(lang, g.Key),
                             PrimaryValue = g.Sum(x => x.Amount),
                             PrimaryLabel = "overdue",
                             SecondaryValue = g.Count(),
                             SecondaryLabel = "charges",
-                            Badge = "Attention",
+                            Badge = ReportTexts.BadgeAttention(lang),
                         })
                         .OrderByDescending(x => x.PrimaryValue)
                         .Take(10)
@@ -476,22 +489,22 @@ namespace Services
                 {
                     Narrative = new ReportSectionNarrativeDto
                     {
-                        Title = "Operations",
-                        Summary = $"The platform's consolidated operation recorded {FormatInt(appointmentTotal)} appointments, with a completion rate of {FormatPct(completionRate)} and a cancellation rate of {FormatPct(appointmentTotal > 0 ? cancelledTotal / (decimal)appointmentTotal * 100m : 0m)}.",
+                        Title = ReportTexts.SectionOperations(lang),
+                        Summary = ReportTexts.AdminOpsSummary(lang, FormatInt(appointmentTotal), FormatPct(completionRate), FormatPct(appointmentTotal > 0 ? cancelledTotal / (decimal)appointmentTotal * 100m : 0m)),
                         Highlights = new List<string>
                         {
-                            $"The total base has {FormatInt(customers.Count)} customers and {FormatInt(professionals.Count)} registered professionals.",
-                            $"Operational volume changed by {FormatSignedPct(ChangePct(appointmentTotal, previousAppointmentTotal))} compared with the previous period.",
+                            ReportTexts.AdminOpsHighlightBase(lang, FormatInt(customers.Count), FormatInt(professionals.Count)),
+                            ReportTexts.AdminOpsHighlightChange(lang, FormatSignedPct(ChangePct(appointmentTotal, previousAppointmentTotal))),
                             $"Status monitoring shows a balance between scheduled, in-progress, and completed appointments, which is useful for the executive PDF reading."
                         },
                         Alerts = BuildAdminOperationsAlerts(completionRate, appointmentTotal, cancelledTotal, companiesWithAppointments, companies.Count)
                     },
                     Cards = new List<ReportKpiCardDto>
                     {
-                        MakeCard("completion_rate", "Completion rate", completionRate, FormatPct(completionRate), null, "Completed appointments over total appointments."),
-                        MakeCard("completed_total", "Completed", completedTotal, FormatInt(completedTotal), null, "Appointments successfully completed."),
-                        MakeCard("customers_total", "Customers", customers.Count, FormatInt(customers.Count), null, "Total customers in the base."),
-                        MakeCard("professionals_total", "Professionals", professionals.Count, FormatInt(professionals.Count), null, "Total professionals in the base."),
+                        MakeLocalizedCard("completion_rate_admin", ReportTexts.AdminCompletionRate(lang), completionRate, FormatPct(completionRate), null),
+                        MakeLocalizedCard("completed_total", ReportTexts.OpsCompleted(lang), completedTotal, FormatInt(completedTotal), null),
+                        MakeLocalizedCard("customers_total", ReportTexts.AdminCustomersTotal(lang), customers.Count, FormatInt(customers.Count), null),
+                        MakeLocalizedCard("professionals_total", ReportTexts.AdminProfessionalsTotal(lang), professionals.Count, FormatInt(professionals.Count), null),
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
@@ -500,41 +513,41 @@ namespace Services
                         new() { Label = "Professionals per company", Value = companies.Count > 0 ? (professionals.Count / (decimal)companies.Count).ToString("0.0", CultureInfo.InvariantCulture) : "0.0", Description = "Average team capacity per company." },
                     },
                     AppointmentsTrend = BuildDateSeries(period.StartDate, period.EndDate, appointments, x => x.Start, _ => 1m),
-                    StatusBreakdown = BuildStatusBreakdown(appointmentTotal, scheduledTotal, inProgressTotal, completedTotal, cancelledTotal),
+                    StatusBreakdown = BuildStatusBreakdown(lang, appointmentTotal, scheduledTotal, inProgressTotal, completedTotal, cancelledTotal),
                 },
                 Companies = new AdminReportCompaniesDto
                 {
                     Narrative = new ReportSectionNarrativeDto
                     {
-                        Title = "Companies",
-                        Summary = $"The consolidated ranking shows which companies drive revenue and operational volume, helping the front end generate an executive PDF with tenant comparison, result concentration, and financial risk exposure.",
+                        Title = ReportTexts.AdminSectionCompanies(lang),
+                        Summary = ReportTexts.AdminCompaniesSummary(lang),
                         Highlights = new List<string>
                         {
-                            $"The top 5 companies account for {FormatPct(companyRanking.Take(5).Sum(x => x.PrimaryValue) / Math.Max(1m, totalRevenue) * 100m)} of collected revenue.",
+                            ReportTexts.AdminCompaniesHighlightTop5(lang, FormatPct(companyRanking.Take(5).Sum(x => x.PrimaryValue) / Math.Max(1m, totalRevenue) * 100m)),
                             $"{FormatInt(activeCompanies)} companies are active within a total base of {FormatInt(companies.Count)} companies.",
-                            $"The ranking combines revenue and operational volume to avoid a one-dimensional reading."
+                            ReportTexts.AdminCompaniesHighlightCombo(lang)
                         },
                         Alerts = BuildAdminCompanyAlerts(companyRanking, totalRevenue, activeCompanies, companies.Count)
                     },
                     Benchmarks = new List<ReportBenchmarkDto>
                     {
-                        new() { Label = "Average revenue top 5", Value = FormatCurrency(companyRanking.Take(5).Any() ? companyRanking.Take(5).Average(x => x.PrimaryValue) : 0m), Description = "Average revenue among the leaders of the base." },
-                        new() { Label = "Overall average revenue", Value = FormatCurrency(companies.Count > 0 ? totalRevenue / companies.Count : 0m), Description = "Average revenue distribution per registered company." },
-                        new() { Label = "Share of active companies", Value = FormatPct(companies.Count > 0 ? activeCompanies / (decimal)companies.Count * 100m : 0m), Description = "Share of active companies over the total base." },
+                        new() { Label = ReportTexts.AdminAvgRevenueTop5(lang).label, Value = FormatCurrency(companyRanking.Take(5).Any() ? companyRanking.Take(5).Average(x => x.PrimaryValue) : 0m), Description = ReportTexts.AdminAvgRevenueTop5(lang).description },
+                        new() { Label = ReportTexts.AdminOverallAvgRevenue(lang).label, Value = FormatCurrency(companies.Count > 0 ? totalRevenue / companies.Count : 0m), Description = ReportTexts.AdminOverallAvgRevenue(lang).description },
+                        new() { Label = ReportTexts.AdminShareActiveCompanies(lang).label, Value = FormatPct(companies.Count > 0 ? activeCompanies / (decimal)companies.Count * 100m : 0m), Description = ReportTexts.AdminShareActiveCompanies(lang).description },
                     },
                     Ranking = companyRanking.Take(10).ToList(),
                     CompaniesTable = new ReportTableDto
                     {
-                        Title = "Company ranking",
-                        Description = "Consolidated table for the administrative PDF and platform company comparison.",
+                        Title = ReportTexts.AdminCompanyRanking(lang).title,
+                        Description = ReportTexts.AdminCompanyRanking(lang).description,
                         Columns = new List<ReportTableColumnDto>
                         {
-                            new() { Key = "company", Label = "Company" },
-                            new() { Key = "status", Label = "Status" },
-                            new() { Key = "revenue", Label = "Revenue" },
-                            new() { Key = "appointments", Label = "Appointments" },
-                            new() { Key = "customers", Label = "Customers" },
-                            new() { Key = "professionals", Label = "Professionals" },
+                            new() { Key = "company", Label = ReportTexts.ColCompany(lang) },
+                            new() { Key = "status", Label = ReportTexts.ColStatus(lang) },
+                            new() { Key = "revenue", Label = ReportTexts.ColRevenue(lang) },
+                            new() { Key = "appointments", Label = ReportTexts.ColAppointments(lang) },
+                            new() { Key = "customers", Label = ReportTexts.ColCustomers(lang) },
+                            new() { Key = "professionals", Label = ReportTexts.ColProfessionals(lang) },
                         },
                         Rows = companyRanking
                             .Take(NormalizePageSize(query.PageSize))
@@ -566,32 +579,40 @@ namespace Services
         public async Task<byte[]> ExportCompanyReportCsvAsync(ReportQueryDto query)
         {
             var report = await GetCompanyReportAsync(query);
+            var companyId = await ResolveCompanyIdAsync();
+            var companyForLang = await _db.Companies.AsNoTracking().FirstOrDefaultAsync(x => x.Id == companyId);
+            var loggedUserCsv = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == _currentUser.UserId);
+            var lang = (loggedUserCsv?.Language
+                        ?? companyForLang?.Language
+                        ?? "en").ToLowerInvariant();
             var sb = new StringBuilder();
-            sb.AppendLine("Secao,Indicador,Valor");
+            sb.AppendLine(ReportTexts.CsvHeader(lang));
             foreach (var card in report.OverviewCards)
-                sb.AppendLine($"Overview,{Escape(card.Label)},{Escape(card.DisplayValue)}");
+                sb.AppendLine($"{Escape(ReportTexts.CsvSecOverview(lang))},{Escape(card.Label)},{Escape(card.DisplayValue)}");
             foreach (var card in report.Financial.Cards)
-                sb.AppendLine($"Financial,{Escape(card.Label)},{Escape(card.DisplayValue)}");
+                sb.AppendLine($"{Escape(ReportTexts.CsvSecFinancial(lang))},{Escape(card.Label)},{Escape(card.DisplayValue)}");
             foreach (var card in report.Operations.Cards)
-                sb.AppendLine($"Operacoes,{Escape(card.Label)},{Escape(card.DisplayValue)}");
+                sb.AppendLine($"{Escape(ReportTexts.CsvSecOperations(lang))},{Escape(card.Label)},{Escape(card.DisplayValue)}");
             foreach (var card in report.Team.Cards)
-                sb.AppendLine($"Equipe,{Escape(card.Label)},{Escape(card.DisplayValue)}");
+                sb.AppendLine($"{Escape(ReportTexts.CsvSecTeam(lang))},{Escape(card.Label)},{Escape(card.DisplayValue)}");
             foreach (var card in report.Customers.Cards)
-                sb.AppendLine($"Customers,{Escape(card.Label)},{Escape(card.DisplayValue)}");
+                sb.AppendLine($"{Escape(ReportTexts.CsvSecCustomers(lang))},{Escape(card.Label)},{Escape(card.DisplayValue)}");
             return Encoding.UTF8.GetBytes(sb.ToString());
         }
 
         public async Task<byte[]> ExportAdminReportCsvAsync(ReportQueryDto query)
         {
             var report = await GetAdminReportAsync(query);
+            var adminUser = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == _currentUser.UserId);
+            var lang = (adminUser?.Language ?? "en").ToLowerInvariant();
             var sb = new StringBuilder();
-            sb.AppendLine("Secao,Indicador,Valor");
+            sb.AppendLine(ReportTexts.CsvHeader(lang));
             foreach (var card in report.OverviewCards)
-                sb.AppendLine($"Overview,{Escape(card.Label)},{Escape(card.DisplayValue)}");
+                sb.AppendLine($"{Escape(ReportTexts.CsvSecOverview(lang))},{Escape(card.Label)},{Escape(card.DisplayValue)}");
             foreach (var card in report.Billing.Cards)
-                sb.AppendLine($"Billing,{Escape(card.Label)},{Escape(card.DisplayValue)}");
+                sb.AppendLine($"{Escape(ReportTexts.CsvSecBilling(lang))},{Escape(card.Label)},{Escape(card.DisplayValue)}");
             foreach (var card in report.Operations.Cards)
-                sb.AppendLine($"Operacoes,{Escape(card.Label)},{Escape(card.DisplayValue)}");
+                sb.AppendLine($"{Escape(ReportTexts.CsvSecOperations(lang))},{Escape(card.Label)},{Escape(card.DisplayValue)}");
             return Encoding.UTF8.GetBytes(sb.ToString());
         }
 
@@ -863,11 +884,11 @@ namespace Services
             };
         }
 
-        private static ReportFilterSnapshotDto BuildFilterSnapshot(ReportQueryDto query, ReportPeriodDto period)
+        private static ReportFilterSnapshotDto BuildFilterSnapshot(string lang, ReportQueryDto query, ReportPeriodDto period)
         {
             var activeFilters = new List<string>
             {
-                $"Period: {period.StartDate:MM/dd/yyyy} to {period.EndDate:MM/dd/yyyy}"
+                ReportTexts.FilterPeriod(lang, period.StartDate.ToString("MM/dd/yyyy"), period.EndDate.ToString("MM/dd/yyyy"))
             };
 
             if (query.ProfessionalId.HasValue)
@@ -909,14 +930,14 @@ namespace Services
             }).ToList();
         }
 
-        private static List<ReportBreakdownItemDto> BuildStatusBreakdown(int total, int scheduled, int inProgress, int completed, int cancelled)
+        private static List<ReportBreakdownItemDto> BuildStatusBreakdown(string lang, int total, int scheduled, int inProgress, int completed, int cancelled)
         {
             var items = new[]
             {
-                new { Key = "scheduled", Label = "Scheduled", Value = (decimal)scheduled },
-                new { Key = "in_progress", Label = "In Progress", Value = (decimal)inProgress },
-                new { Key = "completed", Label = "Completed", Value = (decimal)completed },
-                new { Key = "cancelled", Label = "Cancelled", Value = (decimal)cancelled },
+                new { Key = "scheduled", Label = ReportTexts.StatusScheduled(lang), Value = (decimal)scheduled },
+                new { Key = "in_progress", Label = ReportTexts.StatusInProgress(lang), Value = (decimal)inProgress },
+                new { Key = "completed", Label = ReportTexts.StatusCompleted(lang), Value = (decimal)completed },
+                new { Key = "cancelled", Label = ReportTexts.StatusCancelled(lang), Value = (decimal)cancelled },
             };
 
             return items.Select(item => new ReportBreakdownItemDto
@@ -945,6 +966,7 @@ namespace Services
         }
 
         private static List<ReportLeaderboardItemDto> BuildProfessionalRows(
+            string lang,
             List<Core.Models.Appointment> appointments,
             List<Core.Models.Payment> paidPayments,
             List<Core.Models.Professional> professionals,
@@ -972,9 +994,9 @@ namespace Services
                     EntityId = professional.Id,
                     Name = professional.Name,
                     PrimaryValue = professionalAppointments.Count(a => a.Status == AppointmentStatus.Completed),
-                    PrimaryLabel = "completed",
+                    PrimaryLabel = ReportTexts.LabelCompletedRaw(lang),
                     SecondaryValue = estimatedRevenue,
-                    SecondaryLabel = "estimated revenue",
+                    SecondaryLabel = ReportTexts.LabelEstimatedRevenue(lang),
                     Badge = rating > 0 ? $"{rating:0.0}★" : null,
                 });
             }
@@ -982,7 +1004,7 @@ namespace Services
             return rows.OrderByDescending(x => x.PrimaryValue).ThenByDescending(x => x.SecondaryValue).ToList();
         }
 
-        private static List<ReportLeaderboardItemDto> BuildCustomerRevenueRows(
+        private static List<ReportLeaderboardItemDto> BuildCustomerRevenueRows(string lang, 
             List<Core.Models.Appointment> appointments,
             List<Core.Models.Payment> paidPayments,
             List<Core.Models.Customer> customers)
@@ -1012,7 +1034,7 @@ namespace Services
                         PrimaryLabel = "revenue",
                         SecondaryValue = appts.Count,
                         SecondaryLabel = "appointments",
-                        Badge = appts.Count > 1 ? "Recurring" : "One-time",
+                        Badge = appts.Count > 1 ? ReportTexts.BadgeRecurring(lang) : ReportTexts.BadgeOneTime(lang),
                     };
                 })
                 .OrderByDescending(x => x.PrimaryValue)
@@ -1021,6 +1043,7 @@ namespace Services
         }
 
         private static ReportExecutiveSummaryDto BuildCompanyExecutiveSummary(
+            string lang,
             string companyName,
             decimal revenue,
             decimal previousRevenue,
@@ -1041,30 +1064,30 @@ namespace Services
             var recommendedActions = new List<string>();
 
             if (ChangePct(revenue, previousRevenue) >= 0)
-                strengths.Add($"Collected revenue remained on a positive trajectory, changing by {FormatSignedPct(ChangePct(revenue, previousRevenue))} compared with the previous period.");
+                strengths.Add(ReportTexts.StrengthRevenueUp(lang, FormatSignedPct(ChangePct(revenue, previousRevenue))));
             if (completionRate >= 80m)
                 strengths.Add($"A completion rate of {FormatPct(completionRate)} indicates healthy operational execution.");
             if (averageRating >= 4m)
                 strengths.Add($"Customer perception was favorable, with an average rating of {averageRating.ToString("0.0", CultureInfo.InvariantCulture)}.");
             if (recurringCustomers > 0)
-                strengths.Add($"The customer base shows active retention, with {FormatInt(recurringCustomers)} recurring customers during the period.");
+                strengths.Add(ReportTexts.StrengthRetention(lang, FormatInt(recurringCustomers)));
 
             if (cancellationRate >= 15m)
                 risks.Add($"A cancellation rate of {FormatPct(cancellationRate)} deserves investigation into operational and commercial causes.");
             if (overdueAmount > 0)
-                risks.Add($"There is {FormatCurrency(overdueAmount)} in overdue amounts, which puts pressure on cash flow and reduces predictability.");
+                risks.Add(ReportTexts.RiskOverdue(lang, FormatCurrency(overdueAmount)));
             if (receivableAmount > revenue && receivableAmount > 0)
-                risks.Add("Open balance already exceeds collected revenue for the period, signaling collection risk.");
+                risks.Add(ReportTexts.RiskOpenExceedsRevenue(lang));
             if (activeCustomers == 0)
-                risks.Add("There were no active customers in the filtered period, which may indicate an overly restrictive filter or low operational activity.");
+                risks.Add(ReportTexts.RiskNoActiveCustomers(lang));
 
-            recommendedActions.Add("Use the PDF to compare revenue, cancellations, and retention across upcoming periods and measure trends, not just an isolated snapshot.");
+            recommendedActions.Add(ReportTexts.RecActionTrends(lang));
             if (overdueAmount > 0)
-                recommendedActions.Add("Prioritize a collection workflow to reduce overdue balances and improve the conversion of billed amounts into real cash.");
+                recommendedActions.Add(ReportTexts.RecActionCollection(lang));
             if (cancellationRate >= 10m)
-                recommendedActions.Add("Analyze cancellation reasons by service, customer, and professional to address the true bottleneck.");
+                recommendedActions.Add(ReportTexts.RecActionCancellations(lang));
             if (newCustomers > 0 && recurringCustomers < newCustomers)
-                recommendedActions.Add("Create a retention action to convert recent acquisition into real recurrence.");
+                recommendedActions.Add(ReportTexts.RecActionRetention(lang));
 
             var healthStatus = "neutral";
             if (completionRate >= 80m && cancellationRate < 10m && overdueAmount <= 0)
@@ -1074,99 +1097,99 @@ namespace Services
 
             return new ReportExecutiveSummaryDto
             {
-                Headline = $"Executive Summary — {companyName}",
+                Headline = ReportTexts.ExecutiveSummaryHeadline(lang, companyName),
                 HealthStatus = healthStatus,
-                Narrative = $"During the analyzed period, the company processed {FormatInt(appointments)} appointments and {FormatCurrency(revenue)} in collected revenue. Operations closed with a completion rate of {FormatPct(completionRate)}, a cancellation rate of {FormatPct(cancellationRate)}, and a recurring share of {FormatPct(recurringShare)}.",
+                Narrative = ReportTexts.ExecutiveNarrativeCompany(lang, FormatInt(appointments), FormatCurrency(revenue), FormatPct(completionRate), FormatPct(cancellationRate), FormatPct(recurringShare)),
                 Strengths = strengths.Take(4).ToList(),
                 Risks = risks.Take(4).ToList(),
                 RecommendedActions = recommendedActions.Take(4).ToList(),
             };
         }
 
-        private static ReportExecutiveSummaryDto BuildAdminExecutiveSummary(decimal revenue, decimal previousRevenue, int activeCompanies, int totalCompanies, int appointments, int previousAppointments, decimal collectionRate, decimal overdueAmount, int activeSubscriptions)
+        private static ReportExecutiveSummaryDto BuildAdminExecutiveSummary(string lang, decimal revenue, decimal previousRevenue, int activeCompanies, int totalCompanies, int appointments, int previousAppointments, decimal collectionRate, decimal overdueAmount, int activeSubscriptions)
         {
             var strengths = new List<string>();
             var risks = new List<string>();
             var recommendedActions = new List<string>();
 
-            strengths.Add($"The platform has {FormatInt(activeCompanies)} active companies within a base of {FormatInt(totalCompanies)} companies.");
-            strengths.Add($"There were {FormatInt(activeSubscriptions)} active subscriptions, supporting the monetization view of the base.");
+            strengths.Add(ReportTexts.AdmStrengthBase(lang, FormatInt(activeCompanies), FormatInt(totalCompanies)));
+            strengths.Add(ReportTexts.AdmStrengthSubs(lang, FormatInt(activeSubscriptions)));
             if (ChangePct(revenue, previousRevenue) >= 0)
-                strengths.Add($"Collected revenue changed by {FormatSignedPct(ChangePct(revenue, previousRevenue))} compared with the previous period.");
+                strengths.Add(ReportTexts.AdmStrengthRevChange(lang, FormatSignedPct(ChangePct(revenue, previousRevenue))));
 
             if (overdueAmount > 0)
-                risks.Add($"The base holds {FormatCurrency(overdueAmount)} in overdue amounts, which requires collection follow-up.");
+                risks.Add(ReportTexts.AdmRiskOverdue(lang, FormatCurrency(overdueAmount)));
             if (collectionRate < 70m)
-                risks.Add($"Collection efficiency is at {FormatPct(collectionRate)}, below the ideal level for cash-flow predictability.");
+                risks.Add(ReportTexts.AdmRiskCollection(lang, FormatPct(collectionRate)));
             if (ChangePct(appointments, previousAppointments) < 0)
-                risks.Add("Operational volume declined compared with the previous period and may indicate reduced usage across part of the base.");
+                risks.Add(ReportTexts.AdmRiskVolumeDown(lang));
 
-            recommendedActions.Add("Use the administrative PDF to highlight leading companies, delinquency risk, and platform usage density.");
-            recommendedActions.Add("Cross-reference companies with higher overdue balances against those with lower usage to identify churn and collection risk.");
-            recommendedActions.Add("Monitor revenue evolution per active company to distinguish healthy growth from excessive concentration.");
+            recommendedActions.Add(ReportTexts.AdmRecLeading(lang));
+            recommendedActions.Add(ReportTexts.AdmRecCrossRef(lang));
+            recommendedActions.Add(ReportTexts.AdmRecMonitor(lang));
 
             var healthStatus = overdueAmount > 0 || collectionRate < 70m ? "attention" : "good";
 
             return new ReportExecutiveSummaryDto
             {
-                Headline = "Executive Summary — Platform",
+                Headline = ReportTexts.ExecutiveSummaryHeadlinePlatform(lang),
                 HealthStatus = healthStatus,
-                Narrative = $"During the analyzed period, the platform processed {FormatInt(appointments)} appointments and {FormatCurrency(revenue)} in collected revenue, with a collection efficiency of {FormatPct(collectionRate)}.",
+                Narrative = ReportTexts.ExecutiveNarrativePlatform(lang, FormatInt(appointments), FormatCurrency(revenue), FormatPct(collectionRate)),
                 Strengths = strengths.Take(4).ToList(),
                 Risks = risks.Take(4).ToList(),
                 RecommendedActions = recommendedActions.Take(4).ToList(),
             };
         }
 
-        private static List<string> BuildFinancialAlerts(decimal receivableAmount, decimal overdueAmount, decimal collectionRate, decimal revenue, decimal averageTicket)
+        private static List<string> BuildFinancialAlerts(string lang, decimal receivableAmount, decimal overdueAmount, decimal collectionRate, decimal revenue, decimal averageTicket)
         {
             var alerts = new List<string>();
             if (overdueAmount > 0)
-                alerts.Add($"Overdue balance identified: {FormatCurrency(overdueAmount)}.");
+                alerts.Add(ReportTexts.AlertOverdue(lang, FormatCurrency(overdueAmount)));
             if (collectionRate < 70m)
-                alerts.Add($"Collection efficiency below the ideal level: {FormatPct(collectionRate)}.");
+                alerts.Add(ReportTexts.AlertCollection(lang, FormatPct(collectionRate)));
             if (receivableAmount > revenue && receivableAmount > 0)
-                alerts.Add("Open balance already exceeds collected revenue for the period.");
+                alerts.Add(ReportTexts.AlertOpenExceeds(lang));
             if (averageTicket <= 0)
-                alerts.Add("There is no calculable average ticket for the filtered data.");
+                alerts.Add(ReportTexts.AlertNoTicket(lang));
             return alerts;
         }
 
-        private static List<string> BuildOperationsAlerts(decimal cancellationRate, decimal completionRate, decimal recurringShare, decimal dailyAverageAppointments)
+        private static List<string> BuildOperationsAlerts(string lang, decimal cancellationRate, decimal completionRate, decimal recurringShare, decimal dailyAverageAppointments)
         {
             var alerts = new List<string>();
             if (cancellationRate >= 15m)
-                alerts.Add("Cancellation is high for the analyzed period.");
+                alerts.Add(ReportTexts.OpsAlertHighCancel(lang));
             if (completionRate < 70m)
-                alerts.Add("Completion rate is below 70%, indicating room for operational adjustment.");
+                alerts.Add(ReportTexts.OpsAlertLowCompletion(lang));
             if (recurringShare < 20m)
-                alerts.Add("Recurring share is low; the schedule depends more on one-time demand.");
+                alerts.Add(ReportTexts.OpsAlertLowRecurring(lang));
             if (dailyAverageAppointments < 1m)
-                alerts.Add("Operational density per day is low within the filtered period.");
+                alerts.Add(ReportTexts.OpsAlertLowDensity(lang));
             return alerts;
         }
 
-        private static List<string> BuildTeamAlerts(List<ReportLeaderboardItemDto> teamRows, int totalProfessionals, decimal averageRating)
+        private static List<string> BuildTeamAlerts(string lang, List<ReportLeaderboardItemDto> teamRows, int totalProfessionals, decimal averageRating)
         {
             var alerts = new List<string>();
             if (teamRows.Count < totalProfessionals && totalProfessionals > 0)
-                alerts.Add("Part of the registered team did not appear in the schedule for the period, which may signal idleness or an overly restrictive filter.");
+                alerts.Add(ReportTexts.TeamAlertIdle(lang));
             if (teamRows.Any() && teamRows.First().PrimaryValue > Math.Max(1m, teamRows.Sum(x => x.PrimaryValue)) * 0.4m)
-                alerts.Add("Productivity is concentrated among a few professionals, increasing operational dependency.");
+                alerts.Add(ReportTexts.TeamAlertConcentration(lang));
             if (averageRating > 0 && averageRating < 4m)
-                alerts.Add("Average rating is below 4.0; investigate feedback and customer experience.");
+                alerts.Add(ReportTexts.TeamAlertLowRating(lang));
             return alerts;
         }
 
-        private static List<string> BuildCustomerAlerts(int newCustomers, int activeCustomers, int recurringCustomers, decimal revenue, List<ReportLeaderboardItemDto> customerRows)
+        private static List<string> BuildCustomerAlerts(string lang, int newCustomers, int activeCustomers, int recurringCustomers, decimal revenue, List<ReportLeaderboardItemDto> customerRows)
         {
             var alerts = new List<string>();
             if (activeCustomers > 0 && recurringCustomers < activeCustomers * 0.3m)
-                alerts.Add("Recurrence is low relative to the active customer base.");
+                alerts.Add(ReportTexts.CustAlertLowRecurrence(lang));
             if (customerRows.Any() && customerRows.Take(3).Sum(x => x.PrimaryValue) > Math.Max(1m, revenue) * 0.6m)
-                alerts.Add("Revenue is concentrated among a few customers; watch for dependency risk.");
+                alerts.Add(ReportTexts.CustAlertConcentration(lang));
             if (newCustomers == 0)
-                alerts.Add("No new customer entered the base during the filtered period.");
+                alerts.Add(ReportTexts.CustAlertNoNew(lang));
             return alerts;
         }
 
@@ -1362,7 +1385,25 @@ namespace Services
             return date;
         }
 
-        private static ReportKpiCardDto MakeCard(string key, string label, decimal value, string displayValue, decimal? changePct, string? description)
+        private static ReportKpiCardDto MakeLocalizedCard(string key, (string label, string description) loc, decimal value, string formattedValue, decimal? changePct)
+        {
+            var trend = "neutral";
+            if (changePct.HasValue)
+                trend = changePct.Value > 0 ? "up" : changePct.Value < 0 ? "down" : "neutral";
+
+            return new ReportKpiCardDto
+            {
+                Key = key,
+                Label = loc.label,
+                Description = loc.description,
+                Value = value,
+                DisplayValue = formattedValue,
+                ChangePercentage = changePct,
+                Trend = trend,
+            };
+        }
+
+                private static ReportKpiCardDto MakeCard(string key, string label, decimal value, string displayValue, decimal? changePct, string? description)
         {
             var trend = "neutral";
             if (changePct.HasValue)

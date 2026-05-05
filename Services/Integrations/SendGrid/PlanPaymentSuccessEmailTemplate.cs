@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Text;
+using Services.Localization;
 
 namespace Services.Integrations.SendGrid;
 
@@ -20,10 +21,15 @@ public static class PlanPaymentSuccessEmailTemplate
         string? SupportUrl
     );
 
-    public static (string SubjectSuffix, string Html, string PlainText) Render(Model m)
+    public static (string SubjectSuffix, string Html, string PlainText) Render(Model m, IMessageLocalizer loc, string language)
     {
         var culture = CultureInfo.InvariantCulture;
         var amountStr = $"{m.AmountPaid:0.00} {m.Currency?.ToUpperInvariant()}".Trim();
+
+        // Localized headline + subtitle + footer (other field labels stay neutral as they are largely numeric/proper-noun)
+        var titleHeadline = loc.Get("email.planPaymentSuccess.subject", language, new { plan = m.PlanName });
+        var introLine = loc.Get("email.planPaymentSuccess.intro", language, new { amount = amountStr, plan = m.PlanName });
+        var ifNotYou = loc.Get("shared.if.notYou", language);
 
         var paidAt = m.PaidAtUtc.ToString("yyyy-MM-dd HH:mm 'UTC'", culture);
         var period = (m.PeriodStartUtc.HasValue && m.PeriodEndUtc.HasValue)
@@ -48,8 +54,8 @@ public static class PlanPaymentSuccessEmailTemplate
             <span style='font-size:22px;line-height:1;'>✓</span>
           </div>
           <div>
-            <div style='color:#e9eefc;font-weight:800;font-size:18px;letter-spacing:.2px;'>Payment successful</div>
-            <div style='color:rgba(233,238,252,.72);font-size:13px;margin-top:2px;'>Your plan is active and ready to go.</div>
+            <div style='color:#e9eefc;font-weight:800;font-size:18px;letter-spacing:.2px;'>{Escape(titleHeadline)}</div>
+            <div style='color:rgba(233,238,252,.72);font-size:13px;margin-top:2px;'>{Escape(introLine)}</div>
           </div>
         </div>
       </div>
@@ -121,7 +127,7 @@ public static class PlanPaymentSuccessEmailTemplate
 
         sb.Append(@"
         <div style='margin-top:18px;color:rgba(233,238,252,.65);font-size:12.5px;line-height:1.5;'>
-          Thanks for using <strong style='color:#e9eefc;'>MaidsFlow</strong>. If you have any questions about billing, just reply to this email.");
+          {Escape(introLine)}");
 
         if (!string.IsNullOrWhiteSpace(support))
         {
@@ -133,7 +139,7 @@ public static class PlanPaymentSuccessEmailTemplate
       </div>
 
       <div style='padding:14px 22px;border-top:1px solid rgba(255,255,255,.08);color:rgba(233,238,252,.55);font-size:11.5px;line-height:1.4;'>
-        This is an automated message. If you did not expect this email, please contact support.
+        {Escape(ifNotYou)}
       </div>
     </div>
   </div>
@@ -143,7 +149,8 @@ public static class PlanPaymentSuccessEmailTemplate
         var subjectSuffix = $"{m.PlanName} • {amountStr}".Trim();
 
         var plain = new StringBuilder();
-        plain.AppendLine("Payment successful");
+        plain.AppendLine(titleHeadline);
+        plain.AppendLine(introLine);
         plain.AppendLine($"Company: {m.CompanyName}");
         plain.AppendLine($"Plan: {m.PlanName}");
         plain.AppendLine($"Amount paid: {amountStr}");

@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 
@@ -14,22 +15,37 @@ namespace Services.Security
 
         private ClaimsPrincipal? Principal => _http.HttpContext?.User;
 
+        // Resilient claim lookup: try the long .NET URI first, then the short JWT claim name.
+        // Some token handlers (JsonWebTokenHandler in .NET 8+) keep the short name "role"/"sub"
+        // instead of mapping to the long URIs (ClaimTypes.Role / ClaimTypes.NameIdentifier).
+        private string? FindClaim(params string[] types)
+        {
+            var p = Principal;
+            if (p == null) return null;
+            foreach (var t in types)
+            {
+                var v = p.FindFirstValue(t);
+                if (!string.IsNullOrWhiteSpace(v)) return v;
+            }
+            return null;
+        }
+
         public int UserId
         {
             get
             {
-                var v = Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                var v = FindClaim(ClaimTypes.NameIdentifier, "sub", "nameid", "userId");
                 return int.TryParse(v, out var id) ? id : 0;
             }
         }
 
-        public string Role => Principal?.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
+        public string Role => FindClaim(ClaimTypes.Role, "role", "roles") ?? string.Empty;
 
         public int? CompanyId
         {
             get
             {
-                var v = Principal?.FindFirstValue("companyId");
+                var v = FindClaim("companyId");
                 return int.TryParse(v, out var id) ? id : null;
             }
         }
@@ -38,7 +54,7 @@ namespace Services.Security
         {
             get
             {
-                var v = Principal?.FindFirstValue("professionalId");
+                var v = FindClaim("professionalId");
                 return int.TryParse(v, out var id) ? id : null;
             }
         }
@@ -47,7 +63,7 @@ namespace Services.Security
         {
             get
             {
-                var v = Principal?.FindFirstValue("customerId");
+                var v = FindClaim("customerId");
                 return int.TryParse(v, out var id) ? id : null;
             }
         }

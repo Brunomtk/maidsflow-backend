@@ -15,6 +15,13 @@ namespace Core.Models
         public string? Email { get; set; }
 
         public string Phone { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Optional second phone number. The system supports a maximum of 2 phone numbers per customer:
+        /// Phone and Phone2.
+        /// </summary>
+        public string? Phone2 { get; set; }
+
         public string Address { get; set; } = string.Empty;
         public string? ZipCode { get; set; }
         public string City { get; set; } = string.Empty;
@@ -24,6 +31,13 @@ namespace Core.Models
         // Notification preferences (default: enabled)
         public bool ReceiveSms { get; set; } = true;
         public bool ReceiveEmail { get; set; } = true;
+
+        /// <summary>
+        /// Preferred language for outbound communication (SMS, email).
+        /// Format: BCP-47-ish ("en", "pt-BR", "es", "fr"). Null falls back to Company.Language, then "en".
+        /// </summary>
+        [MaxLength(10)]
+        public string? Language { get; set; }
 
         [MaxLength(11)]
         public string? Ssn { get; set; }

@@ -16,6 +16,12 @@ namespace Core.Models
         public bool ReceiveSms { get; set; } = true;
         public bool ReceiveEmail { get; set; } = true;
 
+        /// <summary>
+        /// Preferred language for company-level outbound communication (monthly report email/PDF, etc).
+        /// Format: BCP-47-ish ("en", "pt-BR", "es", "fr"). Null falls back to "en".
+        /// </summary>
+        public string? Language { get; set; }
+
         // Optional S3 key for company avatar image (stored in S3; presigned URLs are generated on demand).
         public string? AvatarKey { get; set; }
 

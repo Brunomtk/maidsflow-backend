@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Text;
+using Services.Localization;
 
 namespace Services.Integrations.SendGrid;
 
@@ -21,10 +22,16 @@ public static class PlanPaymentFailedEmailTemplate
         string? SupportUrl
     );
 
-    public static (string SubjectSuffix, string Html, string PlainText) Render(Model m)
+    public static (string SubjectSuffix, string Html, string PlainText) Render(Model m, IMessageLocalizer loc, string language)
     {
         var culture = CultureInfo.InvariantCulture;
         var amountStr = $"{m.AmountDue:0.00} {m.Currency?.ToUpperInvariant()}".Trim();
+
+        // Localized headline + intro + footer
+        var titleHeadline = loc.Get("email.planPaymentFailed.subject", language);
+        var introLine = loc.Get("email.planPaymentFailed.intro", language, new { amount = amountStr, plan = m.PlanName });
+        var ctaUpdate = loc.Get("email.planPaymentFailed.cta", language);
+        var ifNotYou = loc.Get("shared.if.notYou", language);
 
         var failedAt = m.FailedAtUtc.ToString("yyyy-MM-dd HH:mm 'UTC'", culture);
         var period = (m.PeriodStartUtc.HasValue && m.PeriodEndUtc.HasValue)
@@ -42,7 +49,7 @@ public static class PlanPaymentFailedEmailTemplate
 <head>
   <meta charset='utf-8' />
   <meta name='viewport' content='width=device-width,initial-scale=1' />
-  <title>Payment failed</title>
+  <title>{System.Net.WebUtility.HtmlEncode(titleHeadline)}</title>
 </head>
 <body style='margin:0;background:#0b1220;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;'>
   <div style='max-width:680px;margin:0 auto;padding:28px 16px;'>
@@ -53,7 +60,7 @@ public static class PlanPaymentFailedEmailTemplate
             <span style='font-size:22px;line-height:1;'>!</span>
           </div>
           <div>
-            <div style='color:#e9eefc;font-weight:800;font-size:18px;letter-spacing:.2px;'>Payment failed</div>
+            <div style='color:#e9eefc;font-weight:800;font-size:18px;letter-spacing:.2px;'>{System.Net.WebUtility.HtmlEncode(titleHeadline)}</div>
             <div style='color:rgba(233,238,252,.72);font-size:13px;margin-top:2px;'>Your subscription wasn't renewed. Your plan will be inactive until payment is completed.</div>
           </div>
         </div>
@@ -162,7 +169,8 @@ public static class PlanPaymentFailedEmailTemplate
         var subjectSuffix = $"{m.PlanName} • {amountStr}".Trim();
 
         var plain = new StringBuilder();
-        plain.AppendLine("Payment failed");
+        plain.AppendLine(titleHeadline);
+        plain.AppendLine(introLine);
         plain.AppendLine("Your subscription wasn't renewed. Your plan will be inactive until payment is completed.");
         plain.AppendLine($"Company: {m.CompanyName}");
         plain.AppendLine($"Plan: {m.PlanName}");

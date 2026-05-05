@@ -16,16 +16,22 @@ public class TwilioSmsSender : ITwilioSmsSender
         _opt = opt.Value;
     }
 
-    public async Task<(string messageSid, string rawResponse)> SendSmsAsync(string to, string body, CancellationToken ct = default)
+    public Task<(string messageSid, string rawResponse)> SendSmsAsync(string to, string body, CancellationToken ct = default)
+        => SendInternalAsync(_opt.FromNumber, to, body, ct);
+
+    public Task<(string messageSid, string rawResponse)> SendSmsFromAsync(string from, string to, string body, CancellationToken ct = default)
+        => SendInternalAsync(from, to, body, ct);
+
+    private async Task<(string messageSid, string rawResponse)> SendInternalAsync(string? fromNumber, string to, string body, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(_opt.AccountSid) ||
             string.IsNullOrWhiteSpace(_opt.AuthToken) ||
-            string.IsNullOrWhiteSpace(_opt.FromNumber))
-            throw new TwilioConfigurationException("Twilio não configurado (Twilio:AccountSid/AuthToken/FromNumber). Configure via appsettings ou variáveis de ambiente.");
+            string.IsNullOrWhiteSpace(fromNumber))
+            throw new TwilioConfigurationException("Twilio not configured (Twilio:AccountSid/AuthToken/FromNumber). Configure via appsettings or environment variables.");
 
         // Normalize to E.164 (Twilio requirement)
         var toE164 = PhoneNumberUtils.NormalizeToE164OrThrow(to, nameof(to));
-        var fromE164 = PhoneNumberUtils.NormalizeToE164OrThrow(_opt.FromNumber, "FromNumber");
+        var fromE164 = PhoneNumberUtils.NormalizeToE164OrThrow(fromNumber!, nameof(fromNumber));
 
         var url = $"https://api.twilio.com/2010-04-01/Accounts/{_opt.AccountSid}/Messages.json";
 

@@ -61,11 +61,68 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
 
         var logs = await _uow.AppointmentMessageLogs.GetByAppointmentAsync(appointmentId, normStart, normEnd, ct);
 
-        // Fallback: some legacy rows (or small timestamp drifts) may not match the requested occurrence window.
-        // If the UI asked for an occurrence and we found nothing, return logs without occurrence filtering.
-        if ((normStart.HasValue || normEnd.HasValue) && (logs == null || logs.Count == 0))
+        var isRecurringContext = appt.IsRecurring || appt.SeriesId.HasValue;
+
+        // The "ground truth" for this view: the appointment's CURRENT start (or the requested
+        // occurrence start, if the UI passed one — typically for recurring occurrences).
+        var groundTruthStart = normStart ?? NormalizeOccurrenceUtc((DateTime?)EnsureUtc(appt.Start));
+        // Window of tolerance to consider a log as belonging to the CURRENT version of this
+        // appointment. A log whose OccurrenceStartUtc falls outside this window is "stale" —
+        // typically because the appointment was rescheduled after the log was created.
+        var staleTol = TimeSpan.FromMinutes(60);
+
+        // Fallback for NON-recurring appointments only:
+        // small timestamp drifts can prevent a strict occurrence match, but a non-recurring
+        // appointment has a single occurrence so showing all logs is fine.
+        // For recurring appointments, NEVER fall back — otherwise we leak logs from sibling
+        // occurrences of the same series into the panel of the occurrence the user opened.
+        if (!isRecurringContext
+            && (normStart.HasValue || normEnd.HasValue)
+            && (logs == null || logs.Count == 0))
         {
             logs = await _uow.AppointmentMessageLogs.GetByAppointmentAsync(appointmentId, null, null, ct);
+        }
+
+        // Defensive filter: drop logs that don't belong to the appointment's CURRENT version
+        // (i.e. logs left over from a previous schedule when the appointment was rescheduled).
+        //
+        // A log is considered "stale" if either:
+        //   1) It has an OccurrenceStartUtc and that timestamp differs from the current Start by > 60 min.
+        //   2) It does NOT have an OccurrenceStartUtc (legacy data) and the message was sent / scheduled / created
+        //      so far away from the current Start that it cannot belong to the same appointment occurrence.
+        //      We use a 7-day window — generous enough to cover 24h / 48h reminders, but tight enough to
+        //      catch reschedules across days/weeks/months.
+        //
+        // Recurring appointments always require a populated OccurrenceStartUtc (NULL == unknown sibling).
+        if (groundTruthStart.HasValue && logs != null && logs.Count > 0)
+        {
+            var asked = groundTruthStart.Value;
+            var legacyTol = TimeSpan.FromDays(7);
+
+            DateTime? PickAnyUtc(AppointmentMessageLog l)
+            {
+                if (l.SentAtUtc.HasValue) return EnsureUtc(l.SentAtUtc.Value);
+                if (l.ScheduledForUtc.HasValue) return EnsureUtc(l.ScheduledForUtc.Value);
+                return EnsureUtc(l.CreatedDate);
+            }
+
+            logs = logs.Where(l =>
+            {
+                // Strict path: log knows which occurrence it belongs to.
+                if (l.OccurrenceStartUtc.HasValue)
+                {
+                    var occ = EnsureUtc(l.OccurrenceStartUtc.Value);
+                    return Math.Abs((occ - asked).TotalMinutes) <= staleTol.TotalMinutes;
+                }
+
+                // Legacy path: no OccurrenceStartUtc. In recurring context this is unsafe — drop.
+                if (isRecurringContext) return false;
+
+                // Non-recurring legacy: validate by scheduled / sent / created timestamp.
+                var anchor = PickAnyUtc(l);
+                if (!anchor.HasValue) return true; // truly unknown — keep, better than losing a real log
+                return Math.Abs((anchor.Value - asked).TotalMinutes) <= legacyTol.TotalMinutes;
+            }).ToList();
         }
 
         // SAFETY: Only show "Sent" when we have a real SentAtUtc.
@@ -101,7 +158,10 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
         bool MatchExisting(AppointmentMessageLog x, AppointmentMessageKind kind, AppointmentMessageChannel channel)
         {
             if (x.Kind != kind || x.Channel != channel) return false;
-            if (!isRecurringContext) return true;
+
+            // For non-recurring with no recorded occurrence, treat as legacy — keep matching.
+            if (!isRecurringContext && !x.OccurrenceStartUtc.HasValue && !x.OccurrenceEndUtc.HasValue)
+                return true;
 
             var tol = TimeSpan.FromMinutes(5);
 
@@ -223,7 +283,11 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
         var companyPhone = apptFull?.Company?.Phone ?? "";
         var companyEmail = apptFull?.Company?.Email ?? "";
         var customerName = apptFull?.Customer?.Name ?? "there";
-        var customerPhone = apptFull?.Customer?.Phone ?? "";
+        var customerPhone = !string.IsNullOrWhiteSpace(apptFull?.CustomerAddress?.Phone)
+            ? apptFull!.CustomerAddress!.Phone!
+            : (!string.IsNullOrWhiteSpace(apptFull?.CustomerAddress?.Phone2)
+                ? apptFull!.CustomerAddress!.Phone2!
+                : (!string.IsNullOrWhiteSpace(apptFull?.Customer?.Phone) ? apptFull!.Customer!.Phone : (apptFull?.Customer?.Phone2 ?? "")));
         var customerEmail = apptFull?.Customer?.Email ?? "";
 
         var address = BuildBestAddress(apptFull ?? appointment);
@@ -487,8 +551,19 @@ public class AppointmentMessageLogService : IAppointmentMessageLogService
             if (!appt.CustomerId.HasValue)
                 throw new BadRequestException("Agendamento não possui cliente associado.");
 
-            var customer = await _db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.Id == appt.CustomerId.Value, ct);
-            to = customer?.Phone;
+            var apptWithContact = await _db.Appointments
+                .Include(a => a.CustomerAddress)
+                .Include(a => a.Customer)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == appt.Id, ct);
+
+            to = !string.IsNullOrWhiteSpace(apptWithContact?.CustomerAddress?.Phone)
+                ? apptWithContact!.CustomerAddress!.Phone
+                : (!string.IsNullOrWhiteSpace(apptWithContact?.CustomerAddress?.Phone2)
+                    ? apptWithContact!.CustomerAddress!.Phone2
+                    : (!string.IsNullOrWhiteSpace(apptWithContact?.Customer?.Phone)
+                        ? apptWithContact!.Customer!.Phone
+                        : apptWithContact?.Customer?.Phone2));
         }
 
         if (string.IsNullOrWhiteSpace(to))

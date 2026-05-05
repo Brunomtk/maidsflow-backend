@@ -15,6 +15,9 @@ namespace Core.DTO.Company
         public bool ReceiveSms { get; set; }
         public bool ReceiveEmail { get; set; }
 
+        /// <summary>Preferred company language ("en", "pt-BR", "es", "fr"). Optional.</summary>
+        public string? Language { get; set; }
+
         public int? PlanId { get; set; }           // ID do plano associado (opcional)
         public string? PlanName { get; set; }      // Nome do plano, opcional
 

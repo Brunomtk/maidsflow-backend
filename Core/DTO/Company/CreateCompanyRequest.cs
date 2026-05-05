@@ -13,6 +13,9 @@ namespace Core.DTO.Company
         // Notification preferences (default: enabled)
         public bool ReceiveSms { get; set; } = true;
         public bool ReceiveEmail { get; set; } = true;
+
+        /// <summary>Preferred company language ("en", "pt-BR", "es", "fr"). Optional.</summary>
+        public string? Language { get; set; }
         // Agora é opcional (pode ser atribuído depois).
         public int? PlanId { get; set; }
         public StatusEnum Status { get; set; } = StatusEnum.Active;

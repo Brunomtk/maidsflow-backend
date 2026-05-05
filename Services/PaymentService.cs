@@ -10,6 +10,7 @@ using Core.Exceptions;
 using Core.Models;
 using Infrastructure.Repositories;
 using Infrastructure.ServiceExtension;
+using Services.Localization;
 using Services.Security;
 
 namespace Services
@@ -30,12 +31,21 @@ namespace Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUser _currentUser;
         private readonly IScopeGuard _scope;
+        private readonly IMessageLocalizer _loc;
+        private readonly IRecipientLanguageResolver _langResolver;
 
-        public PaymentService(IUnitOfWork unitOfWork, ICurrentUser currentUser, IScopeGuard scope)
+        public PaymentService(
+            IUnitOfWork unitOfWork,
+            ICurrentUser currentUser,
+            IScopeGuard scope,
+            IMessageLocalizer loc,
+            IRecipientLanguageResolver langResolver)
         {
             _unitOfWork = unitOfWork;
             _currentUser = currentUser;
             _scope = scope;
+            _loc = loc;
+            _langResolver = langResolver;
         }
 
         public async Task<PagedResult<Payment>> GetPagedAsync(PaymentFiltersDto filters)
@@ -301,8 +311,11 @@ namespace Services
             if (payment.CompanyId <= 0)
                 return;
 
-            var title = BuildNotificationTitle(payment, isStatusNotification);
-            var message = BuildNotificationMessage(payment, action);
+            // Resolve company language for outbound notification
+            var language = await _langResolver.ForCompanyAsync(payment.CompanyId);
+
+            var title = BuildNotificationTitle(payment, isStatusNotification, _loc, language);
+            var message = BuildNotificationMessage(payment, action, _loc, language);
 
             var notification = new Notification
             {
@@ -323,28 +336,37 @@ namespace Services
             await _unitOfWork.SaveAsync();
         }
 
-        private static string BuildNotificationTitle(Payment payment, bool isStatusNotification)
+        private static string BuildNotificationTitle(Payment payment, bool isStatusNotification, IMessageLocalizer loc, string language)
         {
-            var kind = payment.FinancialType == PaymentFinancialType.Expense ? "Accounts payable" : "Accounts receivable";
-            if (isStatusNotification)
-                return $"{kind} updated";
-
-            return $"New {kind.ToLowerInvariant()} entry";
+            var kindKey = payment.FinancialType == PaymentFinancialType.Expense
+                ? "notifications.payment.kind.payable"
+                : "notifications.payment.kind.receivable";
+            var kind = loc.Get(kindKey, language);
+            return isStatusNotification
+                ? loc.Get("notifications.payment.titleUpdated", language, new { kind })
+                : loc.Get("notifications.payment.titleNew", language, new { kind = kind });
         }
 
-        private static string BuildNotificationMessage(Payment payment, string action)
+        private static string BuildNotificationMessage(Payment payment, string action, IMessageLocalizer loc, string language)
         {
-            var kind = payment.FinancialType == PaymentFinancialType.Expense ? "accounts payable" : "accounts receivable";
-            var category = string.IsNullOrWhiteSpace(payment.PaymentCategoryName) ? "Uncategorized" : payment.PaymentCategoryName;
-            var reference = string.IsNullOrWhiteSpace(payment.Reference) ? $"entry #{payment.Id}" : payment.Reference;
+            var kindKey = payment.FinancialType == PaymentFinancialType.Expense
+                ? "notifications.payment.kindLower.payable"
+                : "notifications.payment.kindLower.receivable";
+            var kind = loc.Get(kindKey, language);
+            var category = string.IsNullOrWhiteSpace(payment.PaymentCategoryName)
+                ? loc.Get("notifications.payment.uncategorized", language)
+                : payment.PaymentCategoryName;
+            var reference = string.IsNullOrWhiteSpace(payment.Reference)
+                ? loc.Get("notifications.payment.entryRef", language, new { id = payment.Id })
+                : payment.Reference;
             var dueDate = payment.DueDate.ToString("MM/dd/yyyy");
             var amount = payment.Amount.ToString("0.00");
 
             return action switch
             {
-                "created" => $"A new {kind} was created: {reference}. Category: {category}. Amount: {amount}. Due date: {dueDate}.",
-                "status-updated" => $"A {kind} {reference} was updated to status {payment.Status}. Category: {category}. Amount: {amount}.",
-                _ => $"A {kind} {reference} was updated. Category: {category}. Amount: {amount}. Due date: {dueDate}."
+                "created" => loc.Get("notifications.payment.bodyCreated", language, new { kind, reference, category, amount, dueDate }),
+                "status-updated" => loc.Get("notifications.payment.bodyStatusUpdated", language, new { kind, reference, status = payment.Status.ToString(), category, amount }),
+                _ => loc.Get("notifications.payment.bodyUpdated", language, new { kind, reference, category, amount, dueDate })
             };
         }
 

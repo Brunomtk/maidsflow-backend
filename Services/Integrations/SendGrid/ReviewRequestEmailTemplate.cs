@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Net;
 using System.Text;
+using Services.Localization;
 
 namespace Services.Integrations.SendGrid
 {
@@ -17,7 +18,7 @@ namespace Services.Integrations.SendGrid
             string SupportUrl
         );
 
-        public static (string Html, string PlainText) Render(Model m)
+        public static (string Html, string PlainText) Render(Model m, IMessageLocalizer loc, string language)
         {
             var safeCustomer = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(m.CustomerName) ? "there" : m.CustomerName);
             var safeCompany = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(m.CompanyName) ? "MaidsFlow" : m.CompanyName);
@@ -33,8 +34,11 @@ namespace Services.Integrations.SendGrid
             sb.AppendLine("<body style='margin:0;background:#0b1220;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#e5e7eb'>");
             sb.AppendLine("  <div style='max-width:640px;margin:0 auto;padding:24px'>");
             sb.AppendLine("    <div style='background:#0f172a;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:24px'>");
-            sb.AppendLine($"      <div style='font-size:18px;font-weight:700;margin-bottom:8px'>Hi {safeCustomer} 👋</div>");
-            sb.AppendLine($"      <div style='font-size:14px;line-height:1.6;color:#cbd5e1'>Your service with <strong style='color:#e5e7eb'>{safeCompany}</strong> was marked as completed. Could you rate it? It takes less than a minute.</div>");
+            var introText = loc.Get("email.reviewRequest.intro", language, new { customer = m.CustomerName, company = m.CompanyName });
+            var bodyText = loc.Get("email.reviewRequest.body", language);
+            var ctaText = loc.Get("email.reviewRequest.cta", language);
+            sb.AppendLine($"      <div style='font-size:18px;font-weight:700;margin-bottom:8px'>{WebUtility.HtmlEncode(introText)} 👋</div>");
+            sb.AppendLine($"      <div style='font-size:14px;line-height:1.6;color:#cbd5e1'>{WebUtility.HtmlEncode(bodyText)}</div>");
             sb.AppendLine("      <div style='height:16px'></div>");
             sb.AppendLine("      <div style='background:#0b1220;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px'>");
             sb.AppendLine($"        <div style='font-weight:700'>{safeTitle}</div>");
@@ -43,7 +47,7 @@ namespace Services.Integrations.SendGrid
                 sb.AppendLine($"        <div style='color:#94a3b8;font-size:13px;margin-top:4px'>{safeAddress}</div>");
             sb.AppendLine("      </div>");
             sb.AppendLine("      <div style='height:18px'></div>");
-            sb.AppendLine($"      <a href='{WebUtility.HtmlEncode(m.ReviewUrl)}' style='display:inline-block;background:#38bdf8;color:#02131b;text-decoration:none;font-weight:700;padding:12px 16px;border-radius:12px'>Leave a review</a>");
+            sb.AppendLine($"      <a href='{WebUtility.HtmlEncode(m.ReviewUrl)}' style='display:inline-block;background:#38bdf8;color:#02131b;text-decoration:none;font-weight:700;padding:12px 16px;border-radius:12px'>{WebUtility.HtmlEncode(ctaText)}</a>");
             sb.AppendLine("      <div style='height:14px'></div>");
             sb.AppendLine($"      <div style='font-size:12px;color:#94a3b8;line-height:1.5'>If the button doesn't work, copy and paste this link into your browser:<br><span style='word-break:break-all;color:#cbd5e1'>{WebUtility.HtmlEncode(m.ReviewUrl)}</span></div>");
             sb.AppendLine("      <div style='height:18px'></div>");
@@ -53,7 +57,19 @@ namespace Services.Integrations.SendGrid
             sb.AppendLine("  </div>");
             sb.AppendLine("</body></html>");
 
-            var plain = $@"Hi {m.CustomerName},\n\nYour service with {m.CompanyName} was marked as completed. Please rate it:\n{m.ReviewUrl}\n\nAppointment: {m.AppointmentTitle}\nWhen: {when}\n{(string.IsNullOrWhiteSpace(m.AddressLine) ? "" : "Where: " + m.AddressLine + "\n")}\nSupport: {m.SupportUrl}\n";
+            var plainSb = new StringBuilder();
+            plainSb.AppendLine(introText);
+            plainSb.AppendLine();
+            plainSb.AppendLine(bodyText);
+            plainSb.AppendLine();
+            plainSb.AppendLine($"{ctaText}: {m.ReviewUrl}");
+            plainSb.AppendLine();
+            plainSb.AppendLine(m.AppointmentTitle ?? string.Empty);
+            plainSb.AppendLine(when);
+            if (!string.IsNullOrWhiteSpace(m.AddressLine))
+                plainSb.AppendLine(m.AddressLine);
+            plainSb.AppendLine($"Support: {m.SupportUrl}");
+            var plain = plainSb.ToString();
 
             return (sb.ToString(), plain);
         }

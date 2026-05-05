@@ -11,6 +11,9 @@ namespace Core.DTO.Appointment
         // Campos úteis para notificações (e-mail/SMS) e telas de detalhe.
         public string? Email { get; set; }
         public string? Phone { get; set; }
+        public string? Phone2 { get; set; }
+        public string? AddressPhone { get; set; }
+        public string? AddressPhone2 { get; set; }
         public string? Address { get; set; }
 
         // Notification preferences (default: enabled)

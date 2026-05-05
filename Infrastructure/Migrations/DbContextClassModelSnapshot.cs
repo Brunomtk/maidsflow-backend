@@ -1120,6 +1120,10 @@ namespace Infrastructure.Migrations
                     b.Property<bool>("HasCompletedInitialSetup")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Language")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1127,6 +1131,7 @@ namespace Infrastructure.Migrations
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasColumnType("text");
+
 
                     b.Property<int?>("PlanId")
                         .HasColumnType("integer");
@@ -1193,6 +1198,10 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("Language")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1207,6 +1216,10 @@ namespace Infrastructure.Migrations
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("Phone2")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<bool>("ReceiveEmail")
                         .HasColumnType("boolean");
@@ -1300,6 +1313,14 @@ namespace Infrastructure.Migrations
                     b.Property<string>("PaymentMethod")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Phone2")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<string>("State")
                         .IsRequired()
@@ -2103,6 +2124,7 @@ namespace Infrastructure.Migrations
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasColumnType("text");
+
 
                     b.Property<double?>("Rating")
                         .HasColumnType("double precision");

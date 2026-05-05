@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+using Services.Localization;
 
 namespace Services.Integrations.SendGrid;
 
@@ -20,27 +21,44 @@ public static class CredentialsEmailTemplate
         string Html
     );
 
-    public static Rendered Render(Payload p, string subject)
+    /// <summary>
+    /// Renders the credentials email in the recipient's language.
+    /// All UI labels come from <see cref="IMessageLocalizer"/> (keys under <c>email.credentials.*</c>
+    /// and <c>shared.*</c>); HTML structure / layout / colors are language-agnostic.
+    /// </summary>
+    public static Rendered Render(Payload p, IMessageLocalizer loc, string language)
     {
+        // Localized strings
+        var subject = loc.Get("email.credentials.subject", language, new { company = p.CompanyName });
+        var greeting = loc.Get("shared.greeting.hello", language, new { name = p.UserName });
+        var intro = loc.Get("email.credentials.intro", language, new { company = p.CompanyName });
+        var labelEmail = loc.Get("email.credentials.fields.email", language);
+        var labelPassword = loc.Get("email.credentials.fields.password", language);
+        var labelRole = loc.Get("email.credentials.fields.role", language);
+        var labelLogin = loc.Get("email.credentials.fields.login", language);
+        var ctaLabel = loc.Get("email.credentials.cta", language);
+        var ifNotYou = loc.Get("shared.if.notYou", language);
+
+        // HTML-encoded values (already safely escaped for HTML; raw values used in plain text)
         var company = WebUtility.HtmlEncode(p.CompanyName);
         var userName = WebUtility.HtmlEncode(p.UserName);
         var email = WebUtility.HtmlEncode(p.Email);
         var role = WebUtility.HtmlEncode(p.Role);
         var loginUrl = WebUtility.HtmlEncode(p.LoginUrl);
+        var password = WebUtility.HtmlEncode(p.Password);
 
-        // Plain text: keep it simple (use \n escapes in a normal interpolated string).
-        var plain = $"Hello {p.UserName},\n\n" +
-                    $"This is {p.CompanyName}. Here are your MaidsFlow access credentials:\n\n" +
-                    $"Email: {p.Email}\n" +
-                    $"Password: {p.Password}\n" +
-                    $"Role: {p.Role}\n\n" +
-                    $"Login: {p.LoginUrl}\n\n" +
-                    "If you didn't request this, please contact support.";
+        // Plain text (uses the raw localized strings; line breaks are real \n)
+        var plain = $"{greeting},\n\n" +
+                    $"{intro}\n\n" +
+                    $"{labelEmail}: {p.Email}\n" +
+                    $"{labelPassword}: {p.Password}\n" +
+                    $"{labelRole}: {p.Role}\n\n" +
+                    $"{labelLogin}: {p.LoginUrl}\n\n" +
+                    $"{ifNotYou}";
 
-        // HTML: verbatim interpolated string. In verbatim strings, quotes are escaped by doubling (""),
-        // NOT by backslashes (\").
+        // HTML — same layout as before; only inner copy is now localized.
         var html = $@"<!doctype html>
-<html lang=""en"">
+<html lang=""{WebUtility.HtmlEncode(language)}"">
 <head>
   <meta charset=""utf-8"" />
   <meta name=""viewport"" content=""width=device-width, initial-scale=1"" />
@@ -68,32 +86,30 @@ public static class CredentialsEmailTemplate
     <div class=""card"">
       <div class=""header"">
         <div class=""brand"">{company}</div>
-        <h1 class=""title"">Your access credentials</h1>
-        <p class=""sub"">Hi <b>{userName}</b>, your MaidsFlow access has been created/updated. Use the credentials below to sign in.</p>
+        <h1 class=""title"">{WebUtility.HtmlEncode(subject)}</h1>
+        <p class=""sub"">{WebUtility.HtmlEncode(greeting)} — {WebUtility.HtmlEncode(intro)}</p>
       </div>
       <div class=""content"">
         <div class=""row"">
-          <div class=""label"">Access role</div>
+          <div class=""label"">{WebUtility.HtmlEncode(labelRole)}</div>
           <div class=""badge"">{role}</div>
         </div>
 
         <div class=""row"">
-          <div class=""label"">Email</div>
+          <div class=""label"">{WebUtility.HtmlEncode(labelEmail)}</div>
           <div class=""value"">{email}</div>
         </div>
 
         <div class=""row"">
-          <div class=""label"">Temporary password</div>
-          <div class=""value""><b>{WebUtility.HtmlEncode(p.Password)}</b></div>
+          <div class=""label"">{WebUtility.HtmlEncode(labelPassword)}</div>
+          <div class=""value""><b>{password}</b></div>
         </div>
 
-        <a class=""btn"" href=""{loginUrl}"">Open login</a>
-
-        <p class=""sub"" style=""margin-top:16px"">For security, we recommend changing your password after your first login.</p>
+        <a class=""btn"" href=""{loginUrl}"">{WebUtility.HtmlEncode(ctaLabel)}</a>
       </div>
       <div class=""footer muted"">
-        If you didn't request this email, please contact support.
-        <br/>Login URL: <a href=""{loginUrl}"">{loginUrl}</a>
+        {WebUtility.HtmlEncode(ifNotYou)}
+        <br/>{WebUtility.HtmlEncode(labelLogin)}: <a href=""{loginUrl}"">{loginUrl}</a>
       </div>
     </div>
   </div>

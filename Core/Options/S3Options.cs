@@ -21,6 +21,9 @@ public class S3Options
     // Root prefix for issue photos. Example: "IssuePhotos/"
     public string IssuePhotoPrefix { get; set; } = "IssuePhotos/";
 
+    // Root prefix for A2P 10DLC compliance documents uploaded by companies.
+    public string MessagingDocumentsPrefix { get; set; } = "MessagingDocuments/";
+
     // Optional explicit credentials. Prefer environment variables / IAM role.
     public string? AccessKeyId { get; set; }
     public string? SecretAccessKey { get; set; }

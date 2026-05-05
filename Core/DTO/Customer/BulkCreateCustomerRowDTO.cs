@@ -23,6 +23,9 @@ namespace Core.DTO.Customer
         [Phone]
         public string? Phone { get; set; }
 
+        [Phone]
+        public string? Phone2 { get; set; }
+
         public string? ZipCode { get; set; }
         public string? City { get; set; }
         public string? State { get; set; }
@@ -45,5 +48,11 @@ namespace Core.DTO.Customer
         /// Se não informado, assume true.
         /// </summary>
         public bool? ReceiveEmail { get; set; }
+
+        /// <summary>
+        /// Idioma preferido do cliente para mensagens automáticas ("en", "pt-BR", "es", "fr"). Opcional.
+        /// </summary>
+        [MaxLength(10)]
+        public string? Language { get; set; }
     }
 }

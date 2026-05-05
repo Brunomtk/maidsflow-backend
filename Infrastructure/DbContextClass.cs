@@ -59,7 +59,14 @@ namespace Infrastructure
         public DbSet<AutomationFailureLog> AutomationFailureLogs { get; set; }
         public DbSet<ServiceIssue> ServiceIssues { get; set; }
         public DbSet<CompanyReportEmailDispatch> CompanyReportEmailDispatches { get; set; }
-        
+
+        // --- Messaging Compliance (A2P 10DLC + SMS consent) ---
+        public DbSet<CompanyMessagingProfile> CompanyMessagingProfiles { get; set; } = null!;
+        public DbSet<CompanyTwilioCampaignApplication> CompanyTwilioCampaignApplications { get; set; } = null!;
+        public DbSet<CompanyTwilioDocument> CompanyTwilioDocuments { get; set; } = null!;
+        public DbSet<CompanySmsConsentRecord> CompanySmsConsentRecords { get; set; } = null!;
+        public DbSet<CompanyMessagingAuditLog> CompanyMessagingAuditLogs { get; set; } = null!;
+
         
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -333,6 +340,7 @@ namespace Infrastructure
                 entity.ToTable("Companies");
                 entity.HasKey(c => c.Id);
                 entity.Property(c => c.StripeCustomerId).HasMaxLength(128);
+                entity.Property(c => c.Language).HasMaxLength(10);
                 // Plan agora é opcional: uma Company pode existir sem estar vinculada a um plano.
                 entity.HasOne(c => c.Plan)
                       .WithMany()
@@ -713,6 +721,7 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                 
                 entity.Property(c => c.Email).IsRequired(false);
                 entity.Property(c => c.Phone);
+                entity.Property(c => c.Phone2).HasMaxLength(32);
                 entity.Property(c => c.Address).IsRequired();
                 entity.Property(c => c.ZipCode);
                 entity.Property(c => c.City);
@@ -726,6 +735,7 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                 entity.Property(c => c.Ssn).HasMaxLength(11);
                 entity.Property(c => c.Ticket).HasPrecision(18, 2);
                 entity.Property(c => c.PaymentMethod).HasMaxLength(50);
+                entity.Property(c => c.Language).HasMaxLength(10);
 
                 entity.HasOne(c => c.Company)
                       .WithMany()
@@ -745,6 +755,8 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
                 entity.Property(x => x.City).IsRequired();
                 entity.Property(x => x.State).HasMaxLength(2).IsRequired();
                 entity.Property(x => x.ZipCode);
+                entity.Property(x => x.Phone).HasMaxLength(32);
+                entity.Property(x => x.Phone2).HasMaxLength(32);
                 entity.Property(x => x.Observations);
 
                 entity.Property(x => x.Ticket).HasPrecision(18, 2);
@@ -1106,6 +1118,66 @@ modelBuilder.Entity<AppointmentCompletion>(entity =>
 
                 entity.HasIndex(x => new { x.RecipientUserId, x.AppointmentId, x.SeriesId, x.OccurrenceStartUtc, x.ReminderType })
                       .IsUnique();
+            });
+
+            // --- Messaging Compliance entities ---
+            modelBuilder.Entity<CompanyMessagingProfile>(entity =>
+            {
+                entity.ToTable("CompanyMessagingProfiles");
+                entity.HasKey(x => x.Id);
+                entity.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(x => x.CompanyId).IsUnique();
+                entity.HasIndex(x => x.Status);
+                entity.Property(x => x.CreatedDate).HasDefaultValueSql("now()");
+                entity.Property(x => x.UpdatedDate).HasDefaultValueSql("now()");
+            });
+
+            modelBuilder.Entity<CompanyTwilioCampaignApplication>(entity =>
+            {
+                entity.ToTable("CompanyTwilioCampaignApplications");
+                entity.HasKey(x => x.Id);
+                entity.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(x => x.CompanyId);
+                entity.HasIndex(x => x.PublicConsentPageSlug).IsUnique();
+                entity.HasIndex(x => x.Status);
+                entity.Property(x => x.CreatedDate).HasDefaultValueSql("now()");
+                entity.Property(x => x.UpdatedDate).HasDefaultValueSql("now()");
+            });
+
+            modelBuilder.Entity<CompanyTwilioDocument>(entity =>
+            {
+                entity.ToTable("CompanyTwilioDocuments");
+                entity.HasKey(x => x.Id);
+                entity.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(x => new { x.CompanyId, x.CampaignApplicationId });
+                entity.HasIndex(x => x.Status);
+                entity.Property(x => x.CreatedDate).HasDefaultValueSql("now()");
+                entity.Property(x => x.UpdatedDate).HasDefaultValueSql("now()");
+            });
+
+            modelBuilder.Entity<CompanySmsConsentRecord>(entity =>
+            {
+                entity.ToTable("CompanySmsConsentRecords");
+                entity.HasKey(x => x.Id);
+                entity.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(x => new { x.CompanyId, x.PhoneE164 });
+                entity.HasIndex(x => x.LandingSlug);
+                entity.HasIndex(x => x.AcceptedAtUtc);
+                entity.Property(x => x.AcceptedAtUtc).HasColumnType("timestamp with time zone");
+                entity.Property(x => x.CreatedDate).HasDefaultValueSql("now()");
+                entity.Property(x => x.UpdatedDate).HasDefaultValueSql("now()");
+            });
+
+            modelBuilder.Entity<CompanyMessagingAuditLog>(entity =>
+            {
+                entity.ToTable("CompanyMessagingAuditLogs");
+                entity.HasKey(x => x.Id);
+                entity.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(x => new { x.CompanyId, x.CreatedAtUtc });
+                entity.HasIndex(x => x.Action);
+                entity.Property(x => x.CreatedAtUtc).HasColumnType("timestamp with time zone");
+                entity.Property(x => x.CreatedDate).HasDefaultValueSql("now()");
+                entity.Property(x => x.UpdatedDate).HasDefaultValueSql("now()");
             });
 }
 

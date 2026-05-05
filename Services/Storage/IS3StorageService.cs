@@ -23,6 +23,12 @@ namespace Services.Storage
 
         PresignedUploadResult CreateIssuePhotoUploadUrl(int appointmentId, int issueId, string fileName, string contentType);
 
+        /// <summary>
+        /// Generates a presigned PUT URL for a Twilio A2P 10DLC compliance document
+        /// uploaded by a company (EIN letter, business license, opt-in screenshots, etc.).
+        /// </summary>
+        PresignedUploadResult CreateMessagingDocumentUploadUrl(int companyId, string documentType, string fileName, string contentType);
+
         Task DeleteIfExistsAsync(string key);
     }
 }

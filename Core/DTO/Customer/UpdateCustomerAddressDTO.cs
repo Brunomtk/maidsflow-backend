@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace Core.DTO.Customer
@@ -11,6 +12,13 @@ namespace Core.DTO.Customer
         public string? City { get; set; }
         public string? State { get; set; }
         public string? ZipCode { get; set; }
+
+        [Phone]
+        public string? Phone { get; set; }
+
+        [Phone]
+        public string? Phone2 { get; set; }
+
         public string? Observations { get; set; }
 
         public decimal? Ticket { get; set; }

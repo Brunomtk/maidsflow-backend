@@ -14,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Services;
+using Services.Localization;
 
 namespace ControlApi.BackgroundJobs
 {
@@ -76,6 +77,8 @@ namespace ControlApi.BackgroundJobs
             // may throw "Escopo de company inválido".
             // We create Notification entities directly and then trigger WebPush via IPushNotificationSender.
             var pushSender = scope.ServiceProvider.GetRequiredService<IPushNotificationSender>();
+            var loc = scope.ServiceProvider.GetRequiredService<IMessageLocalizer>();
+            var langResolver = scope.ServiceProvider.GetRequiredService<IRecipientLanguageResolver>();
 
             // Feature flag
             var enabled = config.GetValue("AutoNotifications:Reminder30Min:Enabled", true);
@@ -136,6 +139,8 @@ namespace ControlApi.BackgroundJobs
                 succeeded += await SendReminderForOccurrenceAsync(
                     db,
                     pushSender,
+                    loc,
+                    langResolver,
                     appointmentAnchor: a,
                     seriesId: null,
                     occurrenceStartLocal: a.Start,
@@ -211,6 +216,8 @@ namespace ControlApi.BackgroundJobs
                         succeeded += await SendReminderForOccurrenceAsync(
                             db,
                             pushSender,
+                            loc,
+                            langResolver,
                             appointmentAnchor: anchor,
                             seriesId: seriesId,
                             occurrenceStartLocal: effectiveStart,
@@ -230,6 +237,8 @@ namespace ControlApi.BackgroundJobs
                     succeeded += await SendReminderForOccurrenceAsync(
                         db,
                         pushSender,
+                        loc,
+                        langResolver,
                         appointmentAnchor: anchor,
                         seriesId: seriesId,
                         occurrenceStartLocal: occ.startLocal,
@@ -246,6 +255,8 @@ namespace ControlApi.BackgroundJobs
         private async Task<int> SendReminderForOccurrenceAsync(
             DbContextClass db,
             IPushNotificationSender pushSender,
+            IMessageLocalizer loc,
+            IRecipientLanguageResolver langResolver,
             Appointment appointmentAnchor,
             Guid? seriesId,
             DateTime occurrenceStartLocal,
@@ -336,40 +347,59 @@ namespace ControlApi.BackgroundJobs
                 occurrenceStartUtc,
                 string.Join(",", toSendUsers.Select(u => u.Id)));
 
-            // Agrupa por idioma para gerar mensagens
-            var ptUsers = toSendUsers.Where(IsPtBr).Select(u => u.Id).ToList();
-            var enUsers = toSendUsers.Where(u => !IsPtBr(u)).Select(u => u.Id).ToList();
+            // Agrupa por idioma resolvido por usuário (cascata: User.Language → Company.Language → default).
+            var titleTemplate = appointmentAnchor.Title ?? string.Empty;
+            var addressValue = appointmentAnchor.Address ?? string.Empty;
+            var formattedTime = occurrenceStartLocal.ToString("HH:mm");
+            var customerName = appointmentAnchor.Customer?.Name ?? string.Empty;
 
-            if (ptUsers.Count > 0)
+            var byLanguage = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var u in toSendUsers)
             {
-                await CreateAndSendAsync(
-                    db,
-                    pushSender,
-                    title: "Agendamento em 30 minutos",
-                    message: BuildMessagePt(appointmentAnchor, occurrenceStartLocal),
-                    recipientRole: "Professional",
-                    userIds: ptUsers,
-                    companyId: appointmentAnchor.CompanyId);
-
-                _logger.LogInformation(
-                    "[Reminders] Created PT notifications appointmentId={Id} users=[{Users}]",
-                    appointmentAnchor.Id, string.Join(",", ptUsers));
+                var language = await langResolver.ForUserAsync(u.Id, ct);
+                if (!byLanguage.TryGetValue(language, out var list))
+                {
+                    list = new List<int>();
+                    byLanguage[language] = list;
+                }
+                list.Add(u.Id);
             }
 
-            if (enUsers.Count > 0)
+            foreach (var kv in byLanguage)
             {
+                var language = kv.Key;
+                var userIds = kv.Value;
+                if (userIds.Count == 0) continue;
+
+                var localizedTitle = loc.Get("notifications.appointmentReminder.title", language);
+                if (string.IsNullOrEmpty(localizedTitle) || localizedTitle == "notifications.appointmentReminder.title")
+                {
+                    // Fallback caso a key de título ainda não exista no resource bundle.
+                    localizedTitle = language.StartsWith("pt", StringComparison.OrdinalIgnoreCase)
+                        ? "Agendamento em 30 minutos"
+                        : "Appointment in 30 minutes";
+                }
+
+                var message = loc.Get("sms.appointmentReminder.body", language, new
+                {
+                    customer = customerName,
+                    title = titleTemplate,
+                    time = formattedTime,
+                    address = addressValue
+                });
+
                 await CreateAndSendAsync(
                     db,
                     pushSender,
-                    title: "Appointment in 30 minutes",
-                    message: BuildMessageEn(appointmentAnchor, occurrenceStartLocal),
+                    title: localizedTitle,
+                    message: message,
                     recipientRole: "Professional",
-                    userIds: enUsers,
+                    userIds: userIds,
                     companyId: appointmentAnchor.CompanyId);
 
                 _logger.LogInformation(
-                    "[Reminders] Created EN notifications appointmentId={Id} users=[{Users}]",
-                    appointmentAnchor.Id, string.Join(",", enUsers));
+                    "[Reminders] Created notifications appointmentId={Id} lang={Lang} users=[{Users}]",
+                    appointmentAnchor.Id, language, string.Join(",", userIds));
             }
 
             return toSendUsers.Count;

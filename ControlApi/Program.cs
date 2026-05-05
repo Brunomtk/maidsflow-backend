@@ -21,9 +21,11 @@ using Services.Integrations.GoogleMaps;
 using System.Text.Json.Serialization;
 using System.Net;
 using System.Text;
+using System.Security.Claims;
 using ControlApi.BackgroundJobs;
 using Services.Security;
 using Services.AutomationAlerts;
+using Services.Localization;
 
 
 
@@ -45,6 +47,17 @@ builder.Services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
             builder.Services.AddMemoryCache();
             builder.Services.AddScoped<Services.Security.ICurrentUser, Services.Security.CurrentUser>();
             builder.Services.AddScoped<Services.Security.IScopeGuard, Services.Security.ScopeGuard>();
+
+            // -----------------------------
+            // Localization (i18n for SMS/email/PDF/push)
+            // -----------------------------
+            builder.Services.AddSingleton<LocalizationResources>();
+            builder.Services.AddSingleton<IMessageLocalizer, MessageLocalizer>();
+            builder.Services.AddScoped<IRecipientLanguageResolver, RecipientLanguageResolver>();
+            // Messaging Compliance — sender resolver used by n8n + internal SMS senders
+            builder.Services.AddScoped<Services.Messaging.ISmsSenderResolver, Services.Messaging.SmsSenderResolver>();
+            builder.Services.AddScoped<Services.Messaging.ISmsDispatchService, Services.Messaging.SmsDispatchService>();
+            builder.Services.AddScoped<Services.Messaging.IMessagingTodayService, Services.Messaging.MessagingTodayService>();
 
             
             builder.Services.AddScoped<IUserService, UserService>();
@@ -144,6 +157,10 @@ builder.Services.AddHostedService<CheckoutReminderHostedService>();
             builder.Services.AddHostedService<GpsTrackingRetentionHostedService>();
 builder.Services.AddHostedService<MonthlyCompanyReportEmailHostedService>();
             builder.Services.AddHostedService<PaymentDueReminderHostedService>();
+            builder.Services.AddHostedService<ControlApi.BackgroundJobs.SmsRetryHostedService>();
+            builder.Services.AddHostedService<ControlApi.BackgroundJobs.SmsAppointmentReminder24hHostedService>();
+            builder.Services.AddHostedService<ControlApi.BackgroundJobs.EmailAppointmentReminder48hHostedService>();
+            builder.Services.AddHostedService<ControlApi.BackgroundJobs.MessagingTrialReminderHostedService>();
             
             // -----------------------------
             // JWT
@@ -151,6 +168,12 @@ builder.Services.AddHostedService<MonthlyCompanyReportEmailHostedService>();
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
+                    // Map inbound short JWT claim names ("role"/"sub") to the long .NET URIs
+                    // (ClaimTypes.Role / ClaimTypes.NameIdentifier).
+                    // Required when the framework switches to JsonWebTokenHandler (default in .NET 8+),
+                    // which doesn't perform the legacy inbound claim mapping.
+                    options.MapInboundClaims = true;
+
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuer = true,
@@ -162,7 +185,13 @@ builder.Services.AddHostedService<MonthlyCompanyReportEmailHostedService>();
                         IssuerSigningKey = new SymmetricSecurityKey(
                             Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
                         ),
-                        ClockSkew = TimeSpan.Zero
+                        ClockSkew = TimeSpan.Zero,
+
+                        // Tell the validator which claims to use as Name and Role.
+                        // Even with MapInboundClaims = true, being explicit makes
+                        // [Authorize(Roles="...")] and User.IsInRole(...) deterministic.
+                        NameClaimType = ClaimTypes.NameIdentifier,
+                        RoleClaimType = ClaimTypes.Role
                     };
                 });
             

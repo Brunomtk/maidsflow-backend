@@ -9,6 +9,7 @@ using Infrastructure.ServiceExtension;
 using Services.Security;
 using Services.Email;
 using Services.Integrations.SendGrid;
+using Services.Localization;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
 using Core.Enums.Messaging;
@@ -39,6 +40,8 @@ namespace Services
         private readonly IReviewRequestEmailService _reviewRequestEmailService;
         private readonly SendGridOptions _sendGridOptions;
         private readonly IConfiguration _configuration;
+        private readonly IMessageLocalizer _loc;
+        private readonly IRecipientLanguageResolver _langResolver;
 
         public ReviewService(
             IUnitOfWork unitOfWork,
@@ -46,7 +49,9 @@ namespace Services
             IScopeGuard scope,
             IReviewRequestEmailService reviewRequestEmailService,
             IOptions<SendGridOptions> sendGridOptions,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IMessageLocalizer loc,
+            IRecipientLanguageResolver langResolver)
         {
             _unitOfWork = unitOfWork;
             _currentUser = currentUser;
@@ -54,6 +59,8 @@ namespace Services
             _reviewRequestEmailService = reviewRequestEmailService;
             _sendGridOptions = sendGridOptions.Value;
             _configuration = configuration;
+            _loc = loc;
+            _langResolver = langResolver;
         }
 
         public async Task<PagedResult<Review>> GetPagedAsync(ReviewFiltersDTO filters)
@@ -298,6 +305,7 @@ namespace Services
                 ? "How was your service?"
                 : _sendGridOptions.ReviewRequestSubject.Trim();
             var supportUrl = string.IsNullOrWhiteSpace(_sendGridOptions.SupportUrl) ? string.Empty : _sendGridOptions.SupportUrl.Trim();
+            var customerLanguage = await _langResolver.ForCustomerAsync(customer.Id);
             var (_, plainText) = ReviewRequestEmailTemplate.Render(new ReviewRequestEmailTemplate.Model(
                 CustomerName: customer.Name ?? string.Empty,
                 CompanyName: company.Name ?? string.Empty,
@@ -306,7 +314,7 @@ namespace Services
                 AddressLine: addressLine,
                 ReviewUrl: link.Url!,
                 SupportUrl: supportUrl
-            ));
+            ), _loc, customerLanguage);
             var sentAtUtc = DateTime.UtcNow;
 
             try

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services;
 using Services.Integrations.Twilio;
+using Services.Localization;
 using Services.Security;
 using Services.Storage;
 using System.Text.Json;
@@ -26,19 +27,25 @@ namespace ControlApi.Controllers
         private readonly IScopeGuard _scope;
         private readonly ITwilioSmsSender _sms;
         private readonly IS3StorageService _s3;
+        private readonly IMessageLocalizer _loc;
+        private readonly IRecipientLanguageResolver _langResolver;
 
         public AppointmentController(
             IAppointmentService appointmentService,
             DbContextClass db,
             IScopeGuard scope,
             ITwilioSmsSender sms,
-            IS3StorageService s3)
+            IS3StorageService s3,
+            IMessageLocalizer loc,
+            IRecipientLanguageResolver langResolver)
         {
             _appointmentService = appointmentService;
             _db = db;
             _scope = scope;
             _sms = sms;
             _s3 = s3;
+            _loc = loc;
+            _langResolver = langResolver;
         }
 
         private static string BuildCustomerAddressLine(CustomerAddress addr)
@@ -237,9 +244,21 @@ namespace ControlApi.Controllers
             if (string.IsNullOrWhiteSpace(address))
                 return BadRequest("Não foi possível determinar o endereço do agendamento.");
 
-            var body =
-                $"DON'T REPLY. Hi {customerName}, this is {companyName}. Our team is on the way and will arrive in approximately {eta} minutes at {address}. " +
-                $"If you need to change your appointment, get in touch with {companyName}. Reply STOP to unsubscribe.";
+            // Resolve recipient language (Customer.Language → Company.Language → "en")
+            var customerId = appt.CustomerId ?? 0;
+            var language = customerId > 0
+                ? await _langResolver.ForCustomerAsync(customerId, ct)
+                : await _langResolver.ForCompanyAsync(appt.CompanyId, ct);
+
+            var body = _loc.Get("sms.onMyWay.body", language, new
+            {
+                customer = customerName,
+                minutes = eta,
+                company = companyName,
+                address = address
+            });
+            // Append the SMS opt-out boilerplate (regulatory requirement, kept literal)
+            body = "DON'T REPLY. " + body + " Reply STOP to unsubscribe.";
 try
             {
                 var (sid, _) = await _sms.SendSmsAsync(to, body, ct);

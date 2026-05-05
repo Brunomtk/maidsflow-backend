@@ -13,8 +13,15 @@ namespace Core.DTO.Customer
         public string? Email { get; set; }
         public string? Phone { get; set; }
 
+        [Phone]
+        public string? Phone2 { get; set; }
+
         public bool? ReceiveSms { get; set; }
         public bool? ReceiveEmail { get; set; }
+
+        /// <summary>Preferred language ("en", "pt-BR", "es", "fr"). Optional.</summary>
+        [MaxLength(10)]
+        public string? Language { get; set; }
 
         public string? Address { get; set; }
         public string? ZipCode { get; set; }

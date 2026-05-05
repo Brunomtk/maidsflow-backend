@@ -38,4 +38,20 @@ public class AppointmentMessageLog : BaseModel
 
     public string? LastError { get; set; }
     public string? LastErrorRaw { get; set; }
+
+    // --- Messaging Compliance audit fields (added by Twilio A2P 10DLC compliance work) ---
+    /// <summary>The actual phone number used to send (whether company-owned Twilio or trial fallback).</summary>
+    public string? SenderPhoneE164 { get; set; }
+
+    /// <summary>"CompanyTwilioNumber" | "MaidsFlowTrialNumber" | null when blocked.</summary>
+    public string? SenderSource { get; set; }
+
+    /// <summary>Snapshot of the company's messaging profile status at the time of send/block.</summary>
+    public string? MessagingProfileStatus { get; set; }
+
+    /// <summary>True when this attempt was prevented from being sent due to compliance policy.</summary>
+    public bool WasBlockedByMessagingPolicy { get; set; }
+
+    /// <summary>Machine-readable reason code: "TrialExpiredNoApprovedCompanyNumber", "MessagingSuspended", etc.</summary>
+    public string? MessagingBlockReason { get; set; }
 }

@@ -192,6 +192,39 @@ public class S3StorageService : IS3StorageService
         return new PresignedUploadResult(key, url, expiresAt);
     }
 
+    public PresignedUploadResult CreateMessagingDocumentUploadUrl(int companyId, string documentType, string fileName, string contentType)
+    {
+        if (companyId <= 0) throw new ArgumentOutOfRangeException(nameof(companyId));
+        if (string.IsNullOrWhiteSpace(_opt.BucketName))
+            throw new InvalidOperationException("S3 BucketName não configurado. Configure em appsettings (S3:BucketName) ou variável de ambiente.");
+
+        var ext = Path.GetExtension(fileName);
+        if (string.IsNullOrWhiteSpace(ext)) ext = ".bin";
+
+        var safeType = string.IsNullOrWhiteSpace(documentType) ? "Other" : documentType;
+        // Allow only letters/digits/hyphen in the documentType segment
+        var cleanType = new string(safeType.Where(c => char.IsLetterOrDigit(c) || c == '-').ToArray());
+        if (string.IsNullOrEmpty(cleanType)) cleanType = "Other";
+
+        var prefix = string.IsNullOrWhiteSpace(_opt.MessagingDocumentsPrefix) ? "MessagingDocuments/" : _opt.MessagingDocumentsPrefix;
+        if (!prefix.EndsWith('/')) prefix += "/";
+        var key = $"{prefix}{companyId}/{cleanType}/{Guid.NewGuid():N}{ext}";
+
+        var expiresAt = DateTimeOffset.UtcNow.AddMinutes(_opt.UploadUrlExpiresMinutes <= 0 ? 10 : _opt.UploadUrlExpiresMinutes);
+
+        var req = new GetPreSignedUrlRequest
+        {
+            BucketName = _opt.BucketName,
+            Key = key,
+            Verb = HttpVerb.PUT,
+            Protocol = Protocol.HTTPS,
+            Expires = expiresAt.UtcDateTime
+        };
+
+        var url = _s3.GetPreSignedURL(req);
+        return new PresignedUploadResult(key, url, expiresAt);
+    }
+
     public string? CreateDownloadUrl(string key, int? expiresMinutes = null)
     {
         if (string.IsNullOrWhiteSpace(_opt.BucketName)) return key;

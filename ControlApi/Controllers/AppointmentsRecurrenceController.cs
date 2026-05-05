@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Services.Integrations.Twilio;
+using Services.Localization;
 using Services.Security;
 
 namespace ControlApi.Controllers
@@ -22,12 +23,21 @@ namespace ControlApi.Controllers
         private readonly DbContextClass _db;
         private readonly ITwilioSmsSender _sms;
         private readonly ICurrentUser _currentUser;
+        private readonly IMessageLocalizer _loc;
+        private readonly IRecipientLanguageResolver _langResolver;
 
-        public AppointmentsRecurrenceController(DbContextClass db, ITwilioSmsSender sms, ICurrentUser currentUser)
+        public AppointmentsRecurrenceController(
+            DbContextClass db,
+            ITwilioSmsSender sms,
+            ICurrentUser currentUser,
+            IMessageLocalizer loc,
+            IRecipientLanguageResolver langResolver)
         {
             _db = db;
             _sms = sms;
             _currentUser = currentUser;
+            _loc = loc;
+            _langResolver = langResolver;
         }
 
         private static string BuildCustomerAddressLine(CustomerAddress addr)
@@ -421,13 +431,19 @@ public async Task<IActionResult> GetCalendar(
             navCustomerAddress: a.CustomerAddress,
             legacyCustomerAddress: a.Customer?.Address);
 
+        var resolvedCustomerPhone = !string.IsNullOrWhiteSpace(a.CustomerAddress?.Phone) ? a.CustomerAddress.Phone : a.Customer?.Phone;
+        var resolvedCustomerPhone2 = !string.IsNullOrWhiteSpace(a.CustomerAddress?.Phone2) ? a.CustomerAddress.Phone2 : a.Customer?.Phone2;
+
         var customerMini = a.Customer != null
             ? new CalendarCustomerMiniDTO
             {
                 Id = a.Customer.Id,
                 Name = a.Customer.Name,
                 Email = a.Customer.Email,
-                Phone = a.Customer.Phone,
+                Phone = resolvedCustomerPhone,
+                Phone2 = resolvedCustomerPhone2,
+                AddressPhone = a.CustomerAddress?.Phone,
+                AddressPhone2 = a.CustomerAddress?.Phone2,
                 Address = string.IsNullOrWhiteSpace(resolvedAddress) ? a.Customer.Address : resolvedAddress,
                 ReceiveSms = a.Customer.ReceiveSms,
                 ReceiveEmail = a.Customer.ReceiveEmail,
@@ -455,7 +471,10 @@ public async Task<IActionResult> GetCalendar(
             Notes = a.Notes,
 
             CustomerEmail = a.Customer?.Email,
-            CustomerPhone = a.Customer?.Phone,
+            CustomerPhone = resolvedCustomerPhone,
+            CustomerPhone2 = resolvedCustomerPhone2,
+            CustomerAddressPhone = a.CustomerAddress?.Phone,
+            CustomerAddressPhone2 = a.CustomerAddress?.Phone2,
             CustomerAddress = string.IsNullOrWhiteSpace(resolvedAddress) ? a.Customer?.Address : resolvedAddress,
 
             CompanyName = a.Company?.Name,
@@ -502,7 +521,10 @@ public async Task<IActionResult> GetCalendar(
                 Id = customerBase.Id,
                 Name = customerBase.Name,
                 Email = customerBase.Email,
-                Phone = customerBase.Phone,
+                Phone = !string.IsNullOrWhiteSpace(anchor.CustomerAddress?.Phone) ? anchor.CustomerAddress.Phone : customerBase.Phone,
+                Phone2 = !string.IsNullOrWhiteSpace(anchor.CustomerAddress?.Phone2) ? anchor.CustomerAddress.Phone2 : customerBase.Phone2,
+                AddressPhone = anchor.CustomerAddress?.Phone,
+                AddressPhone2 = anchor.CustomerAddress?.Phone2,
                 Address = string.IsNullOrWhiteSpace(resolvedAddress) ? customerBase.Address : resolvedAddress,
                 ReceiveSms = customerBase.ReceiveSms,
                 ReceiveEmail = customerBase.ReceiveEmail,
@@ -591,7 +613,10 @@ public async Task<IActionResult> GetCalendar(
                     Notes = ex.OverrideNotes ?? anchor.Notes,
 
                     CustomerEmail = anchor.Customer?.Email,
-                    CustomerPhone = anchor.Customer?.Phone,
+                    CustomerPhone = !string.IsNullOrWhiteSpace(anchor.CustomerAddress?.Phone) ? anchor.CustomerAddress.Phone : anchor.Customer?.Phone,
+                    CustomerPhone2 = !string.IsNullOrWhiteSpace(anchor.CustomerAddress?.Phone2) ? anchor.CustomerAddress.Phone2 : anchor.Customer?.Phone2,
+                    CustomerAddressPhone = anchor.CustomerAddress?.Phone,
+                    CustomerAddressPhone2 = anchor.CustomerAddress?.Phone2,
                     CustomerAddress = string.IsNullOrWhiteSpace(resolvedAddress) ? anchor.Customer?.Address : resolvedAddress,
 
                     CompanyName = anchor.Company?.Name,
@@ -662,7 +687,10 @@ public async Task<IActionResult> GetCalendar(
                 Notes = anchor.Notes,
 
                 CustomerEmail = anchor.Customer?.Email,
-                CustomerPhone = anchor.Customer?.Phone,
+                CustomerPhone = !string.IsNullOrWhiteSpace(anchor.CustomerAddress?.Phone) ? anchor.CustomerAddress.Phone : anchor.Customer?.Phone,
+                    CustomerPhone2 = !string.IsNullOrWhiteSpace(anchor.CustomerAddress?.Phone2) ? anchor.CustomerAddress.Phone2 : anchor.Customer?.Phone2,
+                    CustomerAddressPhone = anchor.CustomerAddress?.Phone,
+                    CustomerAddressPhone2 = anchor.CustomerAddress?.Phone2,
                 CustomerAddress = string.IsNullOrWhiteSpace(resolvedAddressNoEx) ? anchor.Customer?.Address : resolvedAddressNoEx,
 
                 CompanyName = anchor.Company?.Name,
@@ -819,9 +847,20 @@ public async Task<IActionResult> SendOnMyWaySmsInstance(
     if (string.IsNullOrWhiteSpace(address))
         return BadRequest("Não foi possível determinar o endereço da ocorrência.");
 
-    var body =
-        $"DON'T REPLY. Hi {customerName}, this is {companyName}. Our team is on the way and will arrive in approximately {eta} minutes at {address}. " +
-        $"If you need to change your appointment, get in touch with {companyName}. Reply STOP to unsubscribe.";
+    // Resolve recipient language (Customer.Language → Company.Language → "en")
+    var customerIdFromAnchor = anchor.CustomerId ?? 0;
+    var language = customerIdFromAnchor > 0
+        ? await _langResolver.ForCustomerAsync(customerIdFromAnchor, ct)
+        : await _langResolver.ForCompanyAsync(anchor.CompanyId, ct);
+
+    var body = _loc.Get("sms.onMyWay.body", language, new
+    {
+        customer = customerName,
+        minutes = eta,
+        company = companyName,
+        address = address
+    });
+    body = "DON'T REPLY. " + body + " Reply STOP to unsubscribe.";
 
 try
     {

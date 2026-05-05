@@ -8,6 +8,7 @@ using Infrastructure.Repositories;
 using Infrastructure.Security;
 using Microsoft.Extensions.Options;
 using Services.Integrations.SendGrid;
+using Services.Localization;
 using Services.Security;
 
 namespace Services.Email;
@@ -19,19 +20,25 @@ public class CredentialsEmailService : ICredentialsEmailService
     private readonly IScopeGuard _scope;
     private readonly ISendGridEmailSender _emailSender;
     private readonly SendGridOptions _options;
+    private readonly IMessageLocalizer _loc;
+    private readonly IRecipientLanguageResolver _langResolver;
 
     public CredentialsEmailService(
         IUnitOfWork uow,
         ICurrentUser currentUser,
         IScopeGuard scope,
         ISendGridEmailSender emailSender,
-        IOptions<SendGridOptions> options)
+        IOptions<SendGridOptions> options,
+        IMessageLocalizer loc,
+        IRecipientLanguageResolver langResolver)
     {
         _uow = uow;
         _currentUser = currentUser;
         _scope = scope;
         _emailSender = emailSender;
         _options = options.Value;
+        _loc = loc;
+        _langResolver = langResolver;
     }
 
     public async Task<SendCredentialsResult> SendUserCredentialsAsync(
@@ -96,9 +103,13 @@ public class CredentialsEmailService : ICredentialsEmailService
 
         var role = string.IsNullOrWhiteSpace(user.Role) ? "user" : user.Role;
         var url = string.IsNullOrWhiteSpace(loginUrl) ? _options.SupportUrl : loginUrl;
-        var subject = string.IsNullOrWhiteSpace(_options.CredentialsSubject)
-            ? "Your MaidsFlow access credentials"
-            : _options.CredentialsSubject;
+
+        // Resolve recipient language (User.Language -> Company.Language -> "en")
+        var language = _langResolver.Resolve(user.Language);
+        if (string.IsNullOrWhiteSpace(user.Language) && user.CompanyId.HasValue)
+        {
+            language = await _langResolver.ForUserAsync(user.Id, ct);
+        }
 
         var rendered = CredentialsEmailTemplate.Render(
             new CredentialsEmailTemplate.Payload(
@@ -109,7 +120,8 @@ public class CredentialsEmailService : ICredentialsEmailService
                 Role: role,
                 LoginUrl: url
             ),
-            subject
+            _loc,
+            language
         );
 
         var send = await _emailSender.SendAsync(new SendGridEmailMessage(
@@ -162,9 +174,8 @@ public class CredentialsEmailService : ICredentialsEmailService
 
         var companyName = await ResolveCompanyNameAsync(user);
         var url = string.IsNullOrWhiteSpace(loginUrl) ? _options.SupportUrl : loginUrl;
-        var subject = string.IsNullOrWhiteSpace(_options.PasswordChangedSubject)
-            ? "Your MaidsFlow password was changed"
-            : _options.PasswordChangedSubject;
+
+        var language = await _langResolver.ForUserAsync(user.Id, ct);
 
         var rendered = PasswordChangedEmailTemplate.Render(
             new PasswordChangedEmailTemplate.Payload(
@@ -174,7 +185,8 @@ public class CredentialsEmailService : ICredentialsEmailService
                 LoginUrl: url,
                 ChangedAtUtc: DateTime.UtcNow
             ),
-            subject
+            _loc,
+            language
         );
 
         var send = await _emailSender.SendAsync(new SendGridEmailMessage(

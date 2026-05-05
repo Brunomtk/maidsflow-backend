@@ -16,6 +16,7 @@ using Microsoft.Extensions.Options;
 using Services;
 using Services.Email;
 using Services.Integrations.SendGrid;
+using Services.Localization;
 
 namespace ControlApi.BackgroundJobs
 {
@@ -83,6 +84,8 @@ namespace ControlApi.BackgroundJobs
             var cfg = scope.ServiceProvider.GetRequiredService<IConfiguration>();
             var emailSvc = scope.ServiceProvider.GetRequiredService<IReviewRequestEmailService>();
             var sgOpt = scope.ServiceProvider.GetRequiredService<IOptions<SendGridOptions>>().Value;
+            var loc = scope.ServiceProvider.GetRequiredService<IMessageLocalizer>();
+            var langResolver = scope.ServiceProvider.GetRequiredService<IRecipientLanguageResolver>();
 
             var enabled = cfg.GetValue("AutoReviews:ReviewRequestAfterComplete:Enabled", true);
             if (!enabled)
@@ -302,6 +305,7 @@ namespace ControlApi.BackgroundJobs
                         ? "How was your service?"
                         : sgOpt.ReviewRequestSubject.Trim();
 
+                    var customerLanguage = await langResolver.ForCustomerAsync(customer.Id, ct);
                     var (_, renderedPlainText) = ReviewRequestEmailTemplate.Render(new ReviewRequestEmailTemplate.Model(
                         CustomerName: customer.Name ?? string.Empty,
                         CompanyName: companyName,
@@ -310,7 +314,7 @@ namespace ControlApi.BackgroundJobs
                         AddressLine: addressLine,
                         ReviewUrl: reviewUrl,
                         SupportUrl: string.IsNullOrWhiteSpace(sgOpt.SupportUrl) ? string.Empty : sgOpt.SupportUrl.Trim()
-                    ));
+                    ), loc, customerLanguage);
                     plainText = renderedPlainText;
 
                     await emailSvc.SendReviewRequestAsync(

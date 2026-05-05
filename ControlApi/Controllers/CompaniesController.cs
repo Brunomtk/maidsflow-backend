@@ -35,6 +35,7 @@ namespace ControlApi.Controllers
                 Phone = c.Phone,
                 ReceiveSms = c.ReceiveSms,
                 ReceiveEmail = c.ReceiveEmail,
+                Language = c.Language,
                 PlanId = c.PlanId,
                 PlanName = c.Plan?.Name,
                 AvatarKey = c.AvatarKey,
@@ -83,6 +84,7 @@ namespace ControlApi.Controllers
                 Phone = request.Phone,
                 ReceiveSms = request.ReceiveSms,
                 ReceiveEmail = request.ReceiveEmail,
+                Language = string.IsNullOrWhiteSpace(request.Language) ? null : request.Language,
                 PlanId = request.PlanId,
                 Status = request.Status,
                 HasCompletedInitialSetup = request.HasCompletedInitialSetup ?? false
