@@ -145,7 +145,7 @@ public class MessagingTodayService : IMessagingTodayService
                 CompanyName = compName,
                 CustomerId = o.CustomerId,
                 CustomerName = cust?.Name,
-                RecipientPhone = cust?.Phone,
+                RecipientPhone = !string.IsNullOrWhiteSpace(cust?.Phone) ? cust!.Phone : cust?.Phone2,
                 Kind = nameof(AppointmentMessageKind.ConfirmationSms24h),
                 Channel = "Sms",
                 Status = match == null ? "Pending"
@@ -223,26 +223,51 @@ public class MessagingTodayService : IMessagingTodayService
 
             try
             {
-                // ----- Re-validate appointment is still Scheduled (status=0) -----
-                // This guards against the case where the user listed the plan, then cancelled
-                // the appointment, then clicked "Send all now". We don't want to send to a
+                // ----- Re-validate appointment is still Scheduled -----
+                // Guards against the case where the user listed the plan, then cancelled the
+                // appointment, then clicked "Send all now". We don't want to send to a
                 // cancelled / completed / no-show appointment.
                 var stillScheduled = await _db.Appointments.AsNoTracking()
                     .Where(a => a.Id == item.AppointmentId)
-                    .Select(a => new { a.Status, a.Start })
+                    .Select(a => new { a.Status, a.Start, a.TimeZoneId })
                     .FirstOrDefaultAsync(ct);
-                if (stillScheduled == null || (int)stillScheduled.Status != 0)
+                if (stillScheduled == null || stillScheduled.Status != AppointmentStatus.Scheduled)
                 {
                     skipped++;
                     continue;
                 }
-                // Also defend against the appointment being moved while the panel was open:
-                // if the current Start drifted more than 60 min from what we listed, skip too.
-                if (Math.Abs((stillScheduled.Start - item.OccurrenceStartUtc).TotalMinutes) > 60)
+
+                // Pre-load customer phone+state so we can resolve TZ correctly
+                string? custPhone = null, custState = null;
+                if (item.CustomerId.HasValue)
+                {
+                    var phoneState = await _db.Customers.AsNoTracking()
+                        .Where(c => c.Id == item.CustomerId.Value)
+                        .Select(c => new { c.Phone, c.Phone2, c.State })
+                        .FirstOrDefaultAsync(ct);
+                    if (phoneState != null)
+                    {
+                        custPhone = !string.IsNullOrWhiteSpace(phoneState.Phone) ? phoneState.Phone : phoneState.Phone2;
+                        custState = phoneState.State;
+                    }
+                }
+                var tz = MessagingTimeZoneResolver.Resolve(custPhone, custState, stillScheduled.TimeZoneId);
+
+                // Convert the appointment's "local-clock-time stored as UTC" to real UTC for drift compare.
+                DateTime stillStartUtc;
+                try { stillStartUtc = MessagingTimeZoneResolver.LocalToUtc(stillScheduled.Start, tz); }
+                catch { stillStartUtc = stillScheduled.Start; }
+
+                if (Math.Abs((stillStartUtc - item.OccurrenceStartUtc).TotalMinutes) > 60)
                 {
                     skipped++;
                     continue;
                 }
+
+                // Compute the customer-local clock-time used in message bodies (and rendered for display).
+                DateTime localClock;
+                try { localClock = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(item.OccurrenceStartUtc, DateTimeKind.Utc), tz); }
+                catch { localClock = item.OccurrenceStartUtc; }
 
                 // ----- Resolve customer prefs + language ONCE per item -----
                 bool? receiveSms = null, receiveEmail = null;
@@ -273,7 +298,21 @@ public class MessagingTodayService : IMessagingTodayService
                         continue;
                     }
 
-                    var localTime = item.OccurrenceStartUtc.ToString("MMM dd, h:mm tt");
+                    // Defensive re-check: SMS may have been sent between ListTodayAsync and now.
+                    // Postgres-safe: pull candidate rows then filter in memory.
+                    var smsCandidates = await _db.AppointmentMessageLogs.AsNoTracking()
+                        .Where(l => l.AppointmentId == item.AppointmentId &&
+                                    l.Kind == AppointmentMessageKind.ConfirmationSms24h &&
+                                    l.Channel == AppointmentMessageChannel.Sms &&
+                                    (l.Status == AppointmentMessageStatus.Sent ||
+                                     l.Status == AppointmentMessageStatus.Pending))
+                        .Select(l => new { l.OccurrenceStartUtc })
+                        .ToListAsync(ct);
+                    bool smsAlready = smsCandidates.Any(l => l.OccurrenceStartUtc.HasValue &&
+                        Math.Abs((l.OccurrenceStartUtc.Value - item.OccurrenceStartUtc).TotalMinutes) <= 60);
+                    if (smsAlready) { skipped++; continue; }
+
+                    var localTime = localClock.ToString("MMM dd, h:mm tt");
                     var body = lang switch
                     {
                         "pt-br" or "pt" => $"Oi {customerName}! Lembrete: seu serviço com {companyName} está agendado para {localTime}. Responda STOP para cancelar.",
@@ -320,7 +359,7 @@ public class MessagingTodayService : IMessagingTodayService
                                         l.OccurrenceStartUtc == item.OccurrenceStartUtc), ct);
                     if (alreadyForOcc) { skipped++; continue; }
 
-                    var localTime = item.OccurrenceStartUtc.ToString("dddd, MMMM d, yyyy 'at' h:mm tt");
+                    var localTime = localClock.ToString("dddd, MMMM d, yyyy 'at' h:mm tt");
                     string subject; string html;
                     switch (lang)
                     {
@@ -421,43 +460,79 @@ public class MessagingTodayService : IMessagingTodayService
 
     private record TargetOccurrence(int AppointmentId, int CompanyId, int? CustomerId, Guid? SeriesId, DateTime Start, DateTime End);
 
-    private async Task<List<TargetOccurrence>> CollectOccurrencesAsync(DateTime windowStart, DateTime windowEnd, CancellationToken ct)
+    private async Task<List<TargetOccurrence>> CollectOccurrencesAsync(DateTime windowStartUtc, DateTime windowEndUtc, CancellationToken ct)
     {
         var list = new List<TargetOccurrence>();
+        var paddedStart = windowStartUtc.AddDays(-2);
+        var paddedEnd = windowEndUtc.AddDays(2);
 
-        var normals = await _db.Appointments.AsNoTracking()
-            .Where(a => !a.IsRecurring &&
-                        a.Status == 0 &&
-                        a.Start >= windowStart && a.Start <= windowEnd)
-            .Select(a => new { a.Id, a.CompanyId, a.CustomerId, a.Start, a.End })
-            .ToListAsync(ct);
-        list.AddRange(normals.Select(n => new TargetOccurrence(n.Id, n.CompanyId, n.CustomerId, null, n.Start, n.End)));
+        // 1) Normal (non-recurring) — TZ derived from customer's phone+state
+        var normals = await (
+            from a in _db.Appointments.AsNoTracking()
+            join c in _db.Customers.AsNoTracking() on a.CustomerId equals c.Id into gc
+            from c in gc.DefaultIfEmpty()
+            where !a.IsRecurring && a.Status == AppointmentStatus.Scheduled &&
+                  a.Start >= paddedStart && a.Start <= paddedEnd
+            select new { a.Id, a.CompanyId, a.CustomerId, a.Start, a.End, a.TimeZoneId,
+                         CustPhone = c != null ? (!string.IsNullOrWhiteSpace(c.Phone) ? c.Phone : c.Phone2) : null,
+                         CustState = c != null ? c.State : null }
+        ).ToListAsync(ct);
 
+        foreach (var n in normals)
+        {
+            var tz = MessagingTimeZoneResolver.Resolve(n.CustPhone, n.CustState, n.TimeZoneId);
+            var startUtc = MessagingTimeZoneResolver.LocalToUtc(n.Start, tz);
+            if (startUtc < windowStartUtc || startUtc > windowEndUtc) continue;
+            var endUtc = MessagingTimeZoneResolver.LocalToUtc(n.End, tz);
+            list.Add(new TargetOccurrence(n.Id, n.CompanyId, n.CustomerId, null, startUtc, endUtc));
+        }
+
+        // 2) Recurring anchors
         var anchors = await _db.Appointments.AsNoTracking()
-            .Where(a => a.IsRecurring && a.Status == 0 &&
+            .Where(a => a.IsRecurring && a.Status == AppointmentStatus.Scheduled &&
                         a.SeriesId != null && !string.IsNullOrWhiteSpace(a.RecurrenceRule) &&
-                        a.Start <= windowEnd &&
-                        (a.RecurrenceEnd == null || a.RecurrenceEnd >= windowStart))
+                        a.Start <= paddedEnd &&
+                        (a.RecurrenceEnd == null || a.RecurrenceEnd >= paddedStart))
             .ToListAsync(ct);
 
         var seriesIds = anchors.Select(a => a.SeriesId!.Value).Distinct().ToList();
-        var exceptions = await _db.Set<AppointmentRecurrenceException>().AsNoTracking()
-            .Where(e => seriesIds.Contains(e.SeriesId) &&
-                        e.OccurrenceStart >= windowStart.AddDays(-1) &&
-                        e.OccurrenceStart <= windowEnd.AddDays(1))
-            .Select(e => new { e.SeriesId, e.OccurrenceStart, e.IsCancelled })
-            .ToListAsync(ct);
+        List<AppointmentRecurrenceException> exceptions = new();
+        if (seriesIds.Count > 0)
+        {
+            exceptions = await _db.Set<AppointmentRecurrenceException>().AsNoTracking()
+                .Where(e => seriesIds.Contains(e.SeriesId))
+                .ToListAsync(ct);
+        }
+        var exBySeries = exceptions.GroupBy(e => e.SeriesId)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<AppointmentRecurrenceException>)g.ToList());
+
+        var anchorCustIds = anchors.Where(a => a.CustomerId.HasValue).Select(a => a.CustomerId!.Value).Distinct().ToList();
+        var custLookup = new Dictionary<int, (string? Phone, string? State)>();
+        if (anchorCustIds.Count > 0)
+        {
+            var rows = await _db.Customers.AsNoTracking()
+                .Where(c => anchorCustIds.Contains(c.Id))
+                .Select(c => new { c.Id, c.Phone, c.Phone2, c.State })
+                .ToListAsync(ct);
+            foreach (var r in rows)
+            {
+                var bestPhone = !string.IsNullOrWhiteSpace(r.Phone) ? r.Phone : r.Phone2;
+                custLookup[r.Id] = (bestPhone, r.State);
+            }
+        }
 
         foreach (var anchor in anchors)
         {
-            foreach (var occ in RecurrenceEnumerator.ExpandInWindow(anchor, windowStart, windowEnd))
+            string? cphone = null, cstate = null;
+            if (anchor.CustomerId.HasValue && custLookup.TryGetValue(anchor.CustomerId.Value, out var cc))
             {
-                bool isCancelled = exceptions.Any(e =>
-                    e.SeriesId == anchor.SeriesId!.Value &&
-                    e.IsCancelled &&
-                    e.OccurrenceStart == occ.Start);
-                if (isCancelled) continue;
-                list.Add(new TargetOccurrence(anchor.Id, anchor.CompanyId, anchor.CustomerId, anchor.SeriesId, occ.Start, occ.End));
+                cphone = cc.Phone; cstate = cc.State;
+            }
+            var tz = MessagingTimeZoneResolver.Resolve(cphone, cstate, anchor.TimeZoneId);
+            exBySeries.TryGetValue(anchor.SeriesId!.Value, out var seriesEx);
+            foreach (var occ in RecurrenceEnumerator.ExpandInWindow(anchor, windowStartUtc, windowEndUtc, tz, seriesEx))
+            {
+                list.Add(new TargetOccurrence(anchor.Id, anchor.CompanyId, anchor.CustomerId, anchor.SeriesId, occ.StartUtc, occ.EndUtc));
             }
         }
 

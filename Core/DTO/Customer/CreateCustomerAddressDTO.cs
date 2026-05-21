@@ -17,10 +17,8 @@ namespace Core.DTO.Customer
         public string? State { get; set; }
         public string? ZipCode { get; set; }
 
-        [Phone]
         public string? Phone { get; set; }
 
-        [Phone]
         public string? Phone2 { get; set; }
 
         public string? Observations { get; set; }

@@ -20,10 +20,8 @@ namespace Core.DTO.Customer
         [EmailAddress]
         public string? Email { get; set; }
 
-        [Phone]
         public string? Phone { get; set; }
 
-        [Phone]
         public string? Phone2 { get; set; }
 
         public string? ZipCode { get; set; }

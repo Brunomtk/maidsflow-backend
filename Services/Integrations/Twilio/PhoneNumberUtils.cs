@@ -46,10 +46,16 @@ public static class PhoneNumberUtils
 
         // US/CA common cases
         if (onlyDigits.Length == 10)
+        {
+            EnsureValidNanpAreaCode(onlyDigits, paramName);
             return "+1" + onlyDigits;
+        }
 
         if (onlyDigits.Length == 11 && onlyDigits.StartsWith("1"))
+        {
+            EnsureValidNanpAreaCode(onlyDigits[1..], paramName);
             return "+" + onlyDigits;
+        }
 
         // Brazil common cases (55 + DDD + number)
         if ((onlyDigits.Length == 12 || onlyDigits.Length == 13) && onlyDigits.StartsWith("55"))
@@ -60,5 +66,24 @@ public static class PhoneNumberUtils
             return "+" + onlyDigits;
 
         throw new TwilioValidationException("Phone number must be in E.164 format (e.g., +18134698765).", paramName);
+    }
+
+    /// <summary>
+    /// Validates a 10-digit NANP (US/CA) phone for the most obvious bogus patterns:
+    ///   - Area code (positions 1-3): first digit MUST be 2-9 (NANP rule).
+    ///   - Central office code (positions 4-6): first digit MUST be 2-9.
+    /// Examples that get rejected: (154) 122-3292, (012) 555-0000, (101) 555-1234.
+    /// </summary>
+    private static void EnsureValidNanpAreaCode(string tenDigits, string paramName)
+    {
+        if (tenDigits.Length != 10) return; // sanity
+        char areaFirst = tenDigits[0];
+        char centralFirst = tenDigits[3];
+        if (areaFirst == '0' || areaFirst == '1')
+            throw new TwilioValidationException(
+                $"Phone number has invalid US/CA area code starting with '{areaFirst}' (must be 2-9).", paramName);
+        if (centralFirst == '0' || centralFirst == '1')
+            throw new TwilioValidationException(
+                $"Phone number has invalid US/CA central office code starting with '{centralFirst}' (must be 2-9).", paramName);
     }
 }

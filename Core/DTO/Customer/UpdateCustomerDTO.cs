@@ -13,7 +13,6 @@ namespace Core.DTO.Customer
         public string? Email { get; set; }
         public string? Phone { get; set; }
 
-        [Phone]
         public string? Phone2 { get; set; }
 
         public bool? ReceiveSms { get; set; }

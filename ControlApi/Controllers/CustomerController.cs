@@ -354,6 +354,9 @@ namespace ControlApi.Controllers
             return Ok(payments);
         }
 
+        private static string? Trimmed(string? s) =>
+            string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
         /// <summary>
         /// Cria um novo cliente.
         /// </summary>
@@ -364,22 +367,22 @@ namespace ControlApi.Controllers
 
             var customer = new Customer
             {
-                Name = dto.Name,
-                Ssn = dto.Ssn,
-                Email = dto.Email,
-                Phone = dto.Phone ?? string.Empty,
-                Phone2 = dto.Phone2,
-                Address = dto.Address,
-                ZipCode = dto.ZipCode,
-                City = dto.City ?? string.Empty,
-                State = dto.State ?? string.Empty,
-                Observations = dto.Observations,
+                Name = (dto.Name ?? string.Empty).Trim(),
+                Ssn = Trimmed(dto.Ssn),
+                Email = Trimmed(dto.Email),
+                Phone = Trimmed(dto.Phone) ?? string.Empty,
+                Phone2 = Trimmed(dto.Phone2),
+                Address = (dto.Address ?? string.Empty).Trim(),
+                ZipCode = Trimmed(dto.ZipCode),
+                City = Trimmed(dto.City) ?? string.Empty,
+                State = Trimmed(dto.State) ?? string.Empty,
+                Observations = Trimmed(dto.Observations),
                 Ticket = dto.Ticket,
-                Frequency = dto.Frequency,
-                PaymentMethod = dto.PaymentMethod,
+                Frequency = Trimmed(dto.Frequency),
+                PaymentMethod = Trimmed(dto.PaymentMethod),
                 ReceiveSms = dto.ReceiveSms,
                 ReceiveEmail = dto.ReceiveEmail,
-                Language = string.IsNullOrWhiteSpace(dto.Language) ? null : dto.Language,
+                Language = Trimmed(dto.Language),
                 CompanyId = dto.CompanyId
             };
 
@@ -398,24 +401,31 @@ namespace ControlApi.Controllers
             var existing = await _customerService.GetByIdAsync(dto.Id);
             if (existing == null) return NotFound();
 
-            existing.Name = dto.Name ?? existing.Name;
-            existing.Ssn = dto.Ssn ?? existing.Ssn;
-            existing.Email = dto.Email ?? existing.Email;
-            existing.Phone = dto.Phone ?? existing.Phone;
-            existing.Phone2 = dto.Phone2 ?? existing.Phone2;
+            // Trim and treat empty-string as null so we can distinguish "user didn't send" from "user cleared the field".
+            // Empty string from frontend → null on the entity (cleared field).
+            // null from frontend → keep existing.
+            if (dto.Name != null) existing.Name = dto.Name.Trim();
+            if (dto.Ssn != null) existing.Ssn = Trimmed(dto.Ssn);
+            if (dto.Email != null) existing.Email = Trimmed(dto.Email);
+            if (dto.Phone != null) existing.Phone = Trimmed(dto.Phone) ?? string.Empty;
+            if (dto.Phone2 != null) existing.Phone2 = Trimmed(dto.Phone2);
 
             if (dto.ReceiveSms.HasValue) existing.ReceiveSms = dto.ReceiveSms.Value;
             if (dto.ReceiveEmail.HasValue) existing.ReceiveEmail = dto.ReceiveEmail.Value;
-            if (!string.IsNullOrWhiteSpace(dto.Language)) existing.Language = dto.Language;
-            existing.Address = dto.Address ?? existing.Address;
-            existing.ZipCode = dto.ZipCode ?? existing.ZipCode;
-            existing.City = dto.City ?? existing.City;
-            existing.State = dto.State ?? existing.State;
-            existing.Observations = dto.Observations ?? existing.Observations;
+            if (dto.Language != null)
+            {
+                var lang = Trimmed(dto.Language);
+                if (lang != null) existing.Language = lang; // never null-out language
+            }
+            if (dto.Address != null) existing.Address = dto.Address.Trim();
+            if (dto.ZipCode != null) existing.ZipCode = Trimmed(dto.ZipCode);
+            if (dto.City != null) existing.City = Trimmed(dto.City) ?? string.Empty;
+            if (dto.State != null) existing.State = Trimmed(dto.State) ?? string.Empty;
+            if (dto.Observations != null) existing.Observations = Trimmed(dto.Observations);
 
-            existing.Ticket = dto.Ticket ?? existing.Ticket;
-            existing.Frequency = dto.Frequency ?? existing.Frequency;
-            existing.PaymentMethod = dto.PaymentMethod ?? existing.PaymentMethod;
+            if (dto.Ticket.HasValue) existing.Ticket = dto.Ticket.Value;
+            if (dto.Frequency != null) existing.Frequency = Trimmed(dto.Frequency);
+            if (dto.PaymentMethod != null) existing.PaymentMethod = Trimmed(dto.PaymentMethod);
 
             if (dto.Status.HasValue)
                 existing.Status = dto.Status.Value;

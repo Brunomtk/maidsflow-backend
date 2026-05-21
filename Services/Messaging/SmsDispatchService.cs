@@ -253,12 +253,98 @@ namespace Services.Messaging
             catch (Exception ex)
             {
                 log.Status = AppointmentMessageStatus.Failed;
-                log.LastError = ex.Message;
-                log.LastErrorRaw = ex.ToString();
 
-                // Compute next retry slot if still under max attempts
+                // ----- Friendly LastError + raw provider response -----
+                string friendlyMessage = ex.Message;
+                string? rawBody = null;
+                int? twilioCode = null;
+
+                if (ex is TwilioRequestException trex)
+                {
+                    rawBody = trex.ResponseBody;
+                    // Try to parse Twilio's JSON error body: { "code": 21211, "message": "Invalid 'To' Phone Number", ... }
+                    if (!string.IsNullOrWhiteSpace(rawBody))
+                    {
+                        try
+                        {
+                            using var doc = System.Text.Json.JsonDocument.Parse(rawBody);
+                            if (doc.RootElement.TryGetProperty("code", out var codeEl) && codeEl.TryGetInt32(out var c))
+                                twilioCode = c;
+                            if (doc.RootElement.TryGetProperty("message", out var msgEl))
+                            {
+                                var twMsg = msgEl.GetString();
+                                if (!string.IsNullOrWhiteSpace(twMsg))
+                                    friendlyMessage = twilioCode.HasValue ? $"Twilio {twilioCode}: {twMsg}" : twMsg!;
+                            }
+                        }
+                        catch { /* keep ex.Message as fallback */ }
+                    }
+                }
+
+                log.LastError = friendlyMessage;
+                log.LastErrorRaw = rawBody ?? ex.ToString();
+
+                // ----- Decide if this is a TERMINAL Twilio error (don't retry) -----
+                // See: https://www.twilio.com/docs/api/errors
+                //   21211 - Invalid 'To' Phone Number
+                //   21214 - 'To' phone number cannot be reached
+                //   21408 - Permission to send SMS to that country/region not enabled
+                //   21610 - Recipient unsubscribed (STOP)
+                //   21612 - 'To' not currently SMS-reachable via this carrier
+                //   21614 - 'To' is not a valid mobile number
+                //   30003 / 30005 / 30006 - Unreachable / unknown / landline
+                bool isTerminalTwilioError = twilioCode.HasValue && (
+                    twilioCode == 21211 || twilioCode == 21214 || twilioCode == 21408 ||
+                    twilioCode == 21610 || twilioCode == 21612 || twilioCode == 21614 ||
+                    twilioCode == 30003 || twilioCode == 30005 || twilioCode == 30006
+                );
+                bool isValidationError = ex is TwilioValidationException;
+                bool willRetry = !isTerminalTwilioError && !isValidationError && log.Attempt < MAX_ATTEMPTS;
+
+                // ----- Auto opt-out -----
+                // Mark Customer.ReceiveSms = false so the hosted services stop queueing new logs.
+                // Triggers:
+                //   - Twilio 21610: customer replied STOP at carrier level. They can opt back in
+                //     via START which is processed by TwilioWebhooksController.
+                //   - TwilioValidationException: phone number is locally invalid (e.g. NANP area
+                //     code starts with 0/1, malformed, missing). Will never work; disabling stops
+                //     wasting cycles on every batch.
+                bool shouldAutoDisable =
+                    twilioCode == 21610 ||
+                    twilioCode == 21211 || twilioCode == 21214 || twilioCode == 21614 || // Twilio: invalid To
+                    ex is TwilioValidationException;                                       // local: invalid format
+
+                if (shouldAutoDisable)
+                {
+                    string reason = ex is TwilioValidationException
+                        ? "invalid phone format"
+                        : (twilioCode == 21610 ? "21610 STOP"
+                           : $"Twilio {twilioCode} invalid 'To'");
+                    try
+                    {
+                        var appt = await _db.Appointments.AsNoTracking()
+                            .Where(a => a.Id == log.AppointmentId)
+                            .Select(a => new { a.CustomerId })
+                            .FirstOrDefaultAsync(ct);
+                        if (appt?.CustomerId != null)
+                        {
+                            var cust = await _db.Customers
+                                .Where(c => c.Id == appt.CustomerId.Value)
+                                .FirstOrDefaultAsync(ct);
+                            if (cust != null && cust.ReceiveSms)
+                            {
+                                cust.ReceiveSms = false;
+                                _logger.LogWarning("Auto-disabled ReceiveSms for customer {CustomerId} ({Phone}) — reason: {Reason}.", cust.Id, cust.Phone, reason);
+                            }
+                        }
+                    }
+                    catch (Exception autoEx)
+                    {
+                        _logger.LogError(autoEx, "Failed to auto-disable ReceiveSms (log {LogId}, reason {Reason}).", log.Id, reason);
+                    }
+                }
+
                 int nextAttemptIdx = Math.Clamp(log.Attempt - 1, 0, BACKOFF.Length - 1);
-                bool willRetry = log.Attempt < MAX_ATTEMPTS;
                 if (willRetry)
                 {
                     log.ScheduledForUtc = DateTime.UtcNow.Add(BACKOFF[nextAttemptIdx]);
@@ -269,14 +355,14 @@ namespace Services.Messaging
                 }
                 await _db.SaveChangesAsync(ct);
 
-                _logger.LogWarning(ex, "SMS send failed (attempt {Attempt}) for log {LogId}; will{Retry} retry",
-                    log.Attempt, log.Id, willRetry ? "" : " not");
+                _logger.LogWarning(ex, "SMS send failed (attempt {Attempt}) for log {LogId}; twilio_code={Code} terminal={Terminal} willRetry={Retry}",
+                    log.Attempt, log.Id, twilioCode, isTerminalTwilioError || isValidationError, willRetry);
 
                 return new SmsDispatchResult
                 {
                     Outcome = willRetry ? SmsDispatchOutcome.FailedWillRetry : SmsDispatchOutcome.FailedTerminal,
                     MessageLogId = log.Id,
-                    Error = ex.Message,
+                    Error = friendlyMessage,
                     FromPhoneE164 = fromE164,
                     SenderSource = log.SenderSource,
                     Attempt = log.Attempt,
